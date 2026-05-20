@@ -31,7 +31,7 @@
   
   .thumb-box{border:2px dashed rgba(255,255,255,0.12);border-radius:12px;padding:14px;text-align:center;cursor:pointer;background:#1e1e2a;margin-bottom:14px}
   .thumb-box span{font-size:12px;color:#6a6a80}
-  .thumb-preview{width:44px;height:44px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-right:8px}
+  .thumb-preview{width:44px;height:44px;border-radius:8px;object-fit:cover;vertical-fit:cover;margin-right:8px}
   .row{display:flex;gap:10px}.row>div{flex:1}
   .rating-row{display:flex;gap:5px}
   .rating-btn{flex:1;padding:7px 0;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#1e1e2a;color:#6a6a80;border:1px solid rgba(255,255,255,0.08);text-align:center}
@@ -54,7 +54,7 @@
   .color-swatch.active{border:2px solid #fff;box-shadow:0 0 8px rgba(255,255,255,0.5);transform:scale(1.1)}
   .color-swatch:hover{transform:scale(1.15);box-shadow:0 2px 6px rgba(0,0,0,0.3)}
 
-  /* 에디터 하단 크레딧 레이아웃 정의 */
+  /* 에디터 하단 크레딧 요청 문구 커스텀 */
   .editor-credit{text-align:center;font-size:11px;color:#4e4e66;font-weight:600;letter-spacing:0.03em;margin-top:4px}
 </style>
 </head>
@@ -98,7 +98,7 @@
       <div class="field"><label id="lblReviewer">작성자</label><input type="text" id="inReviewer" value="" placeholder="@ID 또는 닉네임"></div>
       <button class="export-btn" id="exportBtn" onclick="exportImage()">📥 PNG 이미지 저장 + 태그 복사</button>
       
-      <div class="editor-credit">Created by coconut</div>
+      <div class="editor-credit">design by coconut</div>
     </div>
     <div class="preview-wrap">
       <p class="preview-label" id="lblPreview">미리보기</p>
@@ -413,10 +413,7 @@ function drawCard(ctx,W,H){
   ctx.fillStyle=isL?"rgba(0,0,0,0.6)":"rgba(255,255,255,0.65)";
   ctx.textAlign="right";ctx.fillText(`— ${v.reviewer}`,revX+revW,curY);ctx.textAlign="left";
 
-  // ===== 시그니처 닫는 바 영역 위에 코코넛 영문 크레딧 탑재 완료 =====
-  ctx.font="600 13px 'Pretendard',sans-serif";
-  ctx.fillStyle = isL ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.22)";
-  ctx.fillText("Card design by coconut", revX, curY+16);
+  // 요청에 따라 리뷰 이미지 하단의 크레딧 문구 드로잉 함수 완전히 제거 완료! 🎨
 
   // Accent line
   ctx.fillStyle=t.accent;drawRR(ctx,revX,curY+30,50,5,2.5);ctx.fill();
@@ -497,7 +494,6 @@ function exportImage(){
   });
 }
 
-// 초기 세팅 가동
 rebuildSelectors();
 setLanguage("ko");
 </script>
