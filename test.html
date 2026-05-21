@@ -19,6 +19,7 @@ body{min-height:100vh;background:#0c0c14;font-family:'Pretendard',-apple-system,
 .editor{flex:1 1 300px;max-width:380px;background:#16161e;border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.08);max-height:90vh;overflow-y:auto}
 .editor::-webkit-scrollbar{width:6px}.editor::-webkit-scrollbar-track{background:transparent}.editor::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,0.15);border-radius:3px}
 .preview-wrap{flex:1 1 400px;max-width:500px;display:flex;flex-direction:column;align-items:center}
+@media(max-width:780px){.preview-wrap{order:-1;flex-basis:100%;max-width:100%}}
 .preview-label{font-size:11px;color:#6a6a80;margin-bottom:8px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
 #preview{width:100%;max-width:480px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.4)}
 label{display:block;font-size:12px;font-weight:600;color:#6a6a80;margin-bottom:5px}
@@ -26,6 +27,7 @@ label{display:block;font-size:12px;font-weight:600;color:#6a6a80;margin-bottom:5
 input[type=text],select,textarea{width:100%;background:#1e1e2a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:9px 12px;font-size:14px;color:#e0e0e8;font-family:inherit;outline:none}
 select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236a6a80' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:12px}
 textarea{resize:vertical}
+::placeholder{color:#4e4e66}::-webkit-input-placeholder{color:#4e4e66}
 input[type=range]{width:100%;accent-color:#a8c8e8;background:#1e1e2a;height:6px;border-radius:3px;outline:none;cursor:pointer}
 .thumb-box{border:2px dashed rgba(255,255,255,0.12);border-radius:12px;padding:14px;text-align:center;cursor:pointer;background:#1e1e2a;margin-bottom:6px;transition:border-color .2s}
 .thumb-box span{font-size:12px;color:#6a6a80}
@@ -112,12 +114,12 @@ input[type=range]{width:100%;accent-color:#a8c8e8;background:#1e1e2a;height:6px;
           <button class="thumb-act-btn thumb-act-del" onclick="removeThumb()">🗑 제거</button>
         </div>
       </div>
-      <div class="field"><label id="lblTitle">작품 제목</label><input type="text" id="inTitle" value="작품 제목을 입력하세요"></div>
+      <div class="field"><label id="lblTitle">작품 제목</label><input type="text" id="inTitle" placeholder="작품 제목을 입력하세요"></div>
       <div class="row field">
-        <div><label id="lblCircle">제작사 (서클명)</label><input type="text" id="inCircle" value="서클명"></div>
-        <div><label id="lblArtist">성우명</label><input type="text" id="inArtist" value="CV. 성우명"></div>
+        <div><label id="lblCircle">제작사 (서클명)</label><input type="text" id="inCircle" placeholder="서클명"></div>
+        <div><label id="lblArtist">성우명</label><input type="text" id="inArtist" placeholder="CV. 성우명"></div>
       </div>
-      <div class="field"><label id="lblGenre">장르 · 키워드</label><input type="text" id="inGenre" value="로맨스 · 달달"></div>
+      <div class="field"><label id="lblGenre">장르 · 키워드</label><input type="text" id="inGenre" placeholder="로맨스 · 달달"></div>
       <div class="field"><label id="lblRating">등급</label><div class="rating-row" id="ratingRow"></div></div>
       <div class="field"><label id="lblStar">작품 별점</label><div class="rating-row" id="starSelectRow"></div></div>
       <div class="field"><label id="lblHeart">수위 · 농도</label><div class="rating-row" id="heartSelectRow"></div></div>
@@ -125,7 +127,7 @@ input[type=range]{width:100%;accent-color:#a8c8e8;background:#1e1e2a;height:6px;
         <label id="lblSlider">플레이 감성 재생 바 조절</label>
         <input type="range" id="progressSlider" min="0" max="1" step="0.01" value="0.55">
       </div>
-      <div class="field"><label id="lblReview">리뷰</label><textarea id="inReview" rows="4">이 보이스드라마는 정말 몰입감이 대단했어요. 성우분의 연기력이 돋보이는 작품입니다.</textarea></div>
+      <div class="field"><label id="lblReview">리뷰</label><textarea id="inReview" rows="4" placeholder="이 보이스드라마는 정말 몰입감이 대단했어요. 성우분의 연기력이 돋보이는 작품입니다."></textarea></div>
       <div class="field"><label id="lblColor">리뷰 텍스트 색상</label><div class="color-grid" id="colorGrid"></div></div>
       <div class="field"><label id="lblReviewer">작성자</label><input type="text" id="inReviewer" value="" placeholder="@ID 또는 닉네임"></div>
       <button class="export-btn" id="exportBtn" onclick="exportImage()">📥 이미지 저장</button>
@@ -172,9 +174,9 @@ input[type=range]{width:100%;accent-color:#a8c8e8;background:#1e1e2a;height:6px;
 const CARD_W=1080;
 let currentLang="ko";
 const I18N={
-  ko:{title:"🎧 보이스드라마 리뷰 카드",sub:"플레이어 스타일 리뷰 카드 메이커",theme:"테마",thumb:"썸네일",thumbIn:"클릭하여 업로드",thumbChange:"이미지 변경",canvasThumb:"이미지 업로드",workTitle:"작품 제목",circle:"제작사 (서클명)",artist:"성우명",genre:"장르 · 키워드",rating:"등급",star:"작품 별점",heart:"수위 · 농도",slider:"플레이 감성 재생 바 조절",review:"리뷰",color:"리뷰 텍스트 색상",reviewer:"작성자",preview:"미리보기",exportBtn:"📥 이미지 저장",reviewerPlace:"@ID 또는 닉네임",ratings:["선택안함","전연령","R15","R18"],stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
+  ko:{title:"🎧 보이스드라마 리뷰 카드",sub:"플레이어 스타일 리뷰 카드 메이커",theme:"테마",thumb:"썸네일",thumbIn:"클릭하여 업로드",thumbChange:"이미지 변경",canvasThumb:"이미지 업로드",workTitle:"작품 제목",circle:"제작사 (서클명)",artist:"성우명",genre:"장르 · 키워드",rating:"등급",star:"작품 별점",heart:"수위 · 농도",slider:"플레이 감성 재생 바 조절",review:"리뷰",color:"리뷰 텍스트 색상",reviewer:"작성자",preview:"미리보기",exportBtn:"📥 이미지 저장",reviewerPlace:"@ID 또는 닉네임",phTitle:"작품 제목을 입력하세요",phCircle:"서클명",phArtist:"CV. 성우명",phGenre:"로맨스 · 달달",phReview:"작품에 대한 리뷰를 작성해주세요",ratings:["선택안함","전연령","R15","R18"],stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",undo:"↩ 되돌리기",reset:"🗑 초기화",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",cropBtn:"선택 영역 자르기",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거"}},
-  ja:{title:"🎧 ボイスドラマ レビューカード",sub:"プレイヤー風レビューカードメーカー",theme:"テーマ",thumb:"サムネイル",thumbIn:"クリックしてアップロード",thumbChange:"画像を変更",canvasThumb:"画像アップロード",workTitle:"作品タイトル",circle:"サークル名",artist:"キャスト (CV)",genre:"ジャンル・キーワード",rating:"年齢制限",star:"作品の評価 (星)",heart:"えろ度・刺激度 (ハート)",slider:"再生バー位置の調整",review:"レビュー・感想",color:"レビューの文字色",reviewer:"レビュアー",preview:"プレビュー",exportBtn:"📥 画像を保存",reviewerPlace:"@ID または ニックネーム",ratings:["非表示","全年齢","R15","R18"],stars:["非表示","1/5","2/5","3/5","4/5","5/5"],hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
+  ja:{title:"🎧 ボイスドラマ レビューカード",sub:"プレイヤー風レビューカードメーカー",theme:"テーマ",thumb:"サムネイル",thumbIn:"クリックしてアップロード",thumbChange:"画像を変更",canvasThumb:"画像アップロード",workTitle:"作品タイトル",circle:"サークル名",artist:"キャスト (CV)",genre:"ジャンル・キーワード",rating:"年齢制限",star:"作品の評価 (星)",heart:"えろ度・刺激度 (ハート)",slider:"再生バー位置の調整",review:"レビュー・感想",color:"レビューの文字色",reviewer:"レビュアー",preview:"プレビュー",exportBtn:"📥 画像を保存",reviewerPlace:"@ID または ニックネーム",phTitle:"作品タイトルを入力",phCircle:"サークル名",phArtist:"CV. キャスト名",phGenre:"ロマンス・甘々",phReview:"作品のレビューを書いてください",ratings:["非表示","全年齢","R15","R18"],stars:["非表示","1/5","2/5","3/5","4/5","5/5"],hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",undo:"↩ 元に戻す",reset:"🗑 リセット",cancel:"キャンセル",apply:"✅ 適用",intensity:"濃度",brushSize:"ブラシ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除"}}
 };
 const THEMES=[["frost",{name:"Frost (투명톤 / 透明)",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],["mono",{name:"Mono (모노톤 / モノ)",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],["white",{name:"White (화이트 / 白)",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],["noir",{name:"Noir (누아르 / 黒)",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],["rose",{name:"Rose (로제 / 薔薇)",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}],["midnight",{name:"Midnight (미드나잇 / 夜)",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}]];
@@ -208,6 +210,7 @@ function setLanguage(lang){
   document.getElementById("btnJa").classList.toggle("active",lang==="ja");
   const d=I18N[lang];
   document.getElementById("headerTitle").textContent=d.title;document.getElementById("headerSub").textContent=d.sub;document.getElementById("lblTheme").textContent=d.theme;document.getElementById("lblThumb").textContent=d.thumb;document.getElementById("lblTitle").textContent=d.workTitle;document.getElementById("lblCircle").textContent=d.circle;document.getElementById("lblArtist").textContent=d.artist;document.getElementById("lblGenre").textContent=d.genre;document.getElementById("lblRating").textContent=d.rating;document.getElementById("lblStar").textContent=d.star;document.getElementById("lblHeart").textContent=d.heart;document.getElementById("lblSlider").textContent=d.slider;document.getElementById("lblReview").textContent=d.review;document.getElementById("lblColor").textContent=d.color;document.getElementById("lblReviewer").textContent=d.reviewer;document.getElementById("lblPreview").textContent=d.preview;document.getElementById("exportBtn").textContent=d.exportBtn;document.getElementById("inReviewer").placeholder=d.reviewerPlace;
+  document.getElementById("inTitle").placeholder=d.phTitle;document.getElementById("inCircle").placeholder=d.phCircle;document.getElementById("inArtist").placeholder=d.phArtist;document.getElementById("inGenre").placeholder=d.phGenre;document.getElementById("inReview").placeholder=d.phReview;
   // image editor i18n
   const ie=d.ie;
   document.getElementById("ieTitle").textContent=ie.title;
@@ -244,7 +247,7 @@ function drawCard(ctx,W,H){
   if(state.thumbImg){const img=state.thumbImg,sc=Math.max(ts/img.width,ts/img.height),sw=img.width*sc,sh=img.height*sc;ctx.drawImage(img,tx+(ts-sw)/2,ty+(ts-sh)/2,sw,sh);}else{ctx.fillStyle=isL?"rgba(0,0,0,0.06)":"rgba(255,255,255,0.06)";ctx.fillRect(tx,ty,ts,ts);ctx.fillStyle=t.sub;ctx.font="500 18px 'Pretendard',sans-serif";ctx.textAlign="center";ctx.fillText(I18N[currentLang].canvasThumb,tx+ts/2,ty+ts/2);ctx.textAlign="left";}
   ctx.restore();drawRR(ctx,tx,ty,ts,ts,20);ctx.strokeStyle=isL?"rgba(0,0,0,0.1)":"rgba(255,255,255,0.12)";ctx.lineWidth=1.5;ctx.stroke();
   const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2,tTop=ty+24;
-  ctx.font="700 30px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.textAlign="left";const tl=drawWrap(ctx,v.title,rX,tTop,rW,38,2);const aT=tTop+tl*38+4;
+  ctx.font="700 30px 'Pretendard',sans-serif";if(state.reviewColor==="#ffffff"||state.reviewColor==="#000000"){ctx.fillStyle=state.reviewColor+(isL?"c0":"e0");}else{ctx.fillStyle=state.reviewColor;}ctx.textAlign="left";const tl=drawWrap(ctx,v.title,rX,tTop,rW,38,2);const aT=tTop+tl*38+4;
   ctx.font="500 19px 'Pretendard',sans-serif";ctx.fillStyle=t.sub;ctx.fillText(v.circle+" / "+v.artist,rX,aT);
   const iY=aT+32,badge=state.ageRating;let sX=rX;
   if(badge!=="선택안함"){ctx.font="600 13px 'Pretendard',sans-serif";const bt=currentLang==="ja"?I18N.ja.ratings[I18N.ko.ratings.indexOf(badge)]:badge;const bW=ctx.measureText(bt).width+14;drawRR(ctx,rX,iY-13,bW,21,5);if(badge==="전연령")ctx.fillStyle="#2ecc71";else if(badge==="R15")ctx.fillStyle="#e67e22";else if(badge==="R18")ctx.fillStyle="#e74c3c";ctx.fill();ctx.fillStyle="#fff";ctx.fillText(bt,rX+7,iY+2);sX=rX+bW+10;}
