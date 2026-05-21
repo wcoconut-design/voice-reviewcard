@@ -19,6 +19,13 @@
 
   .layout{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
   .editor{flex:1 1 300px;max-width:380px;background:#16161e;border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.08);max-height:90vh;overflow-y:auto}
+  
+  /* 투명 스크롤바 디자인 적용 */
+  .editor::-webkit-scrollbar { width: 6px; }
+  .editor::-webkit-scrollbar-track { background: transparent; }
+  .editor::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+  .editor::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.3); }
+
   .preview-wrap{flex:1 1 400px;max-width:500px;display:flex;flex-direction:column;align-items:center}
   .preview-label{font-size:11px;color:#6a6a80;margin-bottom:8px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
   #preview{width:100%;max-width:480px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.4)}
@@ -41,20 +48,12 @@
   .rating-btn.active-r15{border:2px solid #e67e22;background:rgba(230,126,34,0.15);color:#fff}
   .rating-btn.active-r18{border:2px solid #e74c3c;background:rgba(231,76,60,0.15);color:#fff}
 
-  .score-row{display:flex;gap:6px;align-items:center}
-  .score-btn{font-size:22px;background:none;border:none;cursor:pointer;padding:0;line-height:1;color:rgba(255,255,255,0.12);transition:transform .1s}
-  .score-btn:hover{transform:scale(1.15)}
-  .score-btn.star-on{color:#ffb432;filter:drop-shadow(0 0 4px rgba(255,180,50,0.4))}
-  .score-btn.heart-on{color:#ff6b6b;filter:drop-shadow(0 0 4px rgba(255,100,100,0.4))}
-  .score-label{font-size:12px;color:#6a6a80;margin-left:4px;font-weight:600}
-
   .export-btn{width:100%;padding:13px 0;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;margin-bottom:14px}
   .color-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;background:#1e1e2a;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.08)}
   .color-swatch{width:26px;height:26px;border-radius:6px;cursor:pointer;border:1px solid rgba(0,0,0,0.15);transition:transform .15s,box-shadow .15s}
   .color-swatch.active{border:2px solid #fff;box-shadow:0 0 8px rgba(255,255,255,0.5);transform:scale(1.1)}
   .color-swatch:hover{transform:scale(1.15);box-shadow:0 2px 6px rgba(0,0,0,0.3)}
 
-  /* 에디터 하단 크레딧 요청 문구 커스텀 */
   .editor-credit{text-align:center;font-size:11px;color:#4e4e66;font-weight:600;letter-spacing:0.03em;margin-top:4px}
 </style>
 </head>
@@ -96,7 +95,7 @@
       <div class="field"><label id="lblReview">리뷰</label><textarea id="inReview" rows="4">이 보이스드라마는 정말 몰입감이 대단했어요. 성우분의 연기력이 돋보이는 작품입니다.</textarea></div>
       <div class="field"><label id="lblColor">리뷰 텍스트 색상</label><div class="color-grid" id="colorGrid"></div></div>
       <div class="field"><label id="lblReviewer">작성자</label><input type="text" id="inReviewer" value="" placeholder="@ID 또는 닉네임"></div>
-      <button class="export-btn" id="exportBtn" onclick="exportImage()">📥 PNG 이미지 저장 + 태그 복사</button>
+      <button class="export-btn" id="exportBtn" onclick="exportImage()">📥 PNG 이미지 저장</button>
       
       <div class="editor-credit">design by coconut</div>
     </div>
@@ -112,390 +111,93 @@ const CARD_W=1080;
 let currentLang = "ko";
 
 const I18N = {
-  ko: {
-    title: "🎧 보이스드라마 리뷰 카드", sub: "플레이어 스타일 리뷰 카드 메이커",
-    theme: "테마", thumb: "썸네일", thumbIn: "클릭하여 업로드", thumbChange: "이미지 변경", canvasThumb: "이미지 업로드",
-    workTitle: "작품 제목", circle: "제작사 (서클명)", artist: "성우명", genre: "장르 · 키워드",
-    rating: "등급", star: "작품 별점", heart: "수위 · 농도", slider: "플레이 감성 재생 바 조절",
-    review: "리뷰", color: "리뷰 텍스트 색상", reviewer: "작성자", preview: "미리보기",
-    exportBtn: "📥 PNG 이미지 저장 + 태그 복사", reviewerPlace: "@ID 또는 닉네임",
-    ratings: ["선택안함", "전연령", "R15", "R18"],
-    stars: ["선택안함", "1/5", "2/5", "3/5", "4/5", "5/5"],
-    hearts: ["선택안함", "❤ 1", "❤ 2", "❤ 3", "❤ 4", "❤ 5"],
-    alert: "📥 리뷰 이미지 저장 및 X(트위터) 업로드용 해시태그가 복사되었습니다! 글 작성창에 붙여넣기(Ctrl+V) 하세요."
-  },
-  ja: {
-    title: "🎧 ボイスドラマ レビューカード", sub: "プレイヤー風レビューカードメーカー",
-    theme: "テーマ", thumb: "サムネイル", thumbIn: "クリックしてアップロード", thumbChange: "画像を変更", canvasThumb: "画像アップロード",
-    workTitle: "作品タイトル", circle: "サークル名", artist: "キャスト (CV)", genre: "ジャンル・キーワード",
-    rating: "年齢制限", star: "作品の評価 (星)", heart: "えろ度・刺激度 (ハート)", slider: "再生バー位置の調整",
-    review: "レビュー・感想", color: "レビューの文字色", reviewer: "レビュアー", preview: "プレビュー",
-    exportBtn: "📥 画像を保存 + タグをコピー", reviewerPlace: "@ID または ニックネーム",
-    ratings: ["非表示", "全年齢", "R15", "R18"],
-    stars: ["非表示", "1/5", "2/5", "3/5", "4/5", "5/5"],
-    hearts: ["非表示", "❤ 1", "❤ 2", "❤ 3", "❤ 4", "❤ 5"],
-    alert: "📥 レビュー画像が保存され、X(Twitter)投稿用のハッシュタグがコピーされました！投稿画面でペースト(Ctrl+V)してください。"
-  }
+  ko: { title: "🎧 보이스드라마 리뷰 카드", sub: "플레이어 스타일 리뷰 카드 메이커", theme: "테마", thumb: "썸네일", thumbIn: "클릭하여 업로드", thumbChange: "이미지 변경", canvasThumb: "이미지 업로드", workTitle: "작품 제목", circle: "제작사 (서클명)", artist: "성우명", genre: "장르 · 키워드", rating: "등급", star: "작품 별점", heart: "수위 · 농도", slider: "플레이 감성 재생 바 조절", review: "리뷰", color: "리뷰 텍스트 색상", reviewer: "작성자", preview: "미리보기", exportBtn: "📥 PNG 이미지 저장", reviewerPlace: "@ID 또는 닉네임", ratings: ["선택안함", "전연령", "R15", "R18"], stars: ["선택안함", "1/5", "2/5", "3/5", "4/5", "5/5"], hearts: ["선택안함", "❤ 1", "❤ 2", "❤ 3", "❤ 4", "❤ 5"] },
+  ja: { title: "🎧 ボイスドラマ レビューカード", sub: "プレイヤー風レビューカードメーカー", theme: "テーマ", thumb: "サムネイル", thumbIn: "クリックしてアップロード", thumbChange: "画像を変更", canvasThumb: "画像アップロード", workTitle: "作品タイトル", circle: "サークル名", artist: "キャスト (CV)", genre: "ジャンル・キーワード", rating: "年齢制限", star: "作品の評価 (星)", heart: "えろ度・刺激度 (ハート)", slider: "再生バー位置の調整", review: "レビュー・感想", color: "レビューの文字色", reviewer: "レビュアー", preview: "プレビュー", exportBtn: "📥 画像を保存", reviewerPlace: "@ID または ニックネーム", ratings: ["非表示", "全年齢", "R15", "R18"], stars: ["非表示", "1/5", "2/5", "3/5", "4/5", "5/5"], hearts: ["非表示", "❤ 1", "❤ 2", "❤ 3", "❤ 4", "❤ 5"] }
 };
 
-const THEMES=[
-  ["frost",{name:"Frost (투명톤 / 透明)",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],
-  ["mono",{name:"Mono (모노톤 / モノ)",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],
-  ["white",{name:"White (화이트 / 白)",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],
-  ["noir",{name:"Noir (누아르 / 黒)",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],
-  ["rose",{name:"Rose (로제 / 薔薇)",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}],
-  ["midnight",{name:"Midnight (미드나잇 / 夜)",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}],
-];
+const THEMES=[ ["frost",{name:"Frost (투명톤 / 透明)",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}], ["mono",{name:"Mono (모노톤 / モノ)",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}], ["white",{name:"White (화이트 / 白)",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}], ["noir",{name:"Noir (누아르 / 黒)",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}], ["rose",{name:"Rose (로제 / 薔薇)",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}], ["midnight",{name:"Midnight (미드나잇 / 夜)",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}] ];
 const THEME_MAP=Object.fromEntries(THEMES);
 
-const TEXT_COLORS=[
-  {name:"순백색",hex:"#ffffff"},{name:"크림",hex:"#fdf6e3"},{name:"밀크티",hex:"#f4eccf"},{name:"연회색",hex:"#cccccc"},
-  {name:"진한 블랙",hex:"#000000"},{name:"차콜 다크",hex:"#2c3e50"},{name:"초콜릿 밤",hex:"#3e2723"},{name:"딥 네이비",hex:"#1a237e"},
-  {name:"파스텔 로즈",hex:"#ffb3c6"},{name:"피치 코랄",hex:"#ffd6c0"},{name:"소프트 옐로우",hex:"#fff3b0"},{name:"메론 민트",hex:"#b8f0d8"},
-  {name:"아쿠아 스카이",hex:"#a8d8ea"},{name:"라이트 라벤더",hex:"#d4c5f9"},{name:"비비드 코랄",hex:"#ff8a80"},{name:"네온 시안",hex:"#80deea"}
-];
+const TEXT_COLORS=[ {name:"순백색",hex:"#ffffff"},{name:"크림",hex:"#fdf6e3"},{name:"밀크티",hex:"#f4eccf"},{name:"연회색",hex:"#cccccc"},{name:"진한 블랙",hex:"#000000"},{name:"차콜 다크",hex:"#2c3e50"},{name:"초콜릿 밤",hex:"#3e2723"},{name:"딥 네이비",hex:"#1a237e"},{name:"파스텔 로즈",hex:"#ffb3c6"},{name:"피치 코랄",hex:"#ffd6c0"},{name:"소프트 옐로우",hex:"#fff3b0"},{name:"메론 민트",hex:"#b8f0d8"},{name:"아쿠아 스카이",hex:"#a8d8ea"},{name:"라이트 라벤더",hex:"#d4c5f9"},{name:"비비드 코랄",hex:"#ff8a80"},{name:"네온 시안",hex:"#80deea"} ];
 
 let state={themeKey:"frost",starRating:"5/5",eroRating:"❤ 4",ageRating:"R18",thumbUrl:null,thumbImg:null,progress:0.55,reviewColor:"#ffffff"};
 
 const themeSelect=document.getElementById("themeSelect");
 THEMES.forEach(([key,t])=>{const opt=document.createElement("option");opt.value=key;opt.textContent=t.name;themeSelect.appendChild(opt);});
 themeSelect.addEventListener("change", e=>{state.themeKey=e.target.value;updateAll();});
-
 const progressSlider = document.getElementById("progressSlider");
 progressSlider.addEventListener("input", e=>{state.progress = parseFloat(e.target.value);renderPreview();});
-
 const colorGrid=document.getElementById("colorGrid");
 TEXT_COLORS.forEach(c=>{const sw=document.createElement("div");sw.className="color-swatch";sw.title=c.name;sw.style.background=c.hex;sw.dataset.hex=c.hex;sw.onclick=()=>{state.reviewColor=c.hex;updateAll();};colorGrid.appendChild(sw);});
-
-document.getElementById("fileInput").addEventListener("change",e=>{
-  const file=e.target.files?.[0];if(!file)return;
-  const url=URL.createObjectURL(file);state.thumbUrl=url;
-  const img=new Image();img.onload=()=>{state.thumbImg=img;updateAll();};img.src=url;
-});
-
+document.getElementById("fileInput").addEventListener("change",e=>{ const file=e.target.files?.[0];if(!file)return; const url=URL.createObjectURL(file);state.thumbUrl=url; const img=new Image();img.onload=()=>{state.thumbImg=img;updateAll();};img.src=url; });
 ["inTitle","inCircle","inArtist","inGenre","inReview","inReviewer"].forEach(id=>{document.getElementById(id).addEventListener("input",()=>renderPreview());});
 
 function setLanguage(lang) {
   currentLang = lang;
   document.getElementById("btnKo").classList.toggle("active", lang === "ko");
   document.getElementById("btnJa").classList.toggle("active", lang === "ja");
-
   const currentDict = I18N[lang];
-  document.getElementById("headerTitle").textContent = currentDict.title;
-  document.getElementById("headerSub").textContent = currentDict.sub;
-  document.getElementById("lblTheme").textContent = currentDict.theme;
-  document.getElementById("lblThumb").textContent = currentDict.thumb;
-  document.getElementById("lblTitle").textContent = currentDict.workTitle;
-  document.getElementById("lblCircle").textContent = currentDict.circle;
-  document.getElementById("lblArtist").textContent = currentDict.artist;
-  document.getElementById("lblGenre").textContent = currentDict.genre;
-  document.getElementById("lblRating").textContent = currentDict.rating;
-  document.getElementById("lblStar").textContent = currentDict.star;
-  document.getElementById("lblHeart").textContent = currentDict.heart;
-  document.getElementById("lblSlider").textContent = currentDict.slider;
-  document.getElementById("lblReview").textContent = currentDict.review;
-  document.getElementById("lblColor").textContent = currentDict.color;
-  document.getElementById("lblReviewer").textContent = currentDict.reviewer;
-  document.getElementById("lblPreview").textContent = currentDict.preview;
-  document.getElementById("exportBtn").textContent = currentDict.exportBtn;
-  document.getElementById("inReviewer").placeholder = currentDict.reviewerPlace;
-
-  if(lang === "ja") {
-    if(document.getElementById("inTitle").value === "작품 제목을 입력하세요") document.getElementById("inTitle").value = "作品タイトルを入力してください";
-    if(document.getElementById("inCircle").value === "서클명") document.getElementById("inCircle").value = "サークル名";
-    if(document.getElementById("inArtist").value === "CV. 성우명") document.getElementById("inArtist").value = "CV. 声優名";
-    if(document.getElementById("inGenre").value === "로맨스 · 달달") document.getElementById("inGenre").value = "純愛・甘々";
-    if(document.getElementById("inReview").value === "이 보이스드라마는 정말 몰입감이 대단했어요. 성우분의 연기력이 돋보이는 작품입니다.") {
-      document.getElementById("inReview").value = "このボイスドラマは本当に没入感が凄かったです。声優さんの演技力が光る素晴らしい作品でした。";
-    }
-    state.ageRating = "R18"; state.starRating = "5/5"; state.eroRating = "❤ 4";
-  } else {
-    if(document.getElementById("inTitle").value === "作品タイトルを入力してください") document.getElementById("inTitle").value = "작품 제목을 입력하세요";
-    if(document.getElementById("inCircle").value === "サークル名") document.getElementById("inCircle").value = "서클명";
-    if(document.getElementById("inArtist").value === "CV. 声優名") document.getElementById("inArtist").value = "CV. 성우명";
-    if(document.getElementById("inGenre").value === "純愛・甘々") document.getElementById("inGenre").value = "로맨스 · 달달";
-    if(document.getElementById("inReview").value === "このボイスドラマは本当に没入感が凄かったです。声優さんの演技力が光る素晴らしい作品でした。") {
-      document.getElementById("inReview").value = "이 보이스드라마는 정말 몰입감이 대단했어요. 성우분의 연기력이 돋보이는 작품입니다.";
-    }
-    state.ageRating = "R18"; state.starRating = "5/5"; state.eroRating = "❤ 4";
-  }
-
-  rebuildSelectors();
-  updateAll();
+  document.getElementById("headerTitle").textContent = currentDict.title; document.getElementById("headerSub").textContent = currentDict.sub; document.getElementById("lblTheme").textContent = currentDict.theme; document.getElementById("lblThumb").textContent = currentDict.thumb; document.getElementById("lblTitle").textContent = currentDict.workTitle; document.getElementById("lblCircle").textContent = currentDict.circle; document.getElementById("lblArtist").textContent = currentDict.artist; document.getElementById("lblGenre").textContent = currentDict.genre; document.getElementById("lblRating").textContent = currentDict.rating; document.getElementById("lblStar").textContent = currentDict.star; document.getElementById("lblHeart").textContent = currentDict.heart; document.getElementById("lblSlider").textContent = currentDict.slider; document.getElementById("lblReview").textContent = currentDict.review; document.getElementById("lblColor").textContent = currentDict.color; document.getElementById("lblReviewer").textContent = currentDict.reviewer; document.getElementById("lblPreview").textContent = currentDict.preview; document.getElementById("exportBtn").textContent = currentDict.exportBtn; document.getElementById("inReviewer").placeholder = currentDict.reviewerPlace;
+  rebuildSelectors(); updateAll();
 }
 
 function rebuildSelectors() {
   const currentDict = I18N[currentLang];
-
-  const ratingRow=document.getElementById("ratingRow"); ratingRow.innerHTML = "";
-  currentDict.ratings.forEach((r, idx) => {
-    const btn=document.createElement("button");btn.className="rating-btn";btn.textContent=r;
-    btn.dataset.val = I18N["ko"].ratings[idx];
-    btn.onclick=()=>{state.ageRating = btn.dataset.val; updateAll();};
-    ratingRow.appendChild(btn);
-  });
-
-  const starSelectRow=document.getElementById("starSelectRow"); starSelectRow.innerHTML = "";
-  currentDict.stars.forEach((s, idx) => {
-    const btn=document.createElement("button");btn.className="rating-btn";btn.textContent=s;
-    btn.dataset.val = I18N["ko"].stars[idx];
-    btn.onclick=()=>{state.starRating = btn.dataset.val; updateAll();};
-    starSelectRow.appendChild(btn);
-  });
-
-  const heartSelectRow=document.getElementById("heartSelectRow"); heartSelectRow.innerHTML = "";
-  currentDict.hearts.forEach((h, idx) => {
-    const btn=document.createElement("button");btn.className="rating-btn";btn.textContent=h;
-    btn.dataset.val = I18N["ko"].hearts[idx];
-    btn.onclick=()=>{state.eroRating = btn.dataset.val; updateAll();};
-    heartSelectRow.appendChild(btn);
-  });
+  const ratingRow=document.getElementById("ratingRow"); ratingRow.innerHTML = ""; currentDict.ratings.forEach((r, idx) => { const btn=document.createElement("button");btn.className="rating-btn";btn.textContent=r;btn.dataset.val = I18N["ko"].ratings[idx];btn.onclick=()=>{state.ageRating = btn.dataset.val; updateAll();};ratingRow.appendChild(btn); });
+  const starSelectRow=document.getElementById("starSelectRow"); starSelectRow.innerHTML = ""; currentDict.stars.forEach((s, idx) => { const btn=document.createElement("button");btn.className="rating-btn";btn.textContent=s;btn.dataset.val = I18N["ko"].stars[idx];btn.onclick=()=>{state.starRating = btn.dataset.val; updateAll();};starSelectRow.appendChild(btn); });
+  const heartSelectRow=document.getElementById("heartSelectRow"); heartSelectRow.innerHTML = ""; currentDict.hearts.forEach((h, idx) => { const btn=document.createElement("button");btn.className="rating-btn";btn.textContent=h;btn.dataset.val = I18N["ko"].hearts[idx];btn.onclick=()=>{state.eroRating = btn.dataset.val; updateAll();};heartSelectRow.appendChild(btn); });
 }
 
 function drawRR(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 function wrapLines(ctx,text,maxW){const lines=[];for(const p of text.split("\n")){if(!p.trim()){lines.push("");continue;}let l="";for(const c of p){const t=l+c;if(ctx.measureText(t).width>maxW&&l.length){lines.push(l);l=c;}else l=t;}if(l)lines.push(l);}return lines;}
 function drawWrap(ctx,text,x,y,maxW,lh,maxL){const all=wrapLines(ctx,text,maxW),lines=all.slice(0,maxL);if(all.length>maxL)lines[maxL-1]=lines[maxL-1].slice(0,-2)+"…";for(let i=0;i<lines.length;i++)ctx.fillText(lines[i],x,y+i*lh);return lines.length;}
 function getV(){return{title:document.getElementById("inTitle").value,circle:document.getElementById("inCircle").value,artist:document.getElementById("inArtist").value,genre:document.getElementById("inGenre").value,review:document.getElementById("inReview").value,reviewer:document.getElementById("inReviewer").value};}
-
-function formatTime(secs){
-  const m=Math.floor(secs/60),s=Math.floor(secs%60);
-  return `${m}:${s<10?'0':''}${s}`;
-}
-
-function calcH(){
-  const off=document.createElement("canvas");off.width=CARD_W;off.height=2000;const ctx=off.getContext("2d");
-  const v=getV(),revW=CARD_W-160;
-  ctx.font="400 24px 'Pretendard',sans-serif";
-  const rl=wrapLines(ctx,`"${v.review}"`,revW);
-  const reviewH=Math.min(rl.length,8)*38;
-  return Math.max(760,Math.min(1400,Math.ceil((52+460+40+36+reviewH+120)/10)*10));
-}
+function formatTime(secs){ const m=Math.floor(secs/60),s=Math.floor(secs%60); return `${m}:${s<10?'0':''}${s}`; }
+function calcH(){ const off=document.createElement("canvas");off.width=CARD_W;off.height=2000;const ctx=off.getContext("2d");const v=getV(),revW=CARD_W-160;ctx.font="400 24px 'Pretendard',sans-serif";const rl=wrapLines(ctx,`"${v.review}"`,revW);const reviewH=Math.min(rl.length,8)*38;return Math.max(760,Math.min(1400,Math.ceil((52+460+40+36+reviewH+120)/10)*10)); }
 
 function drawCard(ctx,W,H){
   const t=THEME_MAP[state.themeKey],v=getV(),isL=state.themeKey==="white",prog=state.progress;
-
-  // BG
-  const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,t.bg1);bg.addColorStop(1,t.bg2);
-  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  ctx.globalAlpha=isL?0.015:0.03;
-  for(let i=0;i<2000;i++){ctx.fillStyle=isL?"#000":"#fff";ctx.fillRect(Math.random()*W,Math.random()*H,1.5,1.5);}
-  ctx.globalAlpha=1;
-
-  // ===== PLAYER GLASS CARD =====
-  const cX=52,cY=52,cW=W-104,cH=460;
-  drawRR(ctx,cX,cY,cW,cH,28);ctx.fillStyle=t.glass;ctx.fill();
-  ctx.strokeStyle=t.glassBorder;ctx.lineWidth=1.5;ctx.stroke();
-
-  // Thumbnail
-  const ts=350,tx=cX+55,ty=cY+55;
-  ctx.save();drawRR(ctx,tx,ty,ts,ts,18);ctx.clip();
-  if(state.thumbImg){
-    const img=state.thumbImg,sc=Math.max(ts/img.width,ts/img.height),sw=img.width*sc,sh=img.height*sc;
-    ctx.drawImage(img,tx+(ts-sw)/2,ty+(ts-sh)/2,sw,sh);
-  }else{
-    ctx.fillStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.08)";ctx.fillRect(tx,ty,ts,ts);
-    ctx.fillStyle=t.sub;ctx.font="500 18px 'Pretendard',sans-serif";ctx.textAlign="center";
-    ctx.fillText(I18N[currentLang].canvasThumb,tx+ts/2,ty+ts/2);ctx.textAlign="left";
-  }
-  ctx.restore();
-
-  // ===== RIGHT SIDE =====
-  const rX=tx+ts+44,rW=cX+cW-rX-45,rCX=rX+rW/2;
-  const textStartTop = cY+74;
-
-  // 1) Title
-  ctx.font="700 30px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.textAlign="left";
-  const tl=drawWrap(ctx,v.title,rX,textStartTop,rW,38,2);
-  const afterTitle=textStartTop+tl*38+4;
-
-  // 2) Circle / Voice Actor
-  ctx.font="500 19px 'Pretendard',sans-serif";ctx.fillStyle=t.sub;
-  ctx.fillText(v.circle+" / "+v.artist,rX,afterTitle);
-
-  // 3) Rating badge
-  const infoY=afterTitle+32;
-  const badge=state.ageRating;
-  let startX = rX;
-
-  if(badge !== "선택안함") {
-    ctx.font="600 13px 'Pretendard',sans-serif";
-    const targetBadgeText = currentLang === "ja" ? I18N["ja"].ratings[I18N["ko"].ratings.indexOf(badge)] : badge;
-    const bdW=ctx.measureText(targetBadgeText).width+14;
-    
-    drawRR(ctx,rX,infoY-13,bdW,21,5);
-    if(badge === "전연령") ctx.fillStyle = "#2ecc71";
-    else if(badge === "R15") ctx.fillStyle = "#e67e22";
-    else if(badge === "R18") ctx.fillStyle = "#e74c3c";
-    ctx.fill();
-    ctx.fillStyle="#fff";ctx.fillText(targetBadgeText,rX+7,infoY+2);
-    startX = rX + bdW + 10;
-  }
-
-  ctx.font="600 17px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;
-  ctx.fillText(v.genre, startX, infoY+2);
-
-  // 4) Scores Line
-  const scoreInfoY=infoY+34;
-  let drawX = rX;
-
-  if(state.starRating !== "선택안함") {
-    ctx.font="18px sans-serif";ctx.fillStyle = "#ffb432";
-    ctx.fillText("⭐", drawX, scoreInfoY);
-    
-    ctx.font="600 17px 'Pretendard',sans-serif";ctx.fillStyle = t.text;
-    ctx.fillText(state.starRating, drawX + 24, scoreInfoY - 1);
-    drawX += 24 + ctx.measureText(state.starRating).width + 12;
-  }
-
-  if(state.eroRating !== "선택안함") {
-    const heartCount = parseInt(state.eroRating.replace("❤ ", ""));
-    
-    if(state.starRating !== "선택안함") {
-      ctx.font="500 14px 'Pretendard',sans-serif";
-      ctx.fillStyle = isL ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.25)";
-      ctx.fillText("|", drawX, scoreInfoY - 2);
-      drawX += 16;
-    }
-    
-    ctx.font="18px sans-serif";ctx.fillStyle = "#ff6b6b";
-    let heartsStr = "";
-    for(let i=0; i<heartCount; i++) heartsStr += "♥";
-    ctx.fillText(heartsStr, drawX, scoreInfoY);
-  }
-
-  // Progress bar
-  const bY=cY+256; 
-  drawRR(ctx,rX,bY,rW,6,3);ctx.fillStyle=t.progressBg;ctx.fill();
-  drawRR(ctx,rX,bY,rW*prog,6,3);ctx.fillStyle=t.progressFill;ctx.fill();
-  ctx.beginPath();ctx.arc(rX+rW*prog,bY+3,8,0,Math.PI*2);ctx.fillStyle=isL?"#1a1a2a":"#fff";ctx.fill();
-  
-  const totalDuration = 1200; 
-  const currentSecs = totalDuration * prog;
-  const remainingSecs = totalDuration - currentSecs;
-
-  ctx.font="500 15px 'Pretendard',monospace,sans-serif";ctx.fillStyle=t.sub;
-  ctx.textAlign="left";ctx.fillText(formatTime(currentSecs),rX,bY+28);
-  ctx.textAlign="right";ctx.fillText("-" + formatTime(remainingSecs),rX+rW,bY+28);
-
-  // Controls
-  const ctY=bY+76;ctx.textAlign="center";ctx.fillStyle=t.ctrl;
-  ctx.font="500 34px 'Pretendard',sans-serif";ctx.fillText("◀",rCX-70,ctY);
-  drawRR(ctx,rCX-13,ctY-25,9,30,3);ctx.fill();
-  drawRR(ctx,rCX+4,ctY-25,9,30,3);ctx.fill();
-  ctx.font="500 34px 'Pretendard',sans-serif";ctx.fillText("▶",rCX+70,ctY);
-  ctx.textAlign="left";
-
-  // ===== REVIEW SECTION =====
-  const revY=cY+cH+40,revX=80,revW=W-160;
-  let curY=revY;
-
-  // Divider
-  ctx.strokeStyle=t.glassBorder;ctx.lineWidth=1.2;
-  ctx.beginPath();ctx.moveTo(revX,curY);ctx.lineTo(revX+revW,curY);ctx.stroke();
-  curY+=40;
-
-  // Review text
-  ctx.font="400 24px 'Pretendard',sans-serif";
-  if(state.reviewColor === "#ffffff" || state.reviewColor === "#000000") {
-    ctx.fillStyle=state.reviewColor+(isL?"c0":"e0");
-  } else {
-    ctx.fillStyle=state.reviewColor;
-  }
-  const rl=wrapLines(ctx,`"${v.review}"`,revW);
-  const drawCount=Math.min(rl.length,8);
-  for(let i=0;i<drawCount;i++) {
-    ctx.fillText(rl[i],revX,curY+i*40);
-  }
-  curY+=drawCount*40+36;
-
-  // Reviewer
-  ctx.font="500 20px 'Pretendard',sans-serif";
-  ctx.fillStyle=isL?"rgba(0,0,0,0.6)":"rgba(255,255,255,0.65)";
-  ctx.textAlign="right";ctx.fillText(`— ${v.reviewer}`,revX+revW,curY);ctx.textAlign="left";
-
-  // 요청에 따라 리뷰 이미지 하단의 크레딧 문구 드로잉 함수 완전히 제거 완료! 🎨
-
-  // Accent line
+  const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,t.bg1);bg.addColorStop(1,t.bg2); ctx.fillStyle=bg;ctx.fillRect(0,0,W,H); ctx.globalAlpha=isL?0.015:0.03; for(let i=0;i<2000;i++){ctx.fillStyle=isL?"#000":"#fff";ctx.fillRect(Math.random()*W,Math.random()*H,1.5,1.5);} ctx.globalAlpha=1;
+  const cX=52,cY=52,cW=W-104,cH=460; drawRR(ctx,cX,cY,cW,cH,28);ctx.fillStyle=t.glass;ctx.fill(); ctx.strokeStyle=t.glassBorder;ctx.lineWidth=1.5;ctx.stroke();
+  const ts=350,tx=cX+55,ty=cY+55; ctx.save();drawRR(ctx,tx,ty,ts,ts,18);ctx.clip();
+  if(state.thumbImg){ const img=state.thumbImg,sc=Math.max(ts/img.width,ts/img.height),sw=img.width*sc,sh=img.height*sc; ctx.drawImage(img,tx+(ts-sw)/2,ty+(ts-sh)/2,sw,sh); }else{ ctx.fillStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.08)";ctx.fillRect(tx,ty,ts,ts); ctx.fillStyle=t.sub;ctx.font="500 18px 'Pretendard',sans-serif";ctx.textAlign="center";ctx.fillText(I18N[currentLang].canvasThumb,tx+ts/2,ty+ts/2);ctx.textAlign="left"; } ctx.restore();
+  const rX=tx+ts+44,rW=cX+cW-rX-45,rCX=rX+rW/2, textStartTop = cY+74;
+  ctx.font="700 30px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.textAlign="left"; const tl=drawWrap(ctx,v.title,rX,textStartTop,rW,38,2); const afterTitle=textStartTop+tl*38+4;
+  ctx.font="500 19px 'Pretendard',sans-serif";ctx.fillStyle=t.sub; ctx.fillText(v.circle+" / "+v.artist,rX,afterTitle);
+  const infoY=afterTitle+32, badge=state.ageRating; let startX = rX;
+  if(badge !== "선택안함") { ctx.font="600 13px 'Pretendard',sans-serif"; const targetBadgeText = currentLang === "ja" ? I18N["ja"].ratings[I18N["ko"].ratings.indexOf(badge)] : badge; const bdW=ctx.measureText(targetBadgeText).width+14; drawRR(ctx,rX,infoY-13,bdW,21,5); if(badge === "전연령") ctx.fillStyle = "#2ecc71"; else if(badge === "R15") ctx.fillStyle = "#e67e22"; else if(badge === "R18") ctx.fillStyle = "#e74c3c"; ctx.fill(); ctx.fillStyle="#fff";ctx.fillText(targetBadgeText,rX+7,infoY+2); startX = rX + bdW + 10; }
+  ctx.font="600 17px 'Pretendard',sans-serif";ctx.fillStyle=t.accent; ctx.fillText(v.genre, startX, infoY+2);
+  const scoreInfoY=infoY+34; let drawX = rX;
+  if(state.starRating !== "선택안함") { ctx.font="18px sans-serif";ctx.fillStyle = "#ffb432"; ctx.fillText("⭐", drawX, scoreInfoY); ctx.font="600 17px 'Pretendard',sans-serif";ctx.fillStyle = t.text; ctx.fillText(state.starRating, drawX + 24, scoreInfoY - 1); drawX += 24 + ctx.measureText(state.starRating).width + 12; }
+  if(state.eroRating !== "선택안함") { const heartCount = parseInt(state.eroRating.replace("❤ ", "")); if(state.starRating !== "선택안함") { ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle = isL ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.25)"; ctx.fillText("|", drawX, scoreInfoY - 2); drawX += 16; } ctx.font="18px sans-serif";ctx.fillStyle = "#ff6b6b"; let heartsStr = ""; for(let i=0; i<heartCount; i++) heartsStr += "♥"; ctx.fillText(heartsStr, drawX, scoreInfoY); }
+  const bY=cY+256; drawRR(ctx,rX,bY,rW,6,3);ctx.fillStyle=t.progressBg;ctx.fill(); drawRR(ctx,rX,bY,rW*prog,6,3);ctx.fillStyle=t.progressFill;ctx.fill(); ctx.beginPath();ctx.arc(rX+rW*prog,bY+3,8,0,Math.PI*2);ctx.fillStyle=isL?"#1a1a2a":"#fff";ctx.fill();
+  const totalDuration = 1200, currentSecs = totalDuration * prog, remainingSecs = totalDuration - currentSecs; ctx.font="500 15px 'Pretendard',monospace,sans-serif";ctx.fillStyle=t.sub; ctx.textAlign="left";ctx.fillText(formatTime(currentSecs),rX,bY+28); ctx.textAlign="right";ctx.fillText("-" + formatTime(remainingSecs),rX+rW,bY+28);
+  const ctY=bY+76;ctx.textAlign="center";ctx.fillStyle=t.ctrl; ctx.font="500 34px 'Pretendard',sans-serif";ctx.fillText("◀",rCX-70,ctY); drawRR(ctx,rCX-13,ctY-25,9,30,3);ctx.fill(); drawRR(ctx,rCX+4,ctY-25,9,30,3);ctx.fill(); ctx.font="500 34px 'Pretendard',sans-serif";ctx.fillText("▶",rCX+70,ctY); ctx.textAlign="left";
+  const revY=cY+cH+40,revX=80,revW=W-160; let curY=revY; ctx.strokeStyle=t.glassBorder;ctx.lineWidth=1.2; ctx.beginPath();ctx.moveTo(revX,curY);ctx.lineTo(revX+revW,curY);ctx.stroke(); curY+=40;
+  ctx.font="400 24px 'Pretendard',sans-serif"; if(state.reviewColor === "#ffffff" || state.reviewColor === "#000000") { ctx.fillStyle=state.reviewColor+(isL?"c0":"e0"); } else { ctx.fillStyle=state.reviewColor; }
+  const rl=wrapLines(ctx,`"${v.review}"`,revW); const drawCount=Math.min(rl.length,8); for(let i=0;i<drawCount;i++) ctx.fillText(rl[i],revX,curY+i*40); curY+=drawCount*40+36;
+  ctx.font="500 20px 'Pretendard',sans-serif"; ctx.fillStyle=isL?"rgba(0,0,0,0.6)":"rgba(255,255,255,0.65)"; ctx.textAlign="right";ctx.fillText(`— ${v.reviewer}`,revX+revW,curY); ctx.textAlign="left";
   ctx.fillStyle=t.accent;drawRR(ctx,revX,curY+30,50,5,2.5);ctx.fill();
 }
 
-function renderPreview(){const cvs=document.getElementById("preview"),H=calcH();cvs.width=CARD_W;cvs.height=H;drawCard(cvs.getContext("2d"),CARD_W,H);}
-
+function renderPreview(){ const cvs=document.getElementById("preview"),H=calcH();cvs.width=CARD_W;cvs.height=H;drawCard(cvs.getContext("2d"),CARD_W,H); }
 function updateAll(){
-  themeSelect.value=state.themeKey;
-  
-  ratingRow.querySelectorAll(".rating-btn").forEach((b, idx) => {
-    const coreVal = I18N["ko"].ratings[idx];
-    let cName = "rating-btn";
-    if(coreVal === state.ageRating) {
-      if(coreVal === "선택안함") cName += " active-none";
-      else if(coreVal === "전연령") cName += " active-all";
-      else if(coreVal === "R15") cName += " active-r15";
-      else if(coreVal === "R18") cName += " active-r18";
-    }
-    b.className = cName;
-  });
-  
-  starSelectRow.querySelectorAll(".rating-btn").forEach((b, idx) => {
-    const coreVal = I18N["ko"].stars[idx];
-    b.className = "rating-btn" + (coreVal === state.starRating ? " active-none" : "");
-  });
-
-  heartSelectRow.querySelectorAll(".rating-btn").forEach((b, idx) => {
-    const coreVal = I18N["ko"].hearts[idx];
-    b.className = "rating-btn" + (coreVal === state.eroRating ? " active-none" : "");
-  });
-
+  themeSelect.value=state.themeKey; ratingRow.querySelectorAll(".rating-btn").forEach((b, idx) => { const coreVal = I18N["ko"].ratings[idx]; let cName = "rating-btn"; if(coreVal === state.ageRating) { if(coreVal === "선택안함") cName += " active-none"; else if(coreVal === "전연령") cName += " active-all"; else if(coreVal === "R15") cName += " active-r15"; else if(coreVal === "R18") cName += " active-r18"; } b.className = cName; });
+  starSelectRow.querySelectorAll(".rating-btn").forEach((b, idx) => { const coreVal = I18N["ko"].stars[idx]; b.className = "rating-btn" + (coreVal === state.starRating ? " active-none" : ""); });
+  heartSelectRow.querySelectorAll(".rating-btn").forEach((b, idx) => { const coreVal = I18N["ko"].hearts[idx]; b.className = "rating-btn" + (coreVal === state.eroRating ? " active-none" : ""); });
   colorGrid.querySelectorAll(".color-swatch").forEach(s=>{s.className="color-swatch"+(s.dataset.hex===state.reviewColor?" active":"");});
   document.getElementById("headerTitle").style.color=THEME_MAP[state.themeKey].accent;
-  
-  if(!state.thumbImg) {
-    document.getElementById("thumbLabel").textContent = I18N[currentLang].thumbIn;
-  } else {
-    document.getElementById("thumbLabel").innerHTML = `<img src="${state.thumbUrl}" class="thumb-preview"><span style="font-size:12px;color:${THEME_MAP[state.themeKey].accent}">${I18N[currentLang].thumbChange}</span>`;
-  }
-
-  const t=THEME_MAP[state.themeKey];
-  document.getElementById("exportBtn").style.background=`linear-gradient(135deg,${t.accent},${t.bg1})`;
-  document.getElementById("exportBtn").style.boxShadow=`0 4px 20px ${t.accent}30`;
-  document.getElementById("thumbBox").style.borderColor=t.accent+"40";
-  renderPreview();
+  if(!state.thumbImg) { document.getElementById("thumbLabel").textContent = I18N[currentLang].thumbIn; } else { document.getElementById("thumbLabel").innerHTML = `<img src="${state.thumbUrl}" class="thumb-preview"><span style="font-size:12px;color:${THEME_MAP[state.themeKey].accent}">${I18N[currentLang].thumbChange}</span>`; }
+  const t=THEME_MAP[state.themeKey]; document.getElementById("exportBtn").style.background=`linear-gradient(135deg,${t.accent},${t.bg1})`; document.getElementById("exportBtn").style.boxShadow=`0 4px 20px ${t.accent}30`; document.getElementById("thumbBox").style.borderColor=t.accent+"40"; renderPreview();
 }
 
 function exportImage(){
-  const cvs=document.getElementById("exportCanvas"),H=calcH();cvs.width=CARD_W;cvs.height=H;
-  drawCard(cvs.getContext("2d"),CARD_W,H);
-  
+  const cvs=document.getElementById("exportCanvas"),H=calcH(); cvs.width=CARD_W; cvs.height=H; drawCard(cvs.getContext("2d"),CARD_W,H);
   const fileNameSuffix = currentLang === "ja" ? "review-ja" : "review-ko";
-  cvs.toBlob(blob=>{
-    const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=`voice-drama-${fileNameSuffix}-${Date.now()}.png`;a.click();
-  },"image/png");
-
-  const v=getV();
-  const cleanTag=(str)=>str.replace(/[\s\.\,\/]/g, '').trim();
-  let tagText = "";
-  
-  const defaultCircleText = currentLang === "ja" ? "サークル名" : "서클명";
-  const defaultArtistText = currentLang === "ja" ? "CV. 声優名" : "CV. 성우명";
-
-  if(v.circle && v.circle !== defaultCircleText) tagText += `#${cleanTag(v.circle)} `;
-  if(v.artist && v.artist !== defaultArtistText) {
-    let artistName = v.artist.replace(/CV\s*\.\s*/i, '');
-    tagText += `#${cleanTag(artistName)} `;
-  }
-  
-  tagText += currentLang === "ja" ? "#ボイスドラマ #シチュエーションボイス" : "#보이스드라마 #시츄에이션보이스";
-
-  navigator.clipboard.writeText(tagText.trim()).then(() => {
-    alert(I18N[currentLang].alert);
-  }).catch(err => {
-    console.log("클립보드 복사 실패", err);
-  });
+  cvs.toBlob(blob=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`voice-drama-${fileNameSuffix}-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); },"image/png");
 }
 
-rebuildSelectors();
-setLanguage("ko");
+rebuildSelectors(); setLanguage("ko");
 </script>
 </body>
 </html>
