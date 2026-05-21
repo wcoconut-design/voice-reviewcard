@@ -261,7 +261,7 @@ function drawCard(ctx,W,H){
   const rvY=ty+ts+36,rvX=80,rvW=W-160;let cY=rvY;
   ctx.strokeStyle=isL?"rgba(0,0,0,0.1)":"rgba(255,255,255,0.12)";ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(rvX,cY);ctx.lineTo(rvX+rvW,cY);ctx.stroke();cY+=40;
   ctx.font="400 24px 'Pretendard',sans-serif";if(state.reviewColor==="#ffffff"||state.reviewColor==="#000000"){ctx.fillStyle=state.reviewColor+(isL?"c0":"e0");}else{ctx.fillStyle=state.reviewColor;}
-  const rl=wrapLines(ctx,`"${v.review}"`,rvW);const dc=Math.min(rl.length,8);for(let i=0;i<dc;i++)ctx.fillText(rl[i],rvX,cY+i*40);cY+=dc*40+36;
+  const rl=wrapLines(ctx,v.review,rvW);const dc=Math.min(rl.length,8);for(let i=0;i<dc;i++)ctx.fillText(rl[i],rvX,cY+i*40);cY+=dc*40+36;
   ctx.font="500 20px 'Pretendard',sans-serif";ctx.fillStyle=isL?"rgba(0,0,0,0.6)":"rgba(255,255,255,0.65)";ctx.textAlign="right";ctx.fillText(`— ${v.reviewer}`,rvX+rvW,cY);ctx.textAlign="left";
   ctx.fillStyle=t.accent;drawRR(ctx,rvX,cY+30,50,5,2.5);ctx.fill();
 }
