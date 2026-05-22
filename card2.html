@@ -185,7 +185,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
         <div class="field"><label id="lblStar">작품 별점</label><div class="rating-row" id="starSelectRow"></div></div>
         <div class="field"><label id="lblHeart">수위 · 농도</label><div class="rating-row" id="heartSelectRow"></div></div>
         <div class="field full"><label id="lblSlider">재생 바 위치</label><input type="range" id="progressSlider" min="0" max="1" step="0.01" value="0.55"></div>
-        <div class="field full"><label id="lblReview">리뷰</label><textarea id="inReview" rows="2" placeholder="작품에 대한 리뷰를 작성해주세요"></textarea></div>
+        <div class="field full"><label id="lblReview">리뷰</label><textarea id="inReview" rows="5" placeholder="작품에 대한 리뷰를 작성해주세요"></textarea></div>
         <div class="field full"><label id="lblColor">리뷰 텍스트 색상</label><div class="color-grid" id="colorGrid"></div></div>
         <div class="field full"><label id="lblReviewer">작성자</label><input type="text" id="inReviewer" placeholder="@ID 또는 닉네임"></div>
         <button class="export-btn full" id="exportBtn" onclick="exportImage()">📥 이미지 저장</button>
@@ -296,100 +296,156 @@ function wrapLines(ctx,t,mW){const ls=[];for(const p of t.split("\n")){if(!p.tri
 function drawWrap(ctx,t,x,y,mW,lh,mL){const a=wrapLines(ctx,t,mW),ls=a.slice(0,mL);if(a.length>mL)ls[mL-1]=ls[mL-1].slice(0,-2)+"…";for(let i=0;i<ls.length;i++)ctx.fillText(ls[i],x,y+i*lh);return ls.length;}
 function getV(){return{title:document.getElementById("inTitle").value,circle:document.getElementById("inCircle").value,artist:document.getElementById("inArtist").value,genre:document.getElementById("inGenre").value,review:document.getElementById("inReview").value,reviewer:document.getElementById("inReviewer").value};}
 function formatTime(s){const m=Math.floor(s/60),ss=Math.floor(s%60);return m+":"+(ss<10?"0":"")+ss;}
-function calcH(){const o=document.createElement("canvas");o.width=CARD_W;o.height=2000;const c=o.getContext("2d"),v=getV(),rW=CARD_W-160;c.font="400 24px 'Pretendard',sans-serif";const rl=wrapLines(c,v.review?v.review:"",rW);const dc=Math.min(rl.length||1,8);return 480+90+dc*38+(v.reviewer?52:0)+30;}
+const MAX_PAGE_H=1000,REVIEW_LH=38,PAGE_PAD_BOTTOM=30,REVIEWER_H=52,P2_TOP_PAD=80,TOP_H=480,REVIEW_GAP=90;
+
+function calcP1H(numLines,hasReviewer){return TOP_H+REVIEW_GAP+numLines*REVIEW_LH+(hasReviewer?REVIEWER_H:0)+PAGE_PAD_BOTTOM;}
+function calcP2H(numLines,hasReviewer){return P2_TOP_PAD+numLines*REVIEW_LH+(hasReviewer?REVIEWER_H+24:0)+PAGE_PAD_BOTTOM;}
+
+function getReviewLayout(){
+  const tmp=document.createElement("canvas");tmp.width=CARD_W;tmp.height=2000;
+  const c=tmp.getContext("2d"),v=getV(),rvW=CARD_W-160;
+  c.font="400 24px 'Pretendard',sans-serif";
+  const allLines=wrapLines(c,v.review||"",rvW);
+  const hasReviewer=!!v.reviewer;
+  const fullH=calcP1H(allLines.length||1,hasReviewer);
+  if(fullH<=MAX_PAGE_H){
+    return{lines:allLines,p1:allLines.length||1,needsP2:false,p1H:fullH,p2H:0};
+  }
+  const p1MaxLines=Math.max(1,Math.floor((MAX_PAGE_H-TOP_H-REVIEW_GAP-(hasReviewer?REVIEWER_H:0)-PAGE_PAD_BOTTOM)/REVIEW_LH));
+  const p1Count=Math.min(allLines.length,p1MaxLines);
+  const remain=allLines.length-p1Count;
+  return{lines:allLines,p1:p1Count,needsP2:true,p1H:calcP1H(p1Count,hasReviewer),p2H:calcP2H(remain,hasReviewer)};
+}
+
 function resolveReviewColor(panelIsDark,t,isL){
   if(state.reviewColor==="auto")return t?t.text:(panelIsDark?"rgba(255,255,255,0.92)":"rgba(0,0,0,0.85)");
   if(state.reviewColor==="#ffffff"||state.reviewColor==="#000000")return state.reviewColor;
   return state.reviewColor;
 }
-function drawCard(ctx,W,H){
-  const t=THEME_MAP[state.themeKey],v=getV(),isL=state.themeKey==="white",prog=state.progress;
-  const unified=UNIFIED_THEMES.includes(state.themeKey);
-  const topH=480;
-  // === TOP: themed player section ===
-  // For unified themes, gradient spans entire card; for split themes, only top section
+
+function drawBg(ctx,W,H,t,isL,unified,topH){
   const gradH=unified?H:topH;
   const bg=ctx.createLinearGradient(0,0,W,gradH);bg.addColorStop(0,t.bg1);bg.addColorStop(1,t.bg2);ctx.fillStyle=bg;ctx.fillRect(0,0,W,gradH);
-  // soft radial highlights
   ctx.save();ctx.globalAlpha=isL?.04:.07;
   const g1=ctx.createRadialGradient(W*0.25,topH*0.22,0,W*0.25,topH*0.22,W*0.55);g1.addColorStop(0,"#fff");g1.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=g1;ctx.fillRect(0,0,W,topH);
   const g2=ctx.createRadialGradient(W*0.78,topH*0.85,0,W*0.78,topH*0.85,W*0.5);g2.addColorStop(0,"#fff");g2.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=g2;ctx.fillRect(0,0,W,topH);
   ctx.restore();
-  // thumbnail — with glass frame for soft framed look
+}
+
+function drawPage1(ctx,W,H,layout){
+  const t=THEME_MAP[state.themeKey],v=getV(),isL=state.themeKey==="white",prog=state.progress;
+  const unified=UNIFIED_THEMES.includes(state.themeKey);
+  const topH=480;
+  drawBg(ctx,W,H,t,isL,unified,topH);
+  // thumbnail
   const ts=380,tx=60,ty=60,pad=6;
-  // outer glass frame background
   drawRR(ctx,tx,ty,ts,ts,28);
   const fg=ctx.createLinearGradient(tx,ty,tx+ts,ty+ts);
   fg.addColorStop(0,isL?"rgba(0,0,0,0.025)":"rgba(255,255,255,0.09)");
   fg.addColorStop(1,isL?"rgba(0,0,0,0.005)":"rgba(255,255,255,0.02)");
   ctx.fillStyle=fg;ctx.fill();
-  // inner image area
   const itx=tx+pad,ity=ty+pad,its=ts-pad*2;
   ctx.save();drawRR(ctx,itx,ity,its,its,22);ctx.clip();
   if(state.thumbImg){const img=state.thumbImg,sc=Math.max(its/img.width,its/img.height),sw=img.width*sc,sh=img.height*sc;ctx.drawImage(img,itx+(its-sw)/2,ity+(its-sh)/2,sw,sh);}
-  else{
-    ctx.fillStyle=isL?"rgba(0,0,0,0.35)":"rgba(255,255,255,0.6)";ctx.font="500 80px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("🎧",itx+its/2,ity+its/2);ctx.textAlign="left";ctx.textBaseline="alphabetic";
-  }
+  else{ctx.fillStyle=isL?"rgba(0,0,0,0.35)":"rgba(255,255,255,0.6)";ctx.font="500 80px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("🎧",itx+its/2,ity+its/2);ctx.textAlign="left";ctx.textBaseline="alphabetic";}
   ctx.restore();
-  // inner image subtle border
   drawRR(ctx,itx,ity,its,its,22);ctx.strokeStyle=isL?"rgba(0,0,0,0.04)":"rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
-  // outer frame border
   drawRR(ctx,tx,ty,ts,ts,28);ctx.strokeStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.stroke();
   // right column
   const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2,tTop=ty+76;
   ctx.font="700 32px 'Pretendard',sans-serif";ctx.fillStyle=t.text;
   ctx.textAlign="left";const tl=drawWrap(ctx,v.title,rX,tTop,rW,40,2);const aT=tTop+tl*40+10;
-  // meta (circle · artist) — bumped one size up
   ctx.font="500 20px 'Pretendard',sans-serif";ctx.fillStyle=t.sub;
   const meta=[v.circle,v.artist].filter(s=>s&&s.trim()).join(" · ");if(meta)ctx.fillText(meta,rX,aT);
-  // Row 1: badge + star + heart (three things side by side)
   const iY=aT+36,badge=state.ageRating;let sX=rX;
   if(badge!=="선택안함"){ctx.font="700 12px 'Pretendard',sans-serif";const bt=currentLang==="ja"?I18N.ja.ratings[I18N.ko.ratings.indexOf(badge)]:badge;const bW=ctx.measureText(bt).width+16;drawRR(ctx,rX,iY-14,bW,22,11);if(badge==="전연령")ctx.fillStyle="#2ecc71";else if(badge==="R15")ctx.fillStyle="#e67e22";else if(badge==="R18")ctx.fillStyle="#e74c3c";ctx.fill();ctx.fillStyle="#fff";ctx.fillText(bt,rX+8,iY+2);sX=rX+bW+14;}
-  if(state.starRating!=="선택안함"){
-    ctx.font="17px sans-serif";ctx.fillStyle="#ffb432";ctx.fillText("★",sX,iY+2);
-    ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.fillText(state.starRating,sX+20,iY+1);
-    sX+=20+ctx.measureText(state.starRating).width+14;
-  }
-  if(state.eroRating!=="선택안함"){
-    const hc=parseInt(state.eroRating.replace("❤ ",""));
-    ctx.font="17px sans-serif";ctx.fillStyle="#ff6b6b";let hs="";for(let i=0;i<hc;i++)hs+="♥";ctx.fillText(hs,sX,iY+2);
-  }
-  // Row 2: genre on its own line (like a category tag)
+  if(state.starRating!=="선택안함"){ctx.font="17px sans-serif";ctx.fillStyle="#ffb432";ctx.fillText("★",sX,iY+2);ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.fillText(state.starRating,sX+20,iY+1);sX+=20+ctx.measureText(state.starRating).width+14;}
+  if(state.eroRating!=="선택안함"){const hc=parseInt(state.eroRating.replace("❤ ",""));ctx.font="17px sans-serif";ctx.fillStyle="#ff6b6b";let hs="";for(let i=0;i<hc;i++)hs+="♥";ctx.fillText(hs,sX,iY+2);}
   if(v.genre){const gY=iY+30;ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.fillText(v.genre,rX,gY);}
   // progress bar
   const bY=ty+228;drawRR(ctx,rX,bY,rW,4,2);ctx.fillStyle=t.progressBg;ctx.fill();drawRR(ctx,rX,bY,rW*prog,4,2);ctx.fillStyle=t.progressFill;ctx.fill();ctx.beginPath();ctx.arc(rX+rW*prog,bY+2,7,0,Math.PI*2);ctx.fillStyle=t.progressFill;ctx.fill();
   const dur=1200,cur=dur*prog,rem=dur-cur;ctx.font="500 13px 'Pretendard',monospace,sans-serif";ctx.fillStyle=t.sub;ctx.textAlign="left";ctx.fillText(formatTime(cur),rX,bY+24);ctx.textAlign="right";ctx.fillText("-"+formatTime(rem),rX+rW,bY+24);ctx.textAlign="left";
-  // PLAY CONTROLS (signature)
   const ctY=bY+74;ctx.textAlign="center";ctx.fillStyle=t.ctrl;ctx.font="500 32px 'Pretendard',sans-serif";ctx.fillText("◀",rCX-66,ctY);drawRR(ctx,rCX-12,ctY-24,8,28,3);ctx.fill();drawRR(ctx,rCX+4,ctY-24,8,28,3);ctx.fill();ctx.fillText("▶",rCX+66,ctY);ctx.textAlign="left";
-  // === BOTTOM: contrasting review panel (only for split themes) ===
+  // review panel
   const panelIsDark=unified?(!isL):true;
-  if(!unified){
-    ctx.fillStyle=isL?"#fafaf7":"#14141c";ctx.fillRect(0,topH,W,H-topH);
-  }
-  // hairline divider between top and bottom — subtle for all themes
-  ctx.strokeStyle=isL?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.09)";
-  ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(80,topH);ctx.lineTo(W-80,topH);ctx.stroke();
+  if(!unified){ctx.fillStyle=isL?"#fafaf7":"#14141c";ctx.fillRect(0,topH,W,H-topH);}
+  ctx.strokeStyle=isL?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(80,topH);ctx.lineTo(W-80,topH);ctx.stroke();
   const rvX=80,rvW=W-160;
-  // quote glyph at top of review panel
-  ctx.font="700 60px Georgia,serif";ctx.fillStyle=t.accent;ctx.textBaseline="top";ctx.fillText("“",rvX-6,topH+18);ctx.textBaseline="alphabetic";
+  ctx.font="700 60px Georgia,serif";ctx.fillStyle=t.accent;ctx.textBaseline="top";ctx.fillText("\u201C",rvX-6,topH+18);ctx.textBaseline="alphabetic";
   let cY=topH+90;
   ctx.font="400 24px 'Pretendard',sans-serif";
-  if(unified){
-    ctx.fillStyle=resolveReviewColor(!isL,t,isL);
-  } else {
-    ctx.fillStyle=resolveReviewColor(true,t,isL);
-  }
-  const reviewText=v.review?v.review:"";
-  const rl=wrapLines(ctx,reviewText,rvW);const dc=Math.min(rl.length,8);for(let i=0;i<dc;i++)ctx.fillText(rl[i],rvX,cY+i*38);cY+=dc*38+24;
+  ctx.fillStyle=unified?resolveReviewColor(!isL,t,isL):resolveReviewColor(true,t,isL);
+  const p1Lines=layout.lines.slice(0,layout.p1);
+  for(let i=0;i<p1Lines.length;i++)ctx.fillText(p1Lines[i],rvX,cY+i*REVIEW_LH);
+  cY+=p1Lines.length*REVIEW_LH;
+  // reviewer — always shown at bottom
   if(v.reviewer){
+    const rvY=layout.needsP2?cY+12:cY+24;
+    ctx.font="500 17px 'Pretendard',sans-serif";if(unified)ctx.fillStyle=isL?"rgba(0,0,0,0.55)":"rgba(255,255,255,0.6)";else ctx.fillStyle="rgba(255,255,255,0.5)";
+    ctx.textAlign="right";ctx.fillText("— "+v.reviewer,rvX+rvW,rvY);ctx.textAlign="left";
+  }
+  // "continues" indicator if page 2 exists
+  if(layout.needsP2){
+    ctx.font="500 14px 'Pretendard',sans-serif";
+    ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;
+    ctx.textAlign="right";ctx.fillText("▸▸",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;
+  }
+}
+
+function drawPage2(ctx,W,H,layout){
+  const t=THEME_MAP[state.themeKey],v=getV(),isL=state.themeKey==="white";
+  const unified=UNIFIED_THEMES.includes(state.themeKey);
+  // background
+  if(unified){
+    const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,t.bg1);bg.addColorStop(1,t.bg2);ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  } else {
+    ctx.fillStyle=isL?"#fafaf7":"#14141c";ctx.fillRect(0,0,W,H);
+  }
+  // subtle top accent line
+  ctx.strokeStyle=t.accent;ctx.globalAlpha=0.2;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(80,0);ctx.lineTo(W-80,0);ctx.stroke();ctx.globalAlpha=1;
+  const rvX=80,rvW=W-160;
+  // continuation quote
+  ctx.font="700 48px Georgia,serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.35;
+  ctx.textBaseline="top";ctx.fillText("\u201C",rvX-6,24);ctx.textBaseline="alphabetic";ctx.globalAlpha=1;
+  let cY=P2_TOP_PAD;
+  ctx.font="400 24px 'Pretendard',sans-serif";
+  ctx.fillStyle=unified?resolveReviewColor(!isL,t,isL):resolveReviewColor(true,t,isL);
+  const p2Lines=layout.lines.slice(layout.p1);
+  for(let i=0;i<p2Lines.length;i++)ctx.fillText(p2Lines[i],rvX,cY+i*REVIEW_LH);
+  cY+=p2Lines.length*REVIEW_LH+24;
+  // reviewer
+  if(v.reviewer){
+    const rvY=Math.max(cY, H-PAGE_PAD_BOTTOM-20);
     ctx.font="500 17px 'Pretendard',sans-serif";
     if(unified)ctx.fillStyle=isL?"rgba(0,0,0,0.55)":"rgba(255,255,255,0.6)";
     else ctx.fillStyle="rgba(255,255,255,0.5)";
-    ctx.textAlign="right";ctx.fillText("— "+v.reviewer,rvX+rvW,cY);ctx.textAlign="left";
+    ctx.textAlign="right";ctx.fillText("— "+v.reviewer,rvX+rvW,rvY);ctx.textAlign="left";
+  }
+  // page indicator
+  ctx.font="600 12px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.3;
+  ctx.textAlign="center";ctx.fillText("2 / 2",W/2,H-16);ctx.textAlign="left";ctx.globalAlpha=1;
+}
+
+function renderPreview(){
+  const c=document.getElementById("preview"),layout=getReviewLayout();
+  if(!layout.needsP2){
+    c.width=CARD_W;c.height=layout.p1H;drawPage1(c.getContext("2d"),CARD_W,layout.p1H,layout);
+  } else {
+    const gap=24;
+    c.width=CARD_W;c.height=layout.p1H+layout.p2H+gap;
+    const ctx=c.getContext("2d");
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()||"#0c0c14";
+    ctx.fillRect(0,0,c.width,c.height);
+    drawPage1(ctx,CARD_W,layout.p1H,layout);
+    ctx.save();ctx.translate(0,layout.p1H+gap);drawPage2(ctx,CARD_W,layout.p2H,layout);ctx.restore();
+    // page 1 indicator
+    const t=THEME_MAP[state.themeKey];
+    ctx.font="600 12px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.3;
+    ctx.textAlign="center";ctx.fillText("1 / 2",CARD_W/2,layout.p1H-16);ctx.textAlign="left";ctx.globalAlpha=1;
   }
 }
-function renderPreview(){const c=document.getElementById("preview"),H=calcH();c.width=CARD_W;c.height=H;drawCard(c.getContext("2d"),CARD_W,H);}
+
 function updateAll(){
   themeSelect.value=state.themeKey;
   document.getElementById("ratingRow").querySelectorAll(".rating-btn").forEach((b,i)=>{const v=I18N.ko.ratings[i];let c="rating-btn";if(v===state.ageRating){if(v==="선택안함")c+=" active-none";else if(v==="전연령")c+=" active-all";else if(v==="R15")c+=" active-r15";else if(v==="R18")c+=" active-r18";}b.className=c;});
@@ -401,17 +457,41 @@ function updateAll(){
   if(!state.thumbImg){document.getElementById("thumbLabel").textContent=I18N[currentLang].thumbIn;ta.classList.remove("show");}
   else{document.getElementById("thumbLabel").innerHTML='<img src="'+state.thumbUrl+'" class="thumb-preview"><span style="font-size:12px;color:'+THEME_MAP[state.themeKey].accent+'">'+I18N[currentLang].thumbChange+'</span>';ta.classList.add("show");}
   const t=THEME_MAP[state.themeKey];document.getElementById("exportBtn").style.background="linear-gradient(135deg,"+t.accent+","+t.bg1+")";document.getElementById("thumbBox").style.borderColor=t.accent+"40";
+  // update export button label if 2 pages
+  const layout=getReviewLayout();
+  const d=I18N[currentLang];
+  document.getElementById("exportBtn").textContent=layout.needsP2?(d.exportBtn+" (1/2)"):d.exportBtn;
   renderPreview();
 }
 function removeThumb(){state.thumbImg=null;state.thumbUrl=null;state.originalImg=null;document.getElementById("fileInput").value="";updateAll();}
+
 function exportImage(){
-  const c=document.getElementById("exportCanvas"),H=calcH();c.width=CARD_W;c.height=H;drawCard(c.getContext("2d"),CARD_W,H);
-  const sfx=currentLang==="ja"?"review-ja":"review-ko",fname="voice-drama-"+sfx+"-"+Date.now()+".png";
-  c.toBlob(async blob=>{
-    const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/i.test(navigator.userAgent));
-    if(isMobile&&navigator.canShare){const file=new File([blob],fname,{type:"image/png"});if(navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return;}catch(e){if(e.name==="AbortError")return;}}}
-    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);
-  },"image/png");
+  const layout=getReviewLayout();
+  const sfx=currentLang==="ja"?"review-ja":"review-ko",ts=Date.now();
+  // page 1
+  const c1=document.createElement("canvas");c1.width=CARD_W;c1.height=layout.p1H;
+  drawPage1(c1.getContext("2d"),CARD_W,layout.p1H,layout);
+  const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/i.test(navigator.userAgent));
+
+  async function saveBlob(blob,fname){
+    if(isMobile&&navigator.canShare){const file=new File([blob],fname,{type:"image/png"});if(navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return true;}catch(e){if(e.name==="AbortError")return false;}}}
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);return true;
+  }
+
+  if(!layout.needsP2){
+    c1.toBlob(blob=>saveBlob(blob,"voice-drama-"+sfx+"-"+ts+".png"),"image/png");
+  } else {
+    const c2=document.createElement("canvas");c2.width=CARD_W;c2.height=layout.p2H;
+    drawPage2(c2.getContext("2d"),CARD_W,layout.p2H,layout);
+    c1.toBlob(async blob1=>{
+      await saveBlob(blob1,"voice-drama-"+sfx+"-"+ts+"-1.png");
+      setTimeout(()=>{
+        c2.toBlob(async blob2=>{
+          await saveBlob(blob2,"voice-drama-"+sfx+"-"+ts+"-2.png");
+        },"image/png");
+      },500);
+    },"image/png");
+  }
 }
 
 /* ===== IMAGE EDITOR ===== */
