@@ -125,9 +125,9 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   .ie-canvas-wrap canvas{max-height:48vh}
   .ie-footer{padding:10px 14px}
   .ie-btn{padding:8px 18px;font-size:12px}
-  .ie-filter-panel{padding:6px 14px 10px;gap:6px}
-  .ie-filter-row label{min-width:48px;font-size:10.5px}
-  .ie-filter-row span{min-width:30px}
+  .ie-filter-panel{padding:6px 14px 10px;gap:4px 10px}
+  .ie-filter-cell label{min-width:30px;font-size:10px}
+  .ie-filter-cell span{min-width:26px;font-size:10px}
 }
 .ie-footer{display:flex;gap:8px;padding:12px 18px;justify-content:flex-end}
 .ie-btn{padding:9px 22px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;transition:background .15s,opacity .15s,box-shadow .15s}
@@ -139,11 +139,11 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-btn-sm.danger{color:#e74c3c}
 .ie-btn-sm.danger:hover{background:rgba(231,76,60,0.08);color:#e74c3c}
 .ie-crop-hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);color:#fff;font-size:11px;padding:5px 12px;border-radius:14px;pointer-events:none;white-space:nowrap;font-weight:500}
-.ie-filter-panel{padding:10px 18px 14px;display:flex;flex-direction:column;gap:10px}
-.ie-filter-row{display:flex;align-items:center;gap:10px;width:100%}
-.ie-filter-row label{min-width:56px;text-align:left;font-size:11px;color:var(--sub);font-weight:600;margin:0}
-.ie-filter-row input[type=range]{flex:1;padding:6px 0}
-.ie-filter-row span{min-width:34px;font-size:11px;color:var(--accent);font-weight:700;text-align:right}
+.ie-filter-panel{padding:8px 18px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.ie-filter-cell{display:flex;align-items:center;gap:6px}
+.ie-filter-cell label{min-width:34px;text-align:left;font-size:10.5px;color:var(--sub);font-weight:600;margin:0;white-space:nowrap}
+.ie-filter-cell input[type=range]{flex:1;padding:5px 0;min-width:0}
+.ie-filter-cell span{min-width:28px;font-size:10.5px;color:var(--accent);font-weight:700;text-align:right}
 </style>
 </head>
 <body>
@@ -336,7 +336,7 @@ function drawCard(ctx,W,H){
   // outer frame border
   drawRR(ctx,tx,ty,ts,ts,28);ctx.strokeStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.stroke();
   // right column
-  const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2,tTop=ty+22;
+  const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2,tTop=ty+76;
   ctx.font="700 32px 'Pretendard',sans-serif";ctx.fillStyle=t.text;
   ctx.textAlign="left";const tl=drawWrap(ctx,v.title,rX,tTop,rW,40,2);const aT=tTop+tl*40+10;
   // meta (circle · artist) — bumped one size up
@@ -562,12 +562,11 @@ function renderFilterUI(){
   if(ie.tool==="filter"){
     if(!el){el=document.createElement("div");el.id="ieFilterSliders";el.className="ie-filter-panel";
       document.querySelector(".ie-modal .ie-footer").before(el);}
-    el.style.display="flex";
-    el.innerHTML='<div class="ie-filter-row"><label>'+d.fGray+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.gray+'" oninput="ie.filter.gray=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.gray+'%</span></div>'
-      +'<div class="ie-filter-row"><label>'+d.fBright+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.brightness+'" oninput="ie.filter.brightness=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.brightness+'%</span></div>'
-      +'<div class="ie-filter-row"><label>'+d.fContrast+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.contrast+'" oninput="ie.filter.contrast=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.contrast+'%</span></div>'
-      +'<div class="ie-filter-row"><label>'+d.fSepia+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.sepia+'" oninput="ie.filter.sepia=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.sepia+'%</span></div>'
-      +'<div class="ie-filter-row"><label>'+d.fSaturate+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.saturate+'" oninput="ie.filter.saturate=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.saturate+'%</span></div>';
+    el.style.display="grid";
+    el.innerHTML='<div class="ie-filter-cell"><label>'+d.fGray+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.gray+'" oninput="ie.filter.gray=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.gray+'%</span></div>'
+      +'<div class="ie-filter-cell"><label>'+d.fBright+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.brightness+'" oninput="ie.filter.brightness=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.brightness+'%</span></div>'
+      +'<div class="ie-filter-cell"><label>'+d.fContrast+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.contrast+'" oninput="ie.filter.contrast=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.contrast+'%</span></div>'
+      +'<div class="ie-filter-cell"><label>'+d.fSepia+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.sepia+'" oninput="ie.filter.sepia=+this.value;this.nextElementSibling.textContent=this.value+\'%\';scheduleIERender()"><span>'+ie.filter.sepia+'%</span></div>';
   } else { if(el) el.style.display="none"; }
 }
 
