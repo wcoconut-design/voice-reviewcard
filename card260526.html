@@ -195,11 +195,11 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
         <div class="field"><label id="lblStar">작품 별점</label><div class="rating-row" id="starSelectRow"></div></div>
         <div class="field"><label id="lblHeart">수위 · 농도</label><div class="rating-row" id="heartSelectRow"></div></div>
         <div class="field"><label id="lblSlider">재생 바 위치</label><input type="range" id="progressSlider" min="0" max="1" step="0.01" value="0.55"></div>
-        <div class="field"><label id="lblQR">QR 링크</label><input type="text" id="inQR" placeholder="https://..."></div>
-        <div class="field full"><label id="lblHeadline">한줄 코멘트</label><input type="text" id="inHeadline" placeholder="이 작품은 꼭 들어보세요!"></div>
-        <div class="field full"><label id="lblReview">리뷰</label><textarea id="inReview" rows="3" placeholder="작품에 대한 리뷰를 작성해주세요"></textarea></div>
+        <div class="field"><label id="lblQR">제휴 링크(QR)</label><input type="text" id="inQR" placeholder="https://..."></div>
+        <div class="field full"><label id="lblHeadline">한줄 코멘트</label><input type="text" id="inHeadline" placeholder="수면에 최적화"></div>
+        <div class="field full"><label id="lblReview">리뷰 쓰기</label><textarea id="inReview" rows="3" placeholder="작품에 대한 리뷰를 여기에 작성해주세요"></textarea></div>
         <div class="field full"><label id="lblColor">리뷰 텍스트 색상</label><div class="color-grid" id="colorGrid"></div></div>
-        <div class="field"><label class="check-label"><input type="checkbox" id="chkSpoiler" onchange="state.spoiler=this.checked;autoSave();renderPreview()"> <span id="lblSpoiler">🚨 스포일러 포함</span></label></div>
+        <div class="field"><label class="check-label"><input type="checkbox" id="chkSpoiler" onchange="state.spoiler=this.checked;autoSave();renderPreview()"> <span id="lblSpoiler">🚨 스포일러 있음</span></label></div>
         <div class="field"><label class="check-label"><input type="checkbox" id="chkDate" onchange="state.showDate=this.checked;autoSave();renderPreview()"> <span id="lblDate">작성일 표시</span></label></div>
         <div class="field full"><label id="lblReviewer">작성자</label><input type="text" id="inReviewer" placeholder="@ID 또는 닉네임"></div>
         <div class="pv-overflow full" id="pvOverflow"></div>
@@ -208,7 +208,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
           <button class="reset-btn" id="resetBtn" onclick="resetAll()">🗑</button>
         </div>
       </div>
-      <div class="editor-credit">design by coconut</div>
+      <div class="editor-credit">design by white coconut</div>
     </div>
     <div class="preview-wrap"><canvas id="preview"></canvas><div class="pv-nav" id="pvNav"><button class="pv-nav-btn" onclick="prevPage()">◀</button><span class="pv-nav-ind" id="pvNavInd">1 / 2</span><button class="pv-nav-btn" onclick="nextPage()">▶</button></div></div>
   </div>
