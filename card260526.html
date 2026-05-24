@@ -1117,7 +1117,6 @@ function resetAll(){
   document.getElementById("fileInput").value="";pvPage=0;
   rebuildSelectors();updateAll();
 }
-
 // 파일 맨 하단 구동 프로세스 정리 (무한 루프 방지 및 실시간 싱크 안정화)
 ["themeSelect", "progressSlider", "chkSpoiler", "chkDate"].forEach(id => {
   const el = document.getElementById(id);
@@ -1131,39 +1130,11 @@ function resetAll(){
   }
 });
 
-// 첫 방문자(저장된 글이 없는 사람)를 위한 감성 가득한 예시 더미 데이터 로드 함수
-function loadDefaultExample() {
-  document.getElementById("inTitle").value = "VOICE TITLE";
-  document.getElementById("inCircle").value = "making";
-  document.getElementById("inArtist").value = "CV.";
-  document.getElementById("inGenre").value = "love, sweet";
-  document.getElementById("inQR").value = "";
-  document.getElementById("inHeadline").value = "short comment";
-  document.getElementById("inReview").value = "review ";
-  document.getElementById("inReviewer").value = "@listener";
-  
-  // 첫 화면 카드 디자인 초기 싱크 상태 설정
-  state.themeKey = "frost";
-  state.starRating = "5/5";
-  state.eroRating = "❤ 1";
-  state.ageRating = "R-15";
-  state.progress = 0.35;
-  document.getElementById("progressSlider").value = 0.35;
-}
-
-// [순서 교정] 언어와 셀렉트 박스 틀을 먼저 완벽하게 만들어 둠
-rebuildSelectors();
-setLanguage(currentLang);
-
-// 그 다음 이전에 쓰던 저장 데이터가 있는지 로드
+// 기존에 쓰던 임시 저장 데이터가 있다면 로드
 autoLoad();
 
-// 만약 저장 데이터가 없거나, 저장 데이터를 불렀는데도 제목 칸이 비어있다면 샘플 데이터 가동!
-if (!localStorage.getItem(SAVE_KEY) || !document.getElementById("inTitle").value) {
-  loadDefaultExample();
-}
-
-// 마지막으로 UI 불빛과 우측 이미지 카드(Canvas)를 강제로 새로고침하여 렌더링 완성!
-updateAll();
+// 인터페이스 및 화면 초기화 구동 (빈 상태로 깔끔하게 렌더링)
+rebuildSelectors();
+setLanguage(currentLang);
 autoSave(); 
 </script></body></html>
