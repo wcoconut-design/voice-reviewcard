@@ -542,6 +542,8 @@ function drawPage1(ctx,W,H,layout){
   const unified=UNIFIED_THEMES.includes(state.themeKey);
   const topH=480,pg=layout.pages[0],total=layout.pages.length;
   drawBg(ctx,W,H,t,isL,unified,topH);
+  
+  // 썸네일 박스 드로잉
   const ts=380,tx=60,ty=60,pad=6;
   drawRR(ctx,tx,ty,ts,ts,28);
   const fg=ctx.createLinearGradient(tx,ty,tx+ts,ty+ts);
@@ -550,32 +552,101 @@ function drawPage1(ctx,W,H,layout){
   ctx.fillStyle=fg;ctx.fill();
   const itx=tx+pad,ity=ty+pad,its=ts-pad*2;
   ctx.save();drawRR(ctx,itx,ity,its,its,22);ctx.clip();
-  if(state.thumbImg){const img=state.thumbImg,sc=Math.max(its/img.width,its/img.height),sw=img.width*sc,sh=img.height*sc;ctx.drawImage(img,itx+(its-sw)/2,ity+(its-sh)/2,sw,sh);}
-  else{ctx.fillStyle=isL?"rgba(0,0,0,0.25)":"rgba(255,255,255,0.35)";ctx.font="500 16px 'Pretendard',sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("📷",itx+its/2,ity+its/2-12);ctx.font="500 13px 'Pretendard',sans-serif";ctx.fillText(currentLang==="ja"?"画像をアップロード":"이미지를 올려주세요",itx+its/2,ity+its/2+14);ctx.textAlign="left";ctx.textBaseline="alphabetic";}
+  if(state.thumbImg){
+    const img=state.thumbImg,sc=Math.max(its/img.width,its/img.height),sw=img.width*sc,sh=img.height*sc;
+    ctx.drawImage(img,itx+(its-sw)/2,ity+(its-sh)/2,sw,sh);
+  } else {
+    ctx.fillStyle=isL?"rgba(0,0,0,0.25)":"rgba(255,255,255,0.35)";ctx.font="500 16px 'Pretendard',sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("📷",itx+its/2,ity+its/2-12);ctx.font="500 13px 'Pretendard',sans-serif";ctx.fillText(currentLang==="ja"?"画像をアップロード":"이미지를 올려주세요",itx+its/2,ity+its/2+14);ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  }
   ctx.restore();
   drawRR(ctx,itx,ity,its,its,22);ctx.strokeStyle=isL?"rgba(0,0,0,0.04)":"rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
   drawRR(ctx,tx,ty,ts,ts,28);ctx.strokeStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.stroke();
-  const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2,tTop=ty+76;
-  ctx.font="700 32px 'Pretendard',sans-serif";ctx.fillStyle=t.text;
-  ctx.textAlign="left";const tl=drawWrap(ctx,v.title,rX,tTop,rW,40,2);const aT=tTop+tl*40+10;
+  
+  // 우측 오디오 플레이어 텍스트 및 정보 레이아웃 구역
+  const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2;
+  
+  /* ========================================================
+     [구역 1: 상단 정보 블록] 제목의 행 수에 상관없이 안정적인 텍스트 흐름 처리
+     ======================================================== */
+  const tTop=ty+16; // 텍스트 시작점을 위로 살짝 끌어올려 공간 확보
+  ctx.font="700 32px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.textAlign="left";
+  
+  // 제목 그리기 (최대 2줄 보장 및 실제 그려진 행 수 반환)
+  const tl=drawWrap(ctx,v.title,rX,tTop,rW,40,2);
+  
+  // 메타 정보(서클/성우) 레이어 위치 계산
+  const aT=tTop+(tl*40)+6;
   ctx.font="500 20px 'Pretendard',sans-serif";ctx.fillStyle=t.sub;
-  const meta=[v.circle,v.artist].filter(s=>s&&s.trim()).join(" \u00b7 ");if(meta)ctx.fillText(meta,rX,aT);
-  const iY=aT+44,badge=state.ageRating;let sX=rX;
-  if(badge!=="\uc120\ud0dd\uc548\ud568"){ctx.font="700 12px 'Pretendard',sans-serif";const bt=currentLang==="ja"?I18N.ja.ratings[I18N.ko.ratings.indexOf(badge)]:badge;const bW=ctx.measureText(bt).width+16;drawRR(ctx,rX,iY-14,bW,22,11);if(badge==="\uc804\uc5f0\ub839")ctx.fillStyle="#2ecc71";else if(badge==="R15")ctx.fillStyle="#e67e22";else if(badge==="R18")ctx.fillStyle="#e74c3c";ctx.fill();ctx.fillStyle="#fff";ctx.fillText(bt,rX+8,iY+2);sX=rX+bW+18;}
-  if(state.starRating!=="\uc120\ud0dd\uc548\ud568"){ctx.font="17px sans-serif";ctx.fillStyle="#ffb432";ctx.fillText("\u2605",sX,iY+2);ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.fillText(state.starRating,sX+20,iY+1);sX+=20+ctx.measureText(state.starRating).width+18;}
-  if(state.eroRating!=="\uc120\ud0dd\uc548\ud568"){const hc=parseInt(state.eroRating.replace("\u2764 ",""));ctx.font="17px sans-serif";ctx.fillStyle="#ff6b6b";let hs="";for(let i=0;i<hc;i++)hs+="\u2665";ctx.fillText(hs,sX,iY+2);}
-  if(v.genre){const gY=iY+38;ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;const tags=v.genre.split(/[,，、·]/).map(s=>s.trim()).filter(Boolean).map(s=>s.startsWith("#")?"#"+s.slice(1):"#"+s).join("  ");ctx.fillText(tags,rX,gY);}
-  const bY=ty+228;drawRR(ctx,rX,bY,rW,4,2);ctx.fillStyle=t.progressBg;ctx.fill();drawRR(ctx,rX,bY,rW*prog,4,2);ctx.fillStyle=t.progressFill;ctx.fill();ctx.beginPath();ctx.arc(rX+rW*prog,bY+2,7,0,Math.PI*2);ctx.fillStyle=t.progressFill;ctx.fill();
-  const dur=1200,cur=dur*prog,rem=dur-cur;ctx.font="500 13px 'Pretendard',monospace,sans-serif";ctx.fillStyle=t.sub;ctx.textAlign="left";ctx.fillText(formatTime(cur),rX,bY+24);ctx.textAlign="right";ctx.fillText("-"+formatTime(rem),rX+rW,bY+24);ctx.textAlign="left";
-  const ctY=bY+74;ctx.textAlign="center";ctx.fillStyle=t.ctrl;ctx.font="500 32px 'Pretendard',sans-serif";ctx.fillText("\u25c0",rCX-66,ctY);drawRR(ctx,rCX-12,ctY-24,8,28,3);ctx.fill();drawRR(ctx,rCX+4,ctY-24,8,28,3);ctx.fill();ctx.fillText("\u25b6",rCX+66,ctY);ctx.textAlign="left";
+  const meta=[v.circle,v.artist].filter(s=>s&&s.trim()).join(" \u00b7 ");
+  if(meta) ctx.fillText(meta,rX,aT);
+  
+  // 평점/등급 배지 레이어 위치 계산
+  const iY=aT+38;
+  const badge=state.ageRating;let sX=rX;
+  if(badge!=="\uc120\ud0dd\uc548\ud568"){
+    ctx.font="700 12px 'Pretendard',sans-serif";
+    const bt=currentLang==="ja"?I18N.ja.ratings[I18N.ko.ratings.indexOf(badge)]:badge;
+    const bW=ctx.measureText(bt).width+16;drawRR(ctx,rX,iY-14,bW,22,11);
+    if(badge==="\uc804\uc5f0\ub839")ctx.fillStyle="#2ecc71";
+    else if(badge==="R15")ctx.fillStyle="#e67e22";
+    else if(badge==="R18")ctx.fillStyle="#e74c3c";
+    ctx.fill();ctx.fillStyle="#fff";ctx.fillText(bt,rX+8,iY+2);sX=rX+bW+18;
+  }
+  if(state.starRating!=="\uc120\ud0dd\uc548\ud568"){
+    ctx.font="17px sans-serif";ctx.fillStyle="#ffb432";ctx.fillText("\u2605",sX,iY+2);
+    ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.fillText(state.starRating,sX+20,iY+1);
+    sX+=20+ctx.measureText(state.starRating).width+18;
+  }
+  if(state.eroRating!=="\uc120\ud0dd\uc548\ud568"){
+    const hc=parseInt(state.eroRating.replace("\u2764 ",""));ctx.font="17px sans-serif";ctx.fillStyle="#ff6b6b";
+    let hs="";for(let i=0;i<hc;i++)hs+="\u2665";ctx.fillText(hs,sX,iY+2);
+  }
+  
+  // 장르 태그 레이어 위치 계산
+  if(v.genre){
+    const gY=iY+36;
+    ctx.font="600 15px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;
+    const tags=v.genre.split(/[,，、·]/).map(s=>s.trim()).filter(Boolean).map(s=>s.startsWith("#")?s:"#"+s).join("  ");
+    // 태그가 너무 길어 우측 영역(또는 QR코드 근처)을 침범해 쪼개지지 않도록 줄바꿈 단위 제한 지정
+    drawWrap(ctx,tags,rX,gY,rW,22,1);
+  }
+  
+  /* ========================================================
+     [구역 2: 하단 기기 컨트롤러 블록] 제목 길이와 상관없이 완전히 독립된 고정 Y축 매칭
+     ======================================================== */
+  const bY=ty+255; // 썸네일 박스 하단 밸런스에 맞춰 재생 바의 세로 절대위치 고정
+  drawRR(ctx,rX,bY,rW,4,2);ctx.fillStyle=t.progressBg;ctx.fill();
+  drawRR(ctx,rX,bY,rW*prog,4,2);ctx.fillStyle=t.progressFill;ctx.fill();
+  ctx.beginPath();ctx.arc(rX+rW*prog,bY+2,7,0,Math.PI*2);ctx.fillStyle=t.progressFill;ctx.fill();
+  
+  const dur=1200,cur=dur*prog,rem=dur-cur;
+  ctx.font="500 13px 'Pretendard',monospace,sans-serif";ctx.fillStyle=t.sub;
+  ctx.textAlign="left";ctx.fillText(formatTime(cur),rX,bY+24);
+  ctx.textAlign="right";ctx.fillText("-"+formatTime(rem),rX+rW,bY+24);ctx.textAlign="left";
+  
+  const ctY=bY+70;ctx.textAlign="center";ctx.fillStyle=t.ctrl;ctx.font="500 32px 'Pretendard',sans-serif";
+  ctx.fillText("\u25c0",rCX-66,ctY);
+  drawRR(ctx,rCX-12,ctY-24,8,28,3);ctx.fill();drawRR(ctx,rCX+4,ctY-24,8,28,3);ctx.fill();
+  ctx.fillText("\u25b6",rCX+66,ctY);ctx.textAlign="left";
+  
+  // QR 코드는 항상 우측 하단 구석 빈 공간에 예쁘게 고정 배치
   drawQR(ctx,t,isL,rX+rW-44,topH-72,42);
+  
+  // 리뷰 텍스트 컴포넌트 렌더링 구역 (하단 패널)
   const panelIsDark=unified?(!isL):true;
   if(!unified){ctx.fillStyle=isL?"#fafaf7":"#14141c";ctx.fillRect(0,topH,W,H-topH);}
-  ctx.strokeStyle=isL?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(80,topH);ctx.lineTo(W-80,topH);ctx.stroke();
+  ctx.strokeStyle=isL?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(80,topH);ctx.lineTo(W-80,topH);ctx.stroke();
+  
   const rvX=80,rvW=W-160;
-  ctx.font="700 60px Georgia,serif";ctx.fillStyle=t.accent;ctx.globalAlpha=unified?1:0.7;ctx.textBaseline="top";ctx.fillText("\u201c",rvX-6,topH+18);ctx.textBaseline="alphabetic";ctx.globalAlpha=1;
+  ctx.font="700 60px Georgia,serif";ctx.fillStyle=t.accent;ctx.globalAlpha=unified?1:0.7;
+  ctx.textBaseline="top";ctx.fillText("\u201c",rvX-6,topH+18);ctx.textBaseline="alphabetic";ctx.globalAlpha=1;
+  
   let cY=topH+REVIEW_GAP;
-  if(v.headline){ctx.font="700 26px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;drawWrap(ctx,v.headline,rvX,cY,rvW,34,1);cY+=40;}
+  if(v.headline){
+    ctx.font="700 26px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;
+    drawWrap(ctx,v.headline,rvX,cY,rvW,34,1);cY+=40;
+  }
   ctx.font="400 "+state.fontSize+"px 'Pretendard',sans-serif";
   ctx.fillStyle=unified?resolveReviewColor(!isL,t,isL):resolveReviewColor(true,t,isL);
   const pLines=layout.lines.slice(pg.start,pg.start+pg.count);
@@ -583,10 +654,14 @@ function drawPage1(ctx,W,H,layout){
   ctx.save();ctx.globalAlpha=unified?0.25:0.45;ctx.strokeStyle=t.accent;ctx.lineWidth=2.5;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(rvX-16,acLineTop);ctx.lineTo(rvX-16,acLineBot);ctx.stroke();ctx.restore();
   for(let i=0;i<pLines.length;i++)ctx.fillText(pLines[i],rvX,cY+i*reviewLH());
+  
   const textEndY=cY+pLines.length*reviewLH();
   drawSpoiler(ctx,t,isL,unified,rvX+rvW-120,topH+24);
   drawFooter(ctx,v,t,isL,unified,rvX,rvW,H,textEndY);
-  if(total>1){ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;}
+  if(total>1){
+    ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;
+    ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;
+  }
   drawPageIndicator(ctx,W,H,t,1,total);
   ctx.font="500 10px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.08;
   ctx.textAlign="right";ctx.fillText("made with VDCard",W-30,H-8);ctx.textAlign="left";ctx.globalAlpha=1;
