@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>보이스드라마 리뷰 카드 메이커</title>
+<title>Voice Drama Review Card</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
 <style>
 [data-theme="dark"]{--bg:#0c0c14;--surface:#16161e;--input:#1e1e2a;--border:rgba(255,255,255,0.08);--text:#e0e0e8;--sub:#6a6a80;--muted:#4e4e66;--accent:#a8c8e8;--scrollbar:rgba(255,255,255,0.15);--shadow:rgba(0,0,0,0.4);--active-text:#fff;--overlay:rgba(0,0,0,0.85)}
@@ -159,7 +159,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 <body>
 <div class="wrap">
   <div class="topbar">
-    <div class="brand"><h1 id="headerTitle">🎧 보이스드라마 리뷰 카드</h1><p id="headerSub">플레이어 스타일 메이커</p></div>
+    <div class="brand"><h1 id="headerTitle">🎧 Voice Drama Review Card</h1><p id="headerSub">플레이어 스타일 메이커</p></div>
     <div class="tb-group">
       <div class="pv-mode-switch" role="group" aria-label="미리보기 위치">
         <button class="t-btn active" id="pvStickyBtn" onclick="setPvMode('sticky')" title="상단 고정">📌</button>
@@ -195,11 +195,11 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
         <div class="field"><label id="lblStar">작품 별점</label><div class="rating-row" id="starSelectRow"></div></div>
         <div class="field"><label id="lblHeart">수위 · 농도</label><div class="rating-row" id="heartSelectRow"></div></div>
         <div class="field"><label id="lblSlider">재생 바 위치</label><input type="range" id="progressSlider" min="0" max="1" step="0.01" value="0.55"></div>
-        <div class="field"><label id="lblQR">제휴 링크(QR)</label><input type="text" id="inQR" placeholder="https://..."></div>
-        <div class="field full"><label id="lblHeadline">한줄 코멘트</label><input type="text" id="inHeadline" placeholder="수면에 최적화"></div>
-        <div class="field full"><label id="lblReview">리뷰 쓰기</label><textarea id="inReview" rows="3" placeholder="작품에 대한 리뷰를 여기에 작성해주세요"></textarea></div>
+        <div class="field"><label id="lblQR">QR 링크</label><input type="text" id="inQR" placeholder="https://..."></div>
+        <div class="field full"><label id="lblHeadline">한줄 코멘트</label><input type="text" id="inHeadline" placeholder="이 작품은 꼭 들어보세요!"></div>
+        <div class="field full"><label id="lblReview">리뷰</label><textarea id="inReview" rows="3" placeholder="작품에 대한 리뷰를 작성해주세요"></textarea></div>
         <div class="field full"><label id="lblColor">리뷰 텍스트 색상</label><div class="color-grid" id="colorGrid"></div></div>
-        <div class="field"><label class="check-label"><input type="checkbox" id="chkSpoiler" onchange="state.spoiler=this.checked;autoSave();renderPreview()"> <span id="lblSpoiler">🚨 스포일러 있음</span></label></div>
+        <div class="field"><label class="check-label"><input type="checkbox" id="chkSpoiler" onchange="state.spoiler=this.checked;autoSave();renderPreview()"> <span id="lblSpoiler">🚨 스포일러 포함</span></label></div>
         <div class="field"><label class="check-label"><input type="checkbox" id="chkDate" onchange="state.showDate=this.checked;autoSave();renderPreview()"> <span id="lblDate">작성일 표시</span></label></div>
         <div class="field full"><label id="lblReviewer">작성자</label><input type="text" id="inReviewer" placeholder="@ID 또는 닉네임"></div>
         <div class="pv-overflow full" id="pvOverflow"></div>
@@ -208,7 +208,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
           <button class="reset-btn" id="resetBtn" onclick="resetAll()">🗑</button>
         </div>
       </div>
-      <div class="editor-credit">design by white coconut</div>
+      <div class="editor-credit">design by coconut</div>
     </div>
     <div class="preview-wrap"><canvas id="preview"></canvas><div class="pv-nav" id="pvNav"><button class="pv-nav-btn" onclick="prevPage()">◀</button><span class="pv-nav-ind" id="pvNavInd">1 / 2</span><button class="pv-nav-btn" onclick="nextPage()">▶</button></div></div>
   </div>
@@ -236,8 +236,9 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 </div>
 <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
 <script>
+/* ===== THEME MODE (dark/light) ===== */
 function setThemeMode(mode, isUserClick = true){
-  // 사용자가 버튼을 직접 클릭했을 때만 브라우저에 설정을 저장해
+  // 사용자가 직접 버튼을 클릭했을 때만 세션을 저장해
   if (isUserClick) {
     localStorage.setItem('siteTheme', mode);
   }
@@ -248,33 +249,108 @@ function setThemeMode(mode, isUserClick = true){
 }
 
 (function(){
-  // 1. 이전에 사용자가 이 페이지에서 수동으로 버튼을 눌러 저장한 기록이 있는지 확인
+  // 1. 기존 사용자의 수동 테마 지정 기록이 있는지 확인
   let saved = localStorage.getItem('siteTheme');
   
-  // 2. 기록이 없다면 디바이스 시스템 설정을 확인
+  // 2. 기록이 없다면 디바이스 시스템의 설정을 확인 (다크/라이트)
   if (!saved) {
     const isSystemLight = window.matchMedia('(prefers-color-scheme: light)').matches;
     saved = isSystemLight ? 'light' : 'dark';
   }
   
-  // 3. 페이지가 처음 켜진 것이므로 수동 저장이 안 되게 false를 넘겨서 테마 적용
+  // 3. 첫 로드이므로 수동 저장이 안 되게 false를 주어 테마 적용
   setThemeMode(saved, false);
 })();
 
-// [추천 기능] 사용자가 수동으로 고정하지 않았다면, 페이지를 켜둔 상태에서 폰/PC 시스템 테마가 바뀔 때 실시간으로 같이 변하게 해줘!
+// 페이지를 켜둔 상태에서 디바이스 시스템 테마가 바뀌면 실시간으로 연동 (수동 고정 안 했을 때만)
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
   if (!localStorage.getItem('siteTheme')) {
     setThemeMode(e.matches ? 'dark' : 'light', false);
   }
 });
-
+/* ===== CARD MAKER ===== */
 const CARD_W=1080;let currentLang="ko";
 const I18N={
-  ko:{title:"🎧 보이스드라마 리뷰 카드",sub:"플레이어 스타일 리뷰 카드 메이커",theme:"테마",thumb:"썸네일",thumbIn:"클릭하여 업로드",thumbChange:"이미지 변경",canvasThumb:"이미지 업로드",workTitle:"작품 제목",circle:"제작사 (서클명)",artist:"성우명",genre:"장르 · 키워드",rating:"등급",star:"작품 별점",heart:"수위 · 농도",slider:"플레이 감성 재생 바 조절",headline:"한줄 코멘트",review:"리뷰",color:"리뷰 텍스트 색상",reviewer:"작성자",preview:"미리보기",exportBtn:"📥 이미지 저장",reviewerPlace:"@ID 또는 닉네임",phTitle:"작품 제목을 입력하세요",phCircle:"서클명",phArtist:"CV. 성우명",phGenre:"로맨스, 힐링, 달달",phReview:"작품에 대한 리뷰를 작성해주세요",phHeadline:"이 작품은 꼭 들어보세요!",fontSize:"리뷰 글씨 크기",spoiler:"🚨 스포일러 포함",qr:"QR 링크",dateLabel:"작성일 표시",overflow:"⚠️ 리뷰가 너무 길어 일부가 잘립니다 (최대 4페이지)",resetConfirm:"모든 입력을 초기화할까요?",ratings:["선택안함","전연령","R15","R18"],stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
+  ko:{
+    title:"🎧 Voice Drama Review Card",
+    sub:"플레이어 스타일 리뷰 카드 메이커",
+    theme:"테마",
+    thumb:"썸네일",
+    thumbIn:"클릭하여 업로드",
+    thumbChange:"이미지 변경",
+    canvasThumb:"이미지 업로드",
+    workTitle:"작품 제목",
+    circle:"제작사 (서클명)",
+    artist:"성우명",
+    genre:"장르 · 키워드",
+    rating:"등급",
+    star:"작품 별점",
+    heart:"수위 · 농도",
+    slider:"플레이 감성 재생 바 조절",
+    headline:"한줄 코멘트",
+    review:"리뷰",
+    color:"리뷰 텍스트 색상",
+    reviewer:"작성자",
+    preview:"미리보기",
+    exportBtn:"📥 이미지 저장",
+    reviewerPlace:"@ID 또는 닉네임",
+    phTitle:"작품 제목을 입력하세요",
+    phCircle:"서클명",
+    phArtist:"CV. 성우명",
+    phGenre:"로맨스, 힐링, 달달",
+    phReview:"작품에 대한 리뷰를 작성해주세요",
+    phHeadline:"이 작품은 꼭 들어보세요!",
+    fontSize:"리뷰 글씨 크기",
+    spoiler:"🚨 스포일러 포함",
+    qr:"QR 링크",
+    dateLabel:"작성일 표시",
+    overflow:"⚠️ 리뷰가 너무 길어 일부가 잘립니다 (최대 4페이지)",
+    resetConfirm:"모든 입력을 초기화할까요?",
+    ratings:["선택안함","전연령","R15","R18"],
+    stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],
+    hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",filter:"🎛️ 필터",undo:"↩ 되돌리기",reset:"🗑 초기화",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",cropBtn:"선택 영역 자르기",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1 썸네일"}},
-  ja:{title:"🎧 ボイスドラマ レビューカード",sub:"プレイヤー風レビューカードメーカー",theme:"テーマ",thumb:"サムネイル",thumbIn:"クリックしてアップロード",thumbChange:"画像を変更",canvasThumb:"画像アップロード",workTitle:"作品タイトル",circle:"サークル名",artist:"キャスト (CV)",genre:"ジャンル・キーワード",rating:"年齢制限",star:"作品の評価 (星)",heart:"えろ度・刺激度 (ハート)",slider:"再生バー位置의 調整",headline:"ひとことコメント",review:"レビュー・感想",color:"レビューの文字色",reviewer:"レビュアー",preview:"プレビュー",exportBtn:"📥 画像を保存",reviewerPlace:"@ID または ニックネーム",phTitle:"作品タイトルを入力",phCircle:"サークル名",phArtist:"CV. キャスト名",phGenre:"ロマンス, 甘々, 癒し",phReview:"作品のレビューを書いてください",phHeadline:"この作品は絶対聴いてください！",fontSize:"レビュー文字サイズ",spoiler:"🚨 ネタバレあり",qr:"QRリンク",dateLabel:"作成日を表示",overflow:"⚠️ レビューが長すぎて一部が省略されます（最大4ページ）",resetConfirm:"すべての入力をリセットしますか？",ratings:["非表示","全年齢","R15","R18"],stars:["非表示","1/5","2/5","3/5","4/5","5/5"],hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
+  ja:{
+    title:"🎧 Voice Drama Review Card",
+    sub:"プレイヤー風レビューカードメーカー",
+    theme:"テーマ",
+    thumb:"サムネイル",
+    thumbIn:"クリックしてアップロード",
+    thumbChange:"画像を変更",
+    canvasThumb:"画像アップロード",
+    workTitle:"作品タイトル",
+    circle:"サークル名",
+    artist:"キャスト (CV)",
+    genre:"ジャンル・キーワード",
+    rating:"年齢制限",
+    star:"作品の評価 (星)",
+    heart:"エロ度・刺激度 (ハート)",
+    slider:"再生バー位置の調整",       
+    headline:"ひとことコメント",
+    review:"レビュー・感想",
+    color:"レビューの文字色",
+    reviewer:"レビュアー",
+    preview:"プレビュー",
+    exportBtn:"📥 画像を保存",
+    reviewerPlace:"@ID または ニックネーム",
+    phTitle:"作品タイトルを入力",
+    phCircle:"サークル名",
+    phArtist:"CV. キャスト名",
+    phGenre:"ロマンス, 甘々, 癒し",
+    phReview:"作品のレビューを書いてください",
+    phHeadline:"この作品は絶対聴いてほしい！", 
+    fontSize:"レビュー文字サイズ",
+    spoiler:"🚨 ネタバレ注意",         
+    qr:"QRリンク",
+    dateLabel:"作成日を表示",
+    overflow:"⚠️ レビューが長すぎて一部が省略されます（最大4ページ）",
+    resetConfirm:"すべての入力をリセットしますか？",
+    ratings:["非表示","全年齢","R-15","R-18"], // 
+    stars:["非表示","1/5","2/5","3/5","4/5","5/5"],
+    hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",cancel:"キャンセル",apply:"✅ 適用",intensity:"濃度",brushSize:"ブラシ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1 サムネ"}}
 };
+
 const THEMES=[["frost",{name:"Frost",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],["mono",{name:"Mono",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],["white",{name:"White",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],["ocean",{name:"Ocean",bg1:"#3d6b7e",bg2:"#1c3a4a",glass:"rgba(120,180,210,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#8ddae8",progressBg:"rgba(255,255,255,0.18)",progressFill:"#8ddae8",ctrl:"#fff"}],["sage",{name:"Sage",bg1:"#6b8576",bg2:"#3d5247",glass:"rgba(160,200,170,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#c8e0c5",progressBg:"rgba(255,255,255,0.2)",progressFill:"#c8e0c5",ctrl:"#fff"}],["midnight",{name:"Midnight",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}],["noir",{name:"Noir",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],["rose",{name:"Rose",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}],["wine",{name:"Wine",bg1:"#6b2a36",bg2:"#3a1218",glass:"rgba(160,80,90,0.28)",glassBorder:"rgba(255,255,255,0.16)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#f0b8b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#f0b8b0",ctrl:"#fff"}]];
 const UNIFIED_THEMES=["frost","mono","white"];
 const THEME_MAP=Object.fromEntries(THEMES);
