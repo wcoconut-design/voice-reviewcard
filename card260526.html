@@ -45,10 +45,21 @@ body{background:var(--bg);font-family:'Pretendard',-apple-system,sans-serif;colo
 .pv-full canvas{max-width:100%;max-height:calc(100vh - 100px);border-radius:14px;box-shadow:0 14px 50px var(--shadow);display:block;transform:translateY(8px);transition:transform .25s ease}
 .pv-full.open canvas{transform:translateY(0)}
 .pv-full-close{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;align-self:flex-end;box-shadow:0 4px 12px var(--shadow)}
-.editor{background:var(--surface);border-radius:14px;padding:10px 12px;border:1px solid var(--border);overflow-y:auto;transition:background .3s;min-height:0;display:flex;flex-direction:column}
+/* 에디터 내부 패딩 넓히기 */
+.editor{background:var(--surface);border-radius:14px;padding:20px 24px;border:1px solid var(--border);overflow-y:auto;transition:background .3s;min-height:0;display:flex;flex-direction:column}
 .editor::-webkit-scrollbar{width:6px}.editor::-webkit-scrollbar-track{background:transparent}.editor::-webkit-scrollbar-thumb{background-color:var(--scrollbar);border-radius:3px}
-.editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px;flex:1}
+
+/* [보정] 인풋 창들 사이의 상하좌우 간격도 패딩에 맞춰 은은하게 넓히기 */
+.editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;flex:1}
 .editor-grid .full{grid-column:1/-1}
+
+/* [추가] 인풋 창(텍스트박스, 셀렉트박스 등) 클릭 시 포인트 컬러로 빛나는 효과 */
+input[type=text]:focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(168, 200, 232, 0.25);
+  background: var(--input);
+}
+
 .preview-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;min-width:0;gap:8px}
 .pv-nav{display:none;align-items:center;gap:12px;padding:4px 0}
 .pv-nav.show{display:flex}
