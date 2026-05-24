@@ -46,9 +46,8 @@ body{background:var(--bg);font-family:'Pretendard',-apple-system,sans-serif;colo
 .pv-full.open canvas{transform:translateY(0)}
 .pv-full-close{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;align-self:flex-end;box-shadow:0 4px 12px var(--shadow)}
 /* 에디터 내부 패딩 넓히기 에디터 박스 자체의 스크롤바 유연하게 대처 */
-.editor{background:var(--surface);border-radius:14px;padding:20px 24px;border:1px solid var(--border);overflow-y:auto;transition:background .3s;min-height:0;display:flex;flex-direction:column;scrollbar-width:thin}
+.editor{background:var(--surface);border-radius:14px;padding:20px 24px;border:1px solid var(--border);overflow-y:auto;transition:background .3s;height:100%;box-sizing:border-box;display:flex;flex-direction:column;scrollbar-width:thin}
 .editor::-webkit-scrollbar{width:6px}.editor::-webkit-scrollbar-track{background:transparent}.editor::-webkit-scrollbar-thumb{background-color:var(--scrollbar);border-radius:3px}
-
 /* 인풋 창들 사이의 상하좌우 간격도 패딩에 맞춰 넓히기 상하 여백에 맞춰 내부 그리드가 튀어나가지 않게 다듬기 */
 .editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;flex:none}
 .editor-grid .full{grid-column:1/-1}
