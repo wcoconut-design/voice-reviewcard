@@ -26,11 +26,9 @@ body{background:var(--bg);font-family:'Pretendard',-apple-system,sans-serif;colo
   body{overflow:auto}
   .wrap{height:auto;min-height:100vh;padding:12px 14px 30px}
   .layout{grid-template-columns:1fr;display:flex;flex-direction:column;gap:12px;overflow:visible}
-  /* Mode A (default) — sticky preview top */
   .preview-wrap{order:-1;position:sticky;top:0;background:var(--bg);padding:6px 0 10px;z-index:10;border-bottom:1px solid var(--border);align-items:center}
   #preview{max-height:42vh;width:auto;max-width:100%}
   .editor{overflow:visible;min-height:auto;flex:none}
-  /* Mode C — floating mini, editor full */
   body[data-pv-mode="float"] .preview-wrap{display:none}
   body[data-pv-mode="float"] .pv-mini{display:flex}
   body[data-pv-mode="float"] .wrap{padding-bottom:14px}
@@ -98,7 +96,6 @@ textarea{resize:none;line-height:1.4}::placeholder{color:var(--muted)}
 .check-label input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
 .pv-overflow{display:none;padding:7px 12px;border-radius:7px;font-size:11px;font-weight:600;background:rgba(230,126,34,0.12);color:#e67e22;border:1px solid rgba(230,126,34,0.25);text-align:center}
 .pv-overflow.show{display:block}
-/* range input - smooth, friendly thumb */
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent;cursor:pointer;outline:none;padding:6px 0}
 input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--input);border:1px solid var(--border)}
 input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--input);border:1px solid var(--border)}
@@ -106,7 +103,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);box-shadow:0 1px 4px var(--shadow);transition:transform .15s ease,box-shadow .15s ease}
 input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2);box-shadow:0 2px 8px var(--shadow)}
 input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-thumb{transform:scale(1.2);box-shadow:0 2px 8px var(--shadow)}
-/* IMAGE EDITOR MODAL — minimal, flat */
 .ie-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);opacity:0;transition:opacity .25s ease}
 .ie-overlay.open{display:flex;opacity:1}
 .ie-modal{background:var(--surface);border-radius:18px;border:1px solid var(--border);width:95vw;max-width:720px;max-height:95vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 60px var(--shadow);transform:translateY(8px);transition:transform .25s ease}
@@ -240,7 +236,6 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 </div>
 <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
 <script>
-/* ===== THEME MODE (dark/light) ===== */
 function setThemeMode(mode){
   localStorage.setItem('siteTheme',mode);
   document.querySelectorAll('#tmDark,#tmLight').forEach(b=>b.classList.remove('active'));
@@ -252,12 +247,11 @@ function setThemeMode(mode){
   setThemeMode(saved);
 })();
 
-/* ===== CARD MAKER ===== */
 const CARD_W=1080;let currentLang="ko";
 const I18N={
   ko:{title:"🎧 보이스드라마 리뷰 카드",sub:"플레이어 스타일 리뷰 카드 메이커",theme:"테마",thumb:"썸네일",thumbIn:"클릭하여 업로드",thumbChange:"이미지 변경",canvasThumb:"이미지 업로드",workTitle:"작품 제목",circle:"제작사 (서클명)",artist:"성우명",genre:"장르 · 키워드",rating:"등급",star:"작품 별점",heart:"수위 · 농도",slider:"플레이 감성 재생 바 조절",headline:"한줄 코멘트",review:"리뷰",color:"리뷰 텍스트 색상",reviewer:"작성자",preview:"미리보기",exportBtn:"📥 이미지 저장",reviewerPlace:"@ID 또는 닉네임",phTitle:"작품 제목을 입력하세요",phCircle:"서클명",phArtist:"CV. 성우명",phGenre:"로맨스, 힐링, 달달",phReview:"작품에 대한 리뷰를 작성해주세요",phHeadline:"이 작품은 꼭 들어보세요!",fontSize:"리뷰 글씨 크기",spoiler:"🚨 스포일러 포함",qr:"QR 링크",dateLabel:"작성일 표시",overflow:"⚠️ 리뷰가 너무 길어 일부가 잘립니다 (최대 4페이지)",resetConfirm:"모든 입력을 초기화할까요?",ratings:["선택안함","전연령","R15","R18"],stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",filter:"🎛️ 필터",undo:"↩ 되돌리기",reset:"🗑 초기화",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",cropBtn:"선택 영역 자르기",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1 썸네일"}},
-  ja:{title:"🎧 ボイスドラマ レビューカード",sub:"プレイヤー風レビューカードメーカー",theme:"テーマ",thumb:"サムネイル",thumbIn:"クリックしてアップロード",thumbChange:"画像を変更",canvasThumb:"画像アップロード",workTitle:"作品タイトル",circle:"サークル名",artist:"キャスト (CV)",genre:"ジャンル・キーワード",rating:"年齢制限",star:"作品の評価 (星)",heart:"えろ度・刺激度 (ハート)",slider:"再生バー位置の調整",headline:"ひとことコメント",review:"レビュー・感想",color:"レビューの文字色",reviewer:"レビュアー",preview:"プレビュー",exportBtn:"📥 画像を保存",reviewerPlace:"@ID または ニックネーム",phTitle:"作品タイトルを入力",phCircle:"サークル名",phArtist:"CV. キャスト名",phGenre:"ロマンス, 甘々, 癒し",phReview:"作品のレビューを書いてください",phHeadline:"この作品は絶対聴いてください！",fontSize:"レビュー文字サイズ",spoiler:"🚨 ネタバレあり",qr:"QRリンク",dateLabel:"作成日を表示",overflow:"⚠️ レビューが長すぎて一部が省略されます（最大4ページ）",resetConfirm:"すべての入力をリセットしますか？",ratings:["非表示","全年齢","R15","R18"],stars:["非表示","1/5","2/5","3/5","4/5","5/5"],hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
+  ja:{title:"🎧 ボイスドラマ レビューカード",sub:"プレイヤー風レビューカードメーカー",theme:"テーマ",thumb:"サムネイル",thumbIn:"クリックしてアップロード",thumbChange:"画像を変更",canvasThumb:"画像アップロード",workTitle:"作品タイトル",circle:"サークル名",artist:"キャスト (CV)",genre:"ジャンル・キーワード",rating:"年齢制限",star:"作品の評価 (星)",heart:"えろ度・刺激度 (ハート)",slider:"再生バー位置의 調整",headline:"ひとことコメント",review:"レビュー・感想",color:"レビューの文字色",reviewer:"レビュアー",preview:"プレビュー",exportBtn:"📥 画像を保存",reviewerPlace:"@ID または ニックネーム",phTitle:"作品タイトルを入力",phCircle:"サークル名",phArtist:"CV. キャスト名",phGenre:"ロマンス, 甘々, 癒し",phReview:"作品のレビューを書いてください",phHeadline:"この作品は絶対聴いてください！",fontSize:"レビュー文字サイズ",spoiler:"🚨 ネタバレあり",qr:"QRリンク",dateLabel:"作成日を表示",overflow:"⚠️ レビューが長すぎて一部が省略されます（最大4ページ）",resetConfirm:"すべての入力をリセットしますか？",ratings:["非表示","全年齢","R15","R18"],stars:["非表示","1/5","2/5","3/5","4/5","5/5"],hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",cancel:"キャンセル",apply:"✅ 適用",intensity:"濃度",brushSize:"ブラシ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1 サムネ"}}
 };
 const THEMES=[["frost",{name:"Frost",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],["mono",{name:"Mono",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],["white",{name:"White",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],["ocean",{name:"Ocean",bg1:"#3d6b7e",bg2:"#1c3a4a",glass:"rgba(120,180,210,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#8ddae8",progressBg:"rgba(255,255,255,0.18)",progressFill:"#8ddae8",ctrl:"#fff"}],["sage",{name:"Sage",bg1:"#6b8576",bg2:"#3d5247",glass:"rgba(160,200,170,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#c8e0c5",progressBg:"rgba(255,255,255,0.2)",progressFill:"#c8e0c5",ctrl:"#fff"}],["midnight",{name:"Midnight",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}],["noir",{name:"Noir",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],["rose",{name:"Rose",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}],["wine",{name:"Wine",bg1:"#6b2a36",bg2:"#3a1218",glass:"rgba(160,80,90,0.28)",glassBorder:"rgba(255,255,255,0.16)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#f0b8b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#f0b8b0",ctrl:"#fff"}]];
@@ -273,9 +267,15 @@ let _previewRAF=null;function schedulePreview(){if(_previewRAF)return;_previewRA
 document.getElementById("progressSlider").addEventListener("input",e=>{state.progress=parseFloat(e.target.value);autoSave();schedulePreview();});
 const colorGrid=document.getElementById("colorGrid");
 TEXT_COLORS.forEach(c=>{const s=document.createElement("div");s.className="color-swatch"+(c.h==="auto"?" color-swatch-auto":"");s.title=c.n;if(c.h!=="auto")s.style.background=c.h;s.dataset.hex=c.h;s.onclick=()=>{state.reviewColor=c.h;updateAll();};colorGrid.appendChild(s);});
-document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;const u=URL.createObjectURL(f);const img=new Image();img.onload=()=>{state.originalImg=img;state.thumbImg=img;state.thumbUrl=u;updateAll();};img.src=u;});
-["inTitle","inCircle","inArtist","inGenre","inReview","inReviewer","inHeadline","inQR"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{if(id==="inQR")state.qrUrl=document.getElementById("inQR").value;autoSave();renderPreview();}));
 
+// [수정] 파일 등록 이벤트 (메모리 누수 차단)
+document.getElementById("fileInput").addEventListener("change",e=>{
+  const f=e.target.files?.[0];if(!f)return;
+  if(state.thumbUrl&&state.thumbUrl.startsWith('blob:')){URL.revokeObjectURL(state.thumbUrl);}
+  const u=URL.createObjectURL(f);const img=new Image();img.onload=()=>{state.originalImg=img;state.thumbImg=img;state.thumbUrl=u;updateAll();};img.src=u;
+});
+
+["inTitle","inCircle","inArtist","inGenre","inReview","inReviewer","inHeadline","inQR"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{if(id==="inQR")state.qrUrl=document.getElementById("inQR").value;autoSave();renderPreview();}));
 
 function setLanguage(lang){
   currentLang=lang;
@@ -326,7 +326,6 @@ function getV(){return{title:document.getElementById("inTitle").value,circle:doc
 function formatTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=Math.floor(s%60);if(h>0)return h+":"+(m<10?"0":"")+m+":"+(ss<10?"0":"")+ss;return m+":"+(ss<10?"0":"")+ss;}
 const MAX_PAGE_H=1000,MAX_PAGES=4,PAGE_PAD_BOTTOM=40,REVIEWER_H=52,DATE_H=28,CONT_TOP_PAD=120,TOP_H=480,REVIEW_GAP=90;
 function reviewLH(){return Math.round(state.fontSize*1.58);}
-
 function headlineH(){return document.getElementById("inHeadline").value?40:0;}
 function footerH(){const rv=!!document.getElementById("inReviewer").value;const dt=state.showDate;return (rv?30:0)+(dt?DATE_H:0);}
 function calcP1H(n){return TOP_H+REVIEW_GAP+headlineH()+n*reviewLH()+footerH()+PAGE_PAD_BOTTOM;}
@@ -408,7 +407,6 @@ function genQR(url){
 }
 function drawQR(ctx,t,isL,x,y,size){
   const qrImg=genQR(state.qrUrl);if(!qrImg)return;
-  // white background with rounded corners
   const pad=6,full=size+pad*2;
   drawRR(ctx,x-pad,y-pad,full,full,8);
   ctx.fillStyle="#fff";ctx.fill();
@@ -458,7 +456,6 @@ function drawPage1(ctx,W,H,layout){
   const bY=ty+228;drawRR(ctx,rX,bY,rW,4,2);ctx.fillStyle=t.progressBg;ctx.fill();drawRR(ctx,rX,bY,rW*prog,4,2);ctx.fillStyle=t.progressFill;ctx.fill();ctx.beginPath();ctx.arc(rX+rW*prog,bY+2,7,0,Math.PI*2);ctx.fillStyle=t.progressFill;ctx.fill();
   const dur=1200,cur=dur*prog,rem=dur-cur;ctx.font="500 13px 'Pretendard',monospace,sans-serif";ctx.fillStyle=t.sub;ctx.textAlign="left";ctx.fillText(formatTime(cur),rX,bY+24);ctx.textAlign="right";ctx.fillText("-"+formatTime(rem),rX+rW,bY+24);ctx.textAlign="left";
   const ctY=bY+74;ctx.textAlign="center";ctx.fillStyle=t.ctrl;ctx.font="500 32px 'Pretendard',sans-serif";ctx.fillText("\u25c0",rCX-66,ctY);drawRR(ctx,rCX-12,ctY-24,8,28,3);ctx.fill();drawRR(ctx,rCX+4,ctY-24,8,28,3);ctx.fill();ctx.fillText("\u25b6",rCX+66,ctY);ctx.textAlign="left";
-  // QR code player area bottom-right
   drawQR(ctx,t,isL,rX+rW-44,topH-72,42);
   const panelIsDark=unified?(!isL):true;
   if(!unified){ctx.fillStyle=isL?"#fafaf7":"#14141c";ctx.fillRect(0,topH,W,H-topH);}
@@ -466,12 +463,10 @@ function drawPage1(ctx,W,H,layout){
   const rvX=80,rvW=W-160;
   ctx.font="700 60px Georgia,serif";ctx.fillStyle=t.accent;ctx.globalAlpha=unified?1:0.7;ctx.textBaseline="top";ctx.fillText("\u201c",rvX-6,topH+18);ctx.textBaseline="alphabetic";ctx.globalAlpha=1;
   let cY=topH+REVIEW_GAP;
-  // headline
   if(v.headline){ctx.font="700 26px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;drawWrap(ctx,v.headline,rvX,cY,rvW,34,1);cY+=40;}
   ctx.font="400 "+state.fontSize+"px 'Pretendard',sans-serif";
   ctx.fillStyle=unified?resolveReviewColor(!isL,t,isL):resolveReviewColor(true,t,isL);
   const pLines=layout.lines.slice(pg.start,pg.start+pg.count);
-  // left accent line
   const acLineTop=cY-10,acLineBot=cY+pLines.length*reviewLH()-10;
   ctx.save();ctx.globalAlpha=unified?0.25:0.45;ctx.strokeStyle=t.accent;ctx.lineWidth=2.5;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(rvX-16,acLineTop);ctx.lineTo(rvX-16,acLineBot);ctx.stroke();ctx.restore();
@@ -481,7 +476,6 @@ function drawPage1(ctx,W,H,layout){
   drawFooter(ctx,v,t,isL,unified,rvX,rvW,H,textEndY);
   if(total>1){ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;}
   drawPageIndicator(ctx,W,H,t,1,total);
-  // watermark
   ctx.font="500 10px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.08;
   ctx.textAlign="right";ctx.fillText("made with VDCard",W-30,H-8);ctx.textAlign="left";ctx.globalAlpha=1;
 }
@@ -490,24 +484,19 @@ function drawContPage(ctx,W,H,layout,pageIdx){
   const t=THEME_MAP[state.themeKey],v=getV(),isL=state.themeKey==="white";
   const unified=UNIFIED_THEMES.includes(state.themeKey);
   const pg=layout.pages[pageIdx],total=layout.pages.length;
-  // background
   if(unified){
     const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,t.bg1);bg.addColorStop(1,t.bg2);ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
   } else {
     ctx.fillStyle=isL?"#fafaf7":"#14141c";ctx.fillRect(0,0,W,H);
   }
-  // top accent line
   ctx.strokeStyle=t.accent;ctx.globalAlpha=unified?0.15:0.25;ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(80,0);ctx.lineTo(W-80,0);ctx.stroke();ctx.globalAlpha=1;
   const rvX=80,rvW=W-160;
-  // quote mark — aligned with CONT_TOP_PAD
   ctx.font="700 48px Georgia,serif";ctx.fillStyle=t.accent;ctx.globalAlpha=unified?0.15:0.35;
   ctx.textBaseline="top";ctx.fillText("\u201c",rvX-6,CONT_TOP_PAD-56);ctx.textBaseline="alphabetic";ctx.globalAlpha=1;
-  // left accent line
   const acLineTop=CONT_TOP_PAD-10,acLineBot=CONT_TOP_PAD+pg.count*reviewLH()-10;
   ctx.save();ctx.globalAlpha=unified?0.25:0.45;ctx.strokeStyle=t.accent;ctx.lineWidth=2.5;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(rvX-16,acLineTop);ctx.lineTo(rvX-16,acLineBot);ctx.stroke();ctx.restore();
-  // review text
   let cY=CONT_TOP_PAD;
   ctx.font="400 "+state.fontSize+"px 'Pretendard',sans-serif";
   ctx.fillStyle=unified?resolveReviewColor(!isL,t,isL):resolveReviewColor(true,t,isL);
@@ -515,7 +504,6 @@ function drawContPage(ctx,W,H,layout,pageIdx){
   for(let i=0;i<pLines.length;i++)ctx.fillText(pLines[i],rvX,cY+i*reviewLH());
   const textEndY=cY+pLines.length*reviewLH();
   drawSpoiler(ctx,t,isL,unified,rvX+rvW-120,30);
-  // footer + indicators
   drawFooter(ctx,v,t,isL,unified,rvX,rvW,H,textEndY);
   if(pageIdx<total-1){ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;}
   drawPageIndicator(ctx,W,H,t,pageIdx+1,total);
@@ -533,13 +521,11 @@ function renderPreview(){
   c.width=CARD_W;c.height=pg.h;
   if(pvPage===0)drawPage1(c.getContext("2d"),CARD_W,pg.h,pvLayout);
   else drawContPage(c.getContext("2d"),CARD_W,pg.h,pvLayout,pvPage);
-  // nav UI
   const nav=document.getElementById("pvNav"),ind=document.getElementById("pvNavInd");
   if(total>1){nav.classList.add("show");ind.textContent=(pvPage+1)+" / "+total;
     nav.querySelector(".pv-nav-btn:first-child").disabled=pvPage===0;
     nav.querySelector(".pv-nav-btn:last-child").disabled=pvPage>=total-1;
   } else {nav.classList.remove("show");}
-  // overflow warning + button text
   const d=I18N[currentLang],ow=document.getElementById("pvOverflow");
   if(pvLayout.overflow){ow.textContent=d.overflow;ow.classList.add("show");}else{ow.classList.remove("show");}
   document.getElementById("exportBtn").textContent=total>1?(d.exportBtn+" ("+total+"\ud398\uc774\uc9c0)"):d.exportBtn;
@@ -564,7 +550,13 @@ function updateAll(){
   if(layout.overflow){ow.textContent=d.overflow;ow.classList.add("show");}else{ow.classList.remove("show");}
   renderPreview();
 }
-function removeThumb(){state.thumbImg=null;state.thumbUrl=null;state.originalImg=null;document.getElementById("fileInput").value="";updateAll();}
+
+// [수정] 썸네일 완전 삭제 (메모리 누수 차단)
+function removeThumb(){
+  if(state.thumbUrl&&state.thumbUrl.startsWith('blob:')){URL.revokeObjectURL(state.thumbUrl);}
+  state.thumbImg=null;state.thumbUrl=null;state.originalImg=null;
+  document.getElementById("fileInput").value="";updateAll();
+}
 
 function exportImage(){
   const layout=getReviewLayout(),total=layout.pages.length;
@@ -598,7 +590,6 @@ function exportImage(){
   }
 }
 
-/* ===== IMAGE EDITOR ===== */
 const ieCanvas=document.getElementById("ieCanvas"),ieCtx=ieCanvas.getContext("2d",{willReadFrequently:true});
 let ie={tool:"crop",originalImg:null,history:[],historyIdx:-1,brushSize:30,intensity:50,crop:{active:false,sx:0,sy:0,ex:0,ey:0},cropRatio:null,cropAction:null,cropDragStart:null,cropOrigRect:null,painting:false,stickers:[],stickerDrag:null,stickerResize:null,scale:1,filter:{blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0},filterBase:null};
 let _ieRAF=null;function scheduleIERender(){if(_ieRAF)return;_ieRAF=requestAnimationFrame(()=>{_ieRAF=null;ieRender();});}
@@ -695,35 +686,26 @@ function enforceCropRatio(){
 function ieRender(){
   const cur=ieGetCurrent();if(!cur)return;
   let src=cur;
-  // apply filter preview (works for blur/mosaic/filter tools with "전체" sliders)
   const _hf=ie.filter,_hasF=_hf.blur>0||_hf.mosaic>0||_hf.gray>0||_hf.brightness>0||_hf.contrast>0||_hf.sepia>0||_hf.saturate>0;
-  if(_hasF&&ie.filterBase){
-    src=applyFilters(ie.filterBase,ie.filter);
-  }
+  if(_hasF&&ie.filterBase){src=applyFilters(ie.filterBase,ie.filter);}
   const wrap=document.getElementById("ieCanvasWrap"),maxW=wrap.clientWidth-32,maxH=wrap.clientHeight-32;
-  // scale relative to FULL-resolution source so canvas size stays stable across modes
   const sc=Math.min(1,maxW/cur.width,maxH/cur.height);ie.scale=sc;
   ieCanvas.width=Math.round(cur.width*sc);ieCanvas.height=Math.round(cur.height*sc);
   ieCtx.imageSmoothingEnabled=true;ieCtx.drawImage(src,0,0,ieCanvas.width,ieCanvas.height);
-  // stickers
   ie.stickers.forEach(st=>{
     ieCtx.drawImage(st.img,st.x*sc,st.y*sc,st.w*sc,st.h*sc);
     if(ie.tool==="sticker"){ieCtx.strokeStyle="rgba(100,160,220,0.6)";ieCtx.lineWidth=2;ieCtx.setLineDash([4,4]);ieCtx.strokeRect(st.x*sc,st.y*sc,st.w*sc,st.h*sc);ieCtx.setLineDash([]);
-      const hx=st.x*sc+st.w*sc-6,hy=st.y*sc+st.h*sc-6;ieCtx.fillStyle="var(--accent)";ieCtx.fillStyle="#a8c8e8";ieCtx.fillRect(hx,hy,12,12);
+      const hx=st.x*sc+st.w*sc-6,hy=st.y*sc+st.h*sc-6;ieCtx.fillStyle="#a8c8e8";ieCtx.fillRect(hx,hy,12,12);
       ieCtx.fillStyle="rgba(231,76,60,0.9)";ieCtx.beginPath();ieCtx.arc(st.x*sc+st.w*sc,st.y*sc,10,0,Math.PI*2);ieCtx.fill();ieCtx.fillStyle="#fff";ieCtx.font="bold 12px sans-serif";ieCtx.textAlign="center";ieCtx.textBaseline="middle";ieCtx.fillText("✕",st.x*sc+st.w*sc,st.y*sc);ieCtx.textAlign="left";ieCtx.textBaseline="alphabetic";}
   });
-  // crop overlay
   if(ie.tool==="crop"&&ie.crop.active){const c=ie.crop,x=Math.min(c.sx,c.ex),y=Math.min(c.sy,c.ey),w=Math.abs(c.ex-c.sx),h=Math.abs(c.ey-c.sy);ieCtx.fillStyle="rgba(0,0,0,0.5)";ieCtx.fillRect(0,0,ieCanvas.width,y);ieCtx.fillRect(0,y,x,h);ieCtx.fillRect(x+w,y,ieCanvas.width-x-w,h);ieCtx.fillRect(0,y+h,ieCanvas.width,ieCanvas.height-y-h);ieCtx.strokeStyle="#a8c8e8";ieCtx.lineWidth=2;ieCtx.setLineDash([6,3]);ieCtx.strokeRect(x,y,w,h);ieCtx.setLineDash([]);
-    // rule-of-thirds grid
     if(w>60&&h>60){ieCtx.strokeStyle="rgba(168,200,232,0.25)";ieCtx.lineWidth=1;
       for(let i=1;i<=2;i++){ieCtx.beginPath();ieCtx.moveTo(x+w*i/3,y);ieCtx.lineTo(x+w*i/3,y+h);ieCtx.stroke();ieCtx.beginPath();ieCtx.moveTo(x,y+h*i/3);ieCtx.lineTo(x+w,y+h*i/3);ieCtx.stroke();}}
-    // corner handles
     if(w>20&&h>20){const hs=7;
       [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([hx,hy])=>{
         ieCtx.fillStyle="#a8c8e8";ieCtx.fillRect(hx-hs,hy-hs,hs*2,hs*2);
         ieCtx.strokeStyle="rgba(255,255,255,0.8)";ieCtx.lineWidth=1.5;ieCtx.strokeRect(hx-hs,hy-hs,hs*2,hs*2);
       });}
-    // dimension display
     const rW=Math.round(w/ie.scale),rH=Math.round(h/ie.scale);
     if(rW>0&&rH>0){const dt=rW+" × "+rH;ieCtx.font="bold 11px 'Pretendard',sans-serif";const tw=ieCtx.measureText(dt).width;const bW=tw+16,bH=22;
       let bx=x+w/2-bW/2,by=y>30?y-26:y+h+6;
@@ -731,12 +713,9 @@ function ieRender(){
       if(bx<2)bx=2;if(bx+bW>ieCanvas.width-2)bx=ieCanvas.width-bW-2;
       ieCtx.fillStyle="rgba(0,0,0,0.7)";drawRR(ieCtx,bx,by,bW,bH,6);ieCtx.fill();
       ieCtx.fillStyle="#fff";ieCtx.textAlign="center";ieCtx.fillText(dt,bx+bW/2,by+15);ieCtx.textAlign="left";}
-    // confirm button
     if(w>60&&h>30){const bw=140,bh=32,bx=x+w/2-bw/2,by=y+h/2-bh/2;ieCtx.fillStyle="rgba(168,200,232,0.9)";drawRR(ieCtx,bx,by,bw,bh,8);ieCtx.fill();ieCtx.fillStyle="#0c0c14";ieCtx.font="bold 12px 'Pretendard',sans-serif";ieCtx.textAlign="center";ieCtx.fillText(I18N[currentLang].ie.cropBtn,bx+bw/2,by+bh/2+4);ieCtx.textAlign="left";}}
-  // crop hint
   let hint=document.getElementById("ieCropHint");
   if(ie.tool==="crop"&&!ie.crop.active){if(!hint){hint=document.createElement("div");hint.id="ieCropHint";hint.className="ie-crop-hint";document.getElementById("ieCanvasWrap").appendChild(hint);}hint.textContent=I18N[currentLang].ie.cropHint;hint.style.display="block";}else{if(hint)hint.style.display="none";}
-  // filter sliders UI
   renderFilterUI();
 }
 
@@ -757,25 +736,21 @@ function renderFilterUI(){
 function applyFilters(srcCanvas,f){
   const w=srcCanvas.width,h=srcCanvas.height;
   let c=document.createElement("canvas");c.width=w;c.height=h;let ctx=c.getContext("2d");
-  // mosaic first (pixelate)
   if(f.mosaic>0){
     const bs=Math.max(2,Math.round(f.mosaic/100*40));
     const smW=Math.max(1,Math.round(w/bs)),smH=Math.max(1,Math.round(h/bs));
     const tmp=document.createElement("canvas");tmp.width=smW;tmp.height=smH;
     const tc=tmp.getContext("2d");tc.imageSmoothingEnabled=true;tc.drawImage(srcCanvas,0,0,smW,smH);
     ctx.imageSmoothingEnabled=false;ctx.drawImage(tmp,0,0,w,h);
-    // use this as new source for next filters
     const next=document.createElement("canvas");next.width=w;next.height=h;next.getContext("2d").drawImage(c,0,0);
     c=next;ctx=c.getContext("2d");
   } else { ctx.drawImage(srcCanvas,0,0); }
-  // blur (gaussian via filter)
   if(f.blur>0){
     const px=Math.max(1,Math.round(f.blur/100*30));
     const tmp=document.createElement("canvas");tmp.width=w;tmp.height=h;const tc=tmp.getContext("2d");
     tc.filter="blur("+px+"px)";tc.drawImage(c,0,0);
     ctx.clearRect(0,0,w,h);ctx.drawImage(tmp,0,0);
   }
-  // grayscale + brightness + contrast + sepia + saturate (combined CSS filter)
   let cssFilters=[];
   if(f.gray>0) cssFilters.push("grayscale("+f.gray+"%)");
   if(f.brightness>0) cssFilters.push("brightness("+(1+f.brightness/100)+")");
@@ -790,11 +765,9 @@ function applyFilters(srcCanvas,f){
   return c;
 }
 
-/* Canvas events */
 function iePos(e){
   const r=ieCanvas.getBoundingClientRect();
   const t=e.touches&&e.touches.length?e.touches[0]:(e.changedTouches&&e.changedTouches.length?e.changedTouches[0]:e);
-  // Account for CSS scaling (e.g. max-height:60vh shrinks canvas display while intrinsic pixels stay larger)
   const sx=r.width>0?ieCanvas.width/r.width:1;
   const sy=r.height>0?ieCanvas.height/r.height:1;
   return{x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};
@@ -820,10 +793,8 @@ function ieDown(e){
     ie.cropAction='draw';ie.cropDragStart={x:p.x,y:p.y};
     ie.crop={active:true,sx:p.x,sy:p.y,ex:p.x,ey:p.y};
   } else if(ie.tool==="blur"||ie.tool==="mosaic"){
-    // Snapshot the PRE-paint state for blending math
     ie._paintSnapshot=document.createElement("canvas");ie._paintSnapshot.width=ieGetCurrent().width;ie._paintSnapshot.height=ieGetCurrent().height;
     ie._paintSnapshot.getContext("2d").drawImage(ieGetCurrent(),0,0);
-    // Push a fresh working copy onto history so the original entry stays intact (enables undo/reset)
     const work=document.createElement("canvas");work.width=ie._paintSnapshot.width;work.height=ie._paintSnapshot.height;
     work.getContext("2d").drawImage(ie._paintSnapshot,0,0);
     iePushHistory(work);
@@ -876,7 +847,6 @@ function ieMove(e){
 function ieUp(){
   ie.cropAction=null;
   if((ie.tool==="blur"||ie.tool==="mosaic")&&ie.painting){ie.painting=false;
-    // refresh filterBase after brush painting so "전체" preview stays current
     const _uf=ie.filter;if((_uf.blur>0||_uf.mosaic>0)&&ie.filterBase)ensureFilterBase();
   }
   ie.stickerDrag=null;ie.stickerResize=null;
@@ -888,15 +858,12 @@ function iePaintAt(rx,ry){
   const sx=Math.max(0,Math.floor(rx-r)),sy=Math.max(0,Math.floor(ry-r)),sw=Math.min(src.width-sx,r*2),sh=Math.min(src.height-sy,r*2);
   if(sw<=0||sh<=0)return;
   if(ie.tool==="blur"){
-    // Soft dreamy gaussian with feathered edge
     const px=Math.max(2,Math.round(strength*40)),pad=px*3;
     const ex=Math.max(0,sx-pad),ey=Math.max(0,sy-pad),ew=Math.min(src.width-ex,sw+pad*2),eh=Math.min(src.height-ey,sh+pad*2);
     const tmp=document.createElement("canvas");tmp.width=ew;tmp.height=eh;const tc=tmp.getContext("2d");
-    // Double-pass blur for dreamy softness
     tc.filter="blur("+px+"px)";tc.drawImage(snap,ex,ey,ew,eh,0,0,ew,eh);
     const tmp2=document.createElement("canvas");tmp2.width=ew;tmp2.height=eh;const tc2=tmp2.getContext("2d");
     tc2.filter="blur("+Math.round(px*0.5)+"px)";tc2.drawImage(tmp,0,0);
-    // Feathered circular mask (soft edge)
     const mask=document.createElement("canvas");mask.width=src.width;mask.height=src.height;const mc=mask.getContext("2d");
     const grad=mc.createRadialGradient(rx,ry,r*0.3,rx,ry,r);
     grad.addColorStop(0,"rgba(255,255,255,1)");grad.addColorStop(0.7,"rgba(255,255,255,0.6)");grad.addColorStop(1,"rgba(255,255,255,0)");
@@ -925,19 +892,37 @@ document.getElementById("stickerFileInput").addEventListener("change",e=>{
   Array.from(files).forEach(f=>{const u=URL.createObjectURL(f);const img=new Image();img.onload=()=>{const src=ieGetCurrent();const md=Math.min(src.width,src.height)*0.3,asp=img.width/img.height;
     ie.stickers.push({img,x:src.width/2-md/2,y:src.height/2-md/asp/2,w:md,h:md/asp});ieRender();};img.src=u;});e.target.value="";
 });
-function ieApply(){
-  // commit filters at FULL resolution if any are active
-  const _af=ie.filter,_anyF=_af.blur>0||_af.mosaic>0||_af.gray>0||_af.brightness>0||_af.contrast>0||_af.sepia>0||_af.saturate>0;
-  if(_anyF){
-    const full=ieGetCurrent();
-    const filtered=applyFilters(full,ie.filter);
-    iePushHistory(filtered);ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0};ie.filterBase=null;
+
+// [수정] 편집 완료 후 적용 함수 (기존 파일 메모리 완전 정리 최적화)
+function ieApply() {
+  const _af = ie.filter, _anyF = _af.blur > 0 || _af.mosaic > 0 || _af.gray > 0 || _af.brightness > 0 || _af.contrast > 0 || _af.sepia > 0 || _af.saturate > 0;
+  if (_anyF) {
+    const full = ieGetCurrent();
+    const filtered = applyFilters(full, ie.filter);
+    iePushHistory(filtered);
+    ie.filter = { blur: 0, mosaic: 0, gray: 0, brightness: 0, contrast: 0, sepia: 0, saturate: 0 };
+    ie.filterBase = null;
   }
-  let src=ieGetCurrent();
-  const final=document.createElement("canvas");final.width=src.width;final.height=src.height;const fc=final.getContext("2d");fc.drawImage(src,0,0);
-  ie.stickers.forEach(st=>fc.drawImage(st.img,st.x,st.y,st.w,st.h));
-  const du=final.toDataURL("image/png");const img=new Image();img.onload=()=>{state.thumbImg=img;state.thumbUrl=du;closeImageEditor();updateAll();};img.src=du;
+  let src = ieGetCurrent();
+  const final = document.createElement("canvas");
+  final.width = src.width; final.height = src.height;
+  const fc = final.getContext("2d"); fc.drawImage(src, 0, 0);
+  ie.stickers.forEach(st => fc.drawImage(st.img, st.x, st.y, st.w, st.h));
+  
+  const du = final.toDataURL("image/png");
+  const img = new Image();
+  img.onload = () => {
+    if (state.thumbUrl && state.thumbUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(state.thumbUrl);
+    }
+    state.thumbImg = img;
+    state.thumbUrl = du;
+    closeImageEditor();
+    updateAll();
+  };
+  img.src = du;
 }
+
 window.addEventListener("resize",()=>{if(document.getElementById("ieOverlay").classList.contains("open"))ieRender();});
 window.addEventListener("keydown",e=>{
   if(document.getElementById("ieOverlay").classList.contains("open")){
@@ -946,7 +931,6 @@ window.addEventListener("keydown",e=>{
   }
 });
 
-/* ===== PREVIEW MODE (mobile A: sticky / C: float) ===== */
 function setPvMode(mode){
   document.body.dataset.pvMode=mode;
   localStorage.setItem("pvMode",mode);
@@ -970,14 +954,11 @@ function openPvFull(){
   overlay.classList.add("open");
 }
 function closePvFull(){document.getElementById("pvFull").classList.remove("open");}
-// Hook into card preview so mini stays in sync
 const _origRenderPreview=renderPreview;
 renderPreview=function(){_origRenderPreview();if(document.body.dataset.pvMode==="float")renderMiniPreview();};
-// Init: restore saved mode (default sticky)
 setPvMode(localStorage.getItem("pvMode")||"sticky");
-// Esc to close fullscreen
 window.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.getElementById("pvFull").classList.contains("open"))closePvFull();});
-/* ===== AUTO SAVE / LOAD / RESET ===== */
+
 const SAVE_KEY="vdrc_save";
 let _saveTimer=null;
 function autoSave(){
@@ -1021,14 +1002,25 @@ function resetAll(){
   document.getElementById("inReview").value="";document.getElementById("inReviewer").value="";
   document.getElementById("inHeadline").value="";document.getElementById("inQR").value="";
   document.getElementById("progressSlider").value=0.55;document.getElementById("chkDate").checked=false;
-  
   document.getElementById("fileInput").value="";pvPage=0;
   rebuildSelectors();updateAll();
 }
-// hook autoSave into state-changing actions
-const _origUpdateAll=updateAll;
-updateAll=function(){_origUpdateAll();autoSave();};
+
+// [수정] 파일 맨 하단 구동 프로세스 정리 (무한 루프 방지 및 실시간 싱크 안정화)
+["themeSelect", "progressSlider", "chkSpoiler", "chkDate"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("change", () => {
+      autoSave();
+      if (id === "themeSelect" || id === "progressSlider") {
+        renderPreview(); 
+      }
+    });
+  }
+});
 
 autoLoad();
-rebuildSelectors();setLanguage(currentLang);
+rebuildSelectors();
+setLanguage(currentLang);
+autoSave();
 </script></body></html>
