@@ -236,16 +236,37 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 </div>
 <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
 <script>
-function setThemeMode(mode){
-  localStorage.setItem('siteTheme',mode);
+function setThemeMode(mode, isUserClick = true){
+  // 사용자가 버튼을 직접 클릭했을 때만 브라우저에 설정을 저장해
+  if (isUserClick) {
+    localStorage.setItem('siteTheme', mode);
+  }
   document.querySelectorAll('#tmDark,#tmLight').forEach(b=>b.classList.remove('active'));
-  document.getElementById(mode==='dark'?'tmDark':'tmLight').classList.add('active');
-  document.documentElement.setAttribute('data-theme',mode);
+  const targetBtn = document.getElementById(mode==='dark'?'tmDark':'tmLight');
+  if (targetBtn) targetBtn.classList.add('active');
+  document.documentElement.setAttribute('data-theme', mode);
 }
+
 (function(){
-  const saved=localStorage.getItem('siteTheme')||(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
-  setThemeMode(saved);
+  // 1. 이전에 사용자가 이 페이지에서 수동으로 버튼을 눌러 저장한 기록이 있는지 확인
+  let saved = localStorage.getItem('siteTheme');
+  
+  // 2. 기록이 없다면 디바이스 시스템 설정을 확인
+  if (!saved) {
+    const isSystemLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+    saved = isSystemLight ? 'light' : 'dark';
+  }
+  
+  // 3. 페이지가 처음 켜진 것이므로 수동 저장이 안 되게 false를 넘겨서 테마 적용
+  setThemeMode(saved, false);
 })();
+
+// [추천 기능] 사용자가 수동으로 고정하지 않았다면, 페이지를 켜둔 상태에서 폰/PC 시스템 테마가 바뀔 때 실시간으로 같이 변하게 해줘!
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('siteTheme')) {
+    setThemeMode(e.matches ? 'dark' : 'light', false);
+  }
+});
 
 const CARD_W=1080;let currentLang="ko";
 const I18N={
