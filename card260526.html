@@ -1151,16 +1151,19 @@ function loadDefaultExample() {
   document.getElementById("progressSlider").value = 0.35;
 }
 
-// 1. 기존에 쓰던 임시 저장 데이터가 있는지 먼저 로드해와
-autoLoad();
-
-// 2. 만약 이전에 쓰던 글도 없고 + 지금 제목창도 완전히 비어있다면 (즉, 사이트 첫 접속이라면)
-if (!localStorage.getItem(SAVE_KEY) && !document.getElementById("inTitle").value) {
-  loadDefaultExample(); // 똑똑하게 예시 샘플 데이터를 화면에 챡 채워주기!
-}
-
-// 3. 나머지 인터페이스 초기화 구동
+// [순서 교정] 언어와 셀렉트 박스 틀을 먼저 완벽하게 만들어 둠
 rebuildSelectors();
 setLanguage(currentLang);
-autoSave(); // 로드된 초기 샘플 상태를 안전하게 동기화 저장
+
+// 그 다음 이전에 쓰던 저장 데이터가 있는지 로드
+autoLoad();
+
+// 만약 저장 데이터가 없거나, 저장 데이터를 불렀는데도 제목 칸이 비어있다면 샘플 데이터 가동!
+if (!localStorage.getItem(SAVE_KEY) || !document.getElementById("inTitle").value) {
+  loadDefaultExample();
+}
+
+// 마지막으로 UI 불빛과 우측 이미지 카드(Canvas)를 강제로 새로고침하여 렌더링 완성!
+updateAll();
+autoSave(); 
 </script></body></html>
