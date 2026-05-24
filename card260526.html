@@ -562,25 +562,31 @@ function drawPage1(ctx,W,H,layout){
   drawRR(ctx,itx,ity,its,its,22);ctx.strokeStyle=isL?"rgba(0,0,0,0.04)":"rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
   drawRR(ctx,tx,ty,ts,ts,28);ctx.strokeStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.stroke();
   
-  // 우측 오디오 플레이어 텍스트 및 정보 레이아웃 구역
+  // 우측 오디오 플레이어 영역 좌표 설정
   const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2;
   
   /* ========================================================
-     [구역 1: 상단 정보 블록] 제목의 행 수에 상관없이 안정적인 텍스트 흐름 처리
+     [구역 1: 상단 정보 블록 - 글자수 제한 및 말줄임표 보정]
      ======================================================== */
-  const tTop=ty+16; // 텍스트 시작점을 위로 살짝 끌어올려 공간 확보
+  const tTop=ty+32; // [보정] 시작 줄을 이전처럼 조금 아래로 내려서 썸네일과 정렬 맞춤
   ctx.font="700 32px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.textAlign="left";
   
-  // 제목 그리기 (최대 2줄 보장 및 실제 그려진 행 수 반환)
+  // 1. 제목 그리기 (최대 2줄 제한, 넘어가면 자동으로 뒤에 ... 붙음)
   const tl=drawWrap(ctx,v.title,rX,tTop,rW,40,2);
   
-  // 메타 정보(서클/성우) 레이어 위치 계산
-  const aT=tTop+(tl*40)+6;
+  // 2. 써클명 / 성우명 정보 결합 및 1줄 글자 제한(...) 처리
+  const aT=tTop+(tl*40)+10;
   ctx.font="500 20px 'Pretendard',sans-serif";ctx.fillStyle=t.sub;
-  const meta=[v.circle,v.artist].filter(s=>s&&s.trim()).join(" \u00b7 ");
-  if(meta) ctx.fillText(meta,rX,aT);
+  let meta=[v.circle,v.artist].filter(s=>s&&s.trim()).join(" \u00b7 ");
+  if(meta){
+    if(ctx.measureText(meta).width>rW){
+      while(meta.length>0&&ctx.measureText(meta+"...").width>rW){meta=meta.slice(0,-1);}
+      meta+="...";
+    }
+    ctx.fillText(meta,rX,aT);
+  }
   
-  // 평점/등급 배지 레이어 위치 계산
+  // 3. 평점 및 등급 배지 레이어
   const iY=aT+38;
   const badge=state.ageRating;let sX=rX;
   if(badge!=="\uc120\ud0dd\uc548\ud568"){
@@ -602,19 +608,22 @@ function drawPage1(ctx,W,H,layout){
     let hs="";for(let i=0;i<hc;i++)hs+="\u2665";ctx.fillText(hs,sX,iY+2);
   }
   
-  // 장르 태그 레이어 위치 계산
+  // 4. 장르 태그 1줄 글자 제한(...) 처리
   if(v.genre){
-    const gY=iY+36;
+    const gY=iY+38;
     ctx.font="600 15px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;
-    const tags=v.genre.split(/[,，、·]/).map(s=>s.trim()).filter(Boolean).map(s=>s.startsWith("#")?s:"#"+s).join("  ");
-    // 태그가 너무 길어 우측 영역(또는 QR코드 근처)을 침범해 쪼개지지 않도록 줄바꿈 단위 제한 지정
-    drawWrap(ctx,tags,rX,gY,rW,22,1);
+    let tags=v.genre.split(/[,，、·]/).map(s=>s.trim()).filter(Boolean).map(s=>s.startsWith("#")?s:"#"+s).join("  ");
+    if(ctx.measureText(tags).width>rW){
+      while(tags.length>0&&ctx.measureText(tags+"...").width>rW){tags=tags.slice(0,-1);}
+      tags+="...";
+    }
+    ctx.fillText(tags,rX,gY);
   }
   
   /* ========================================================
-     [구역 2: 하단 기기 컨트롤러 블록] 제목 길이와 상관없이 완전히 독립된 고정 Y축 매칭
+     [구역 2: 하단 기기 컨트롤러 블록 - 항상 고정된 하단 위치]
      ======================================================== */
-  const bY=ty+255; // 썸네일 박스 하단 밸런스에 맞춰 재생 바의 세로 절대위치 고정
+  const bY=ty+255; 
   drawRR(ctx,rX,bY,rW,4,2);ctx.fillStyle=t.progressBg;ctx.fill();
   drawRR(ctx,rX,bY,rW*prog,4,2);ctx.fillStyle=t.progressFill;ctx.fill();
   ctx.beginPath();ctx.arc(rX+rW*prog,bY+2,7,0,Math.PI*2);ctx.fillStyle=t.progressFill;ctx.fill();
@@ -629,7 +638,7 @@ function drawPage1(ctx,W,H,layout){
   drawRR(ctx,rCX-12,ctY-24,8,28,3);ctx.fill();drawRR(ctx,rCX+4,ctY-24,8,28,3);ctx.fill();
   ctx.fillText("\u25b6",rCX+66,ctY);ctx.textAlign="left";
   
-  // QR 코드는 항상 우측 하단 구석 빈 공간에 예쁘게 고정 배치
+  // QR 코드 위치 고정
   drawQR(ctx,t,isL,rX+rW-44,topH-72,42);
   
   // 리뷰 텍스트 컴포넌트 렌더링 구역 (하단 패널)
