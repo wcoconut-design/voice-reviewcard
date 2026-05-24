@@ -1,3 +1,9 @@
+/*
+Voice Drama Review Card v1.0.0 (2026.05.23)
+Author: wcoconut
+Copyright 2026 wcoconut. All rights reserved.
+무단 도용, 변형, 상업적 재배포를 금지합니다.
+*/
 <!DOCTYPE html>
 <html lang="ko" data-theme="dark">
 <head>
@@ -672,7 +678,7 @@ function drawPage1(ctx,W,H,layout){
   }
   drawPageIndicator(ctx,W,H,t,1,total);
   ctx.font="500 10px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.08;
-  ctx.textAlign="right";ctx.fillText("v1.0.0 © wcoconut 2026",W-30,H-8);ctx.textAlign="left";ctx.globalAlpha=1;
+  ctx.textAlign="right";ctx.fillText("© wcoconut",W-30,H-8);ctx.textAlign="left";ctx.globalAlpha=1;
 }
 
 function drawContPage(ctx,W,H,layout,pageIdx){
@@ -703,7 +709,7 @@ function drawContPage(ctx,W,H,layout,pageIdx){
   if(pageIdx<total-1){ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;}
   drawPageIndicator(ctx,W,H,t,pageIdx+1,total);
   ctx.font="500 10px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.08;
-  ctx.textAlign="right";ctx.fillText("v1.0.0 © wcoconut 2026",W-30,H-8);ctx.textAlign="left";ctx.globalAlpha=1;
+  ctx.textAlign="right";ctx.fillText("© wcoconut",W-30,H-8);ctx.textAlign="left";ctx.globalAlpha=1;
 }
 
 let pvPage=0,pvLayout=null;
