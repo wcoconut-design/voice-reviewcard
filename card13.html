@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>보이스드라마 리뷰 카드 메이커</title>
+<title>Voice Drama Review Card</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
 <style>
 [data-theme="dark"]{--bg:#0c0c14;--surface:#16161e;--input:#1e1e2a;--border:rgba(255,255,255,0.08);--text:#e0e0e8;--sub:#6a6a80;--muted:#4e4e66;--accent:#a8c8e8;--scrollbar:rgba(255,255,255,0.15);--shadow:rgba(0,0,0,0.4);--active-text:#fff;--overlay:rgba(0,0,0,0.85)}
@@ -21,16 +21,14 @@ body{background:var(--bg);font-family:'Pretendard',-apple-system,sans-serif;colo
 .t-btn{padding:5px 12px;border-radius:18px;font-size:11px;font-weight:700;cursor:pointer;background:var(--input);color:var(--sub);border:1px solid var(--border);transition:all .2s}
 .t-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
 .t-btn-sm{padding:3px 9px;font-size:13px;line-height:1}
-.layout{flex:1;display:grid;grid-template-columns:minmax(440px,1.1fr) minmax(360px,1fr);gap:18px;min-height:0}
+.layout{flex:1;display:grid;grid-template-columns:1fr 1.25fr;gap:20px;min-height:0}
 @media(max-width:900px){
   body{overflow:auto}
   .wrap{height:auto;min-height:100vh;padding:12px 14px 30px}
   .layout{grid-template-columns:1fr;display:flex;flex-direction:column;gap:12px;overflow:visible}
-  /* Mode A (default) — sticky preview top */
   .preview-wrap{order:-1;position:sticky;top:0;background:var(--bg);padding:6px 0 10px;z-index:10;border-bottom:1px solid var(--border);align-items:center}
   #preview{max-height:42vh;width:auto;max-width:100%}
   .editor{overflow:visible;min-height:auto;flex:none}
-  /* Mode C — floating mini, editor full */
   body[data-pv-mode="float"] .preview-wrap{display:none}
   body[data-pv-mode="float"] .pv-mini{display:flex}
   body[data-pv-mode="float"] .wrap{padding-bottom:14px}
@@ -47,10 +45,24 @@ body{background:var(--bg);font-family:'Pretendard',-apple-system,sans-serif;colo
 .pv-full canvas{max-width:100%;max-height:calc(100vh - 100px);border-radius:14px;box-shadow:0 14px 50px var(--shadow);display:block;transform:translateY(8px);transition:transform .25s ease}
 .pv-full.open canvas{transform:translateY(0)}
 .pv-full-close{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;align-self:flex-end;box-shadow:0 4px 12px var(--shadow)}
-.editor{background:var(--surface);border-radius:14px;padding:12px 14px;border:1px solid var(--border);overflow-y:auto;transition:background .3s;min-height:0;display:flex;flex-direction:column}
+
+/* 에디터 내부 패딩 및 유연한 높이 고정 (세로 스크롤 찌꺼기 제거) */
+.editor{background:var(--surface);border-radius:14px;padding:20px 24px;border:1px solid var(--border);overflow-y:auto;transition:background .3s;height:100%;box-sizing:border-box;display:flex;flex-direction:column;scrollbar-width:thin}
 .editor::-webkit-scrollbar{width:6px}.editor::-webkit-scrollbar-track{background:transparent}.editor::-webkit-scrollbar-thumb{background-color:var(--scrollbar);border-radius:3px}
-.editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px;flex:1}
+.editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;flex:none}
 .editor-grid .full{grid-column:1/-1}
+  
+/* 인풋 폼 세련되게 통일 */
+input[type=text],select,textarea{width:100%;background:var(--input);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;transition:all .2s ease}
+textarea{resize:none;line-height:1.5}::placeholder{color:var(--muted)}
+
+/* 클릭 시 부드럽고 은은한 네온 효과 */
+input[type=text]:focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(168, 200, 232, 0.2);
+  background: var(--input);
+}
+
 .preview-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;min-width:0;gap:8px}
 .pv-nav{display:none;align-items:center;gap:12px;padding:4px 0}
 .pv-nav.show{display:flex}
@@ -59,12 +71,10 @@ body{background:var(--bg);font-family:'Pretendard',-apple-system,sans-serif;colo
 .pv-nav-btn:disabled{opacity:0.3;cursor:default;background:var(--input);color:var(--sub)}
 .pv-nav-ind{font-size:12px;font-weight:700;color:var(--sub);min-width:40px;text-align:center}
 #preview{max-height:calc(100vh - 60px);max-width:100%;width:auto;height:auto;border-radius:14px;box-shadow:0 8px 40px var(--shadow);display:block}
-label{display:block;font-size:10.5px;font-weight:600;color:var(--sub);margin-bottom:3px;letter-spacing:-0.01em}
+label{display:block;font-size:10px;font-weight:600;color:var(--sub);margin-bottom:2px;letter-spacing:-0.01em}
 .field{margin:0}
-input[type=text],select,textarea{width:100%;background:var(--input);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12.5px;color:var(--text);font-family:inherit;outline:none;transition:background .3s}
-textarea{resize:none;line-height:1.45}::placeholder{color:var(--muted)}
 .thumb-row{display:flex;gap:6px;align-items:stretch}
-.thumb-box{border:1.5px dashed var(--border);border-radius:9px;padding:6px 10px;text-align:center;cursor:pointer;background:var(--input);display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;flex:1;min-width:0}
+.thumb-box{border:1.5px dashed var(--border);border-radius:9px;padding:4px 8px;text-align:center;cursor:pointer;background:var(--input);display:flex;align-items:center;justify-content:center;gap:8px;min-height:40px;flex:1;min-width:0}
 .thumb-row:has(.thumb-actions.show) .thumb-box{flex:1 1 auto;padding:6px}
 .thumb-box span{font-size:12px;color:var(--sub)}
 .thumb-preview{width:32px;height:32px;border-radius:5px;object-fit:cover}
@@ -72,38 +82,39 @@ textarea{resize:none;line-height:1.45}::placeholder{color:var(--muted)}
 .thumb-row:has(.thumb-actions.show) #thumbLabel>span{display:none}
 .thumb-actions{display:none;gap:4px;flex:0 1 auto;align-items:stretch}
 .thumb-actions.show{display:flex}
-.thumb-act-btn{flex:0 0 auto;padding:6px 8px;border-radius:7px;font-size:10.5px;font-weight:700;cursor:pointer;background:var(--input);color:var(--accent);border:1px solid rgba(128,160,200,0.2);text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;line-height:1.2;white-space:nowrap;flex-direction:column;gap:4px;width:54px}
-.thumb-act-btn .ic{font-size:18px;line-height:1}
-.thumb-act-btn .tx{font-size:10px;font-weight:600}
+.thumb-act-btn{flex:0 0 auto;padding:4px 6px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:var(--input);color:var(--accent);border:1px solid rgba(128,160,200,0.2);text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;line-height:1.2;white-space:nowrap;flex-direction:column;gap:2px;width:46px}
+.thumb-act-btn .ic{font-size:16px;line-height:1}
+.thumb-act-btn .tx{font-size:9px;font-weight:600}
 .thumb-act-btn:hover{opacity:.8}
 .thumb-act-del{color:#e74c3c;border-color:rgba(231,76,60,0.25)}.thumb-act-del:hover{background:rgba(231,76,60,0.08)}
 .rating-row{display:flex;gap:3px}
-.rating-btn{flex:1;padding:5px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;background:var(--input);color:var(--sub);border:1px solid var(--border);text-align:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rating-btn{flex:1;padding:4px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;background:var(--input);color:var(--sub);border:1px solid var(--border);text-align:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rating-btn.active-none{border:1.5px solid #718093;background:rgba(113,128,147,0.15);color:var(--active-text)}
 .rating-btn.active-all{border:1.5px solid #2ecc71;background:rgba(46,204,113,0.15);color:var(--active-text)}
 .rating-btn.active-r15{border:1.5px solid #e67e22;background:rgba(230,126,34,0.15);color:var(--active-text)}
 .rating-btn.active-r18{border:1.5px solid #e74c3c;background:rgba(231,76,60,0.15);color:var(--active-text)}
-.export-btn{width:100%;padding:9px 0;border:none;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;color:#fff}
-.color-grid{display:flex;gap:5px;flex-wrap:wrap;background:var(--input);padding:6px;border-radius:7px;border:1px solid var(--border)}
-.color-swatch{width:19px;height:19px;border-radius:4px;cursor:pointer;border:1px solid rgba(0,0,0,0.15);transition:transform .15s,box-shadow .15s}
+.export-btn{padding:8px 0;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;color:#fff}
+.btn-row{display:flex;gap:6px;align-items:stretch}
+.reset-btn{padding:9px 14px;border:1px solid var(--border);border-radius:9px;font-size:13px;cursor:pointer;background:var(--input);color:var(--sub);transition:all .15s}
+.reset-btn:hover{background:rgba(231,76,60,0.1);color:#e74c3c;border-color:rgba(231,76,60,0.3)}
+.color-grid{display:flex;gap:4px;flex-wrap:wrap;background:var(--input);padding:5px;border-radius:7px;border:1px solid var(--border)}
+.color-swatch{width:17px;height:17px;border-radius:4px;cursor:pointer;border:1px solid rgba(0,0,0,0.15);transition:transform .15s,box-shadow .15s}
 .color-swatch.active{border:2px solid var(--text);box-shadow:0 0 6px var(--shadow);transform:scale(1.1)}
 .color-swatch:hover{transform:scale(1.15)}
 .color-swatch-auto{background:conic-gradient(from 45deg,#fff 0deg 90deg,#444 90deg 180deg,#fff 180deg 270deg,#444 270deg 360deg) !important;position:relative}
 .color-swatch-auto::after{content:"A";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--accent);background:var(--input);border-radius:50%;width:11px;height:11px;margin:auto;line-height:1}
 .editor-credit{text-align:center;font-size:9.5px;color:var(--muted);font-weight:600;margin-top:6px}
-.check-label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;margin:0}
-.check-label input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+.check-label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--sub);cursor:pointer;margin:0}
+.check-label input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
 .pv-overflow{display:none;padding:7px 12px;border-radius:7px;font-size:11px;font-weight:600;background:rgba(230,126,34,0.12);color:#e67e22;border:1px solid rgba(230,126,34,0.25);text-align:center}
 .pv-overflow.show{display:block}
-/* range input - smooth, friendly thumb */
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent;cursor:pointer;outline:none;padding:8px 0}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent;cursor:pointer;outline:none;padding:6px 0}
 input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--input);border:1px solid var(--border)}
 input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--input);border:1px solid var(--border)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);box-shadow:0 1px 4px var(--shadow);margin-top:-7px;transition:transform .15s ease,box-shadow .15s ease}
 input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);box-shadow:0 1px 4px var(--shadow);transition:transform .15s ease,box-shadow .15s ease}
 input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2);box-shadow:0 2px 8px var(--shadow)}
 input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-thumb{transform:scale(1.2);box-shadow:0 2px 8px var(--shadow)}
-/* IMAGE EDITOR MODAL — minimal, flat */
 .ie-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);opacity:0;transition:opacity .25s ease}
 .ie-overlay.open{display:flex;opacity:1}
 .ie-modal{background:var(--surface);border-radius:18px;border:1px solid var(--border);width:95vw;max-width:720px;max-height:95vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 60px var(--shadow);transform:translateY(8px);transition:transform .25s ease}
@@ -155,11 +166,12 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-filter-cell input[type=range]{flex:1;padding:5px 0;min-width:0}
 .ie-filter-cell span{min-width:28px;font-size:10.5px;color:var(--accent);font-weight:700;text-align:right}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 </head>
 <body>
 <div class="wrap">
   <div class="topbar">
-    <div class="brand"><h1 id="headerTitle">🎧 보이스드라마 리뷰 카드</h1><p id="headerSub">플레이어 스타일 메이커</p></div>
+    <div class="brand"><h1 id="headerTitle">🎧 Voice Drama Review Card</h1><p id="headerSub">플레이어 스타일 메이커</p></div>
     <div class="tb-group">
       <div class="pv-mode-switch" role="group" aria-label="미리보기 위치">
         <button class="t-btn active" id="pvStickyBtn" onclick="setPvMode('sticky')" title="상단 고정">📌</button>
@@ -194,13 +206,19 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
         <div class="field"><label id="lblRating">등급</label><div class="rating-row" id="ratingRow"></div></div>
         <div class="field"><label id="lblStar">작품 별점</label><div class="rating-row" id="starSelectRow"></div></div>
         <div class="field"><label id="lblHeart">수위 · 농도</label><div class="rating-row" id="heartSelectRow"></div></div>
-        <div class="field full"><label id="lblSlider">재생 바 위치</label><input type="range" id="progressSlider" min="0" max="1" step="0.01" value="0.55"></div>
-        <div class="field full"><label id="lblReview">리뷰</label><textarea id="inReview" rows="5" placeholder="작품에 대한 리뷰를 작성해주세요"></textarea></div>
+        <div class="field"><label id="lblSlider">재생 바 위치</label><input type="range" id="progressSlider" min="0" max="1" step="0.01" value="0.55"></div>
+        <div class="field"><label id="lblQR">작품 링크(QR)</label><input type="text" id="inQR" placeholder="https://..."></div>
+        <div class="field full"><label id="lblHeadline">한줄 코멘트</label><input type="text" id="inHeadline" placeholder="이 작품은 꼭 들어보세요!"></div>
+        <div class="field full"><label id="lblReview">리뷰</label><textarea id="inReview" rows="3" placeholder="작품에 대한 리뷰를 작성해주세요"></textarea></div>
         <div class="field full"><label id="lblColor">리뷰 텍스트 색상</label><div class="color-grid" id="colorGrid"></div></div>
+        <div class="field"><label class="check-label"><input type="checkbox" id="chkSpoiler" onchange="state.spoiler=this.checked;autoSave();renderPreview()"> <span id="lblSpoiler">🚨 스포일러 포함</span></label></div>
+        <div class="field"><label class="check-label"><input type="checkbox" id="chkDate" onchange="state.showDate=this.checked;autoSave();renderPreview()"> <span id="lblDate">작성일 표시</span></label></div>
         <div class="field full"><label id="lblReviewer">작성자</label><input type="text" id="inReviewer" placeholder="@ID 또는 닉네임"></div>
-        <div class="field full"><label class="check-label"><input type="checkbox" id="chkDate" onchange="state.showDate=this.checked;renderPreview()"> <span id="lblDate">작성일 표시</span></label></div>
-        <div class="pv-overflow" id="pvOverflow"></div>
-        <button class="export-btn full" id="exportBtn" onclick="exportImage()">📥 이미지 저장</button>
+        <div class="pv-overflow full" id="pvOverflow"></div>
+        <div class="btn-row full">
+          <button class="export-btn" id="exportBtn" onclick="exportImage()" style="flex:1">📥 이미지 저장</button>
+          <button class="reset-btn" id="resetBtn" onclick="resetAll()">🗑</button>
+        </div>
       </div>
       <div class="editor-credit">design by coconut</div>
     </div>
@@ -229,42 +247,138 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   </div>
 </div>
 <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
+
 <script>
 /* ===== THEME MODE (dark/light) ===== */
-function setThemeMode(mode){
-  localStorage.setItem('siteTheme',mode);
+function setThemeMode(mode, isUserClick = true){
+  if (isUserClick) {
+    localStorage.setItem('siteTheme', mode);
+  }
   document.querySelectorAll('#tmDark,#tmLight').forEach(b=>b.classList.remove('active'));
-  document.getElementById(mode==='dark'?'tmDark':'tmLight').classList.add('active');
-  document.documentElement.setAttribute('data-theme',mode);
+  const targetBtn = document.getElementById(mode==='dark'?'tmDark':'tmLight');
+  if (targetBtn) targetBtn.classList.add('active');
+  document.documentElement.setAttribute('data-theme', mode);
 }
+
 (function(){
-  const saved=localStorage.getItem('siteTheme')||(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
-  setThemeMode(saved);
+  let saved = localStorage.getItem('siteTheme');
+  if (!saved) {
+    const isSystemLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+    saved = isSystemLight ? 'light' : 'dark';
+  }
+  setThemeMode(saved, false);
 })();
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('siteTheme')) {
+    setThemeMode(e.matches ? 'dark' : 'light', false);
+  }
+});
 
 /* ===== CARD MAKER ===== */
 const CARD_W=1080;let currentLang="ko";
 const I18N={
-  ko:{title:"🎧 보이스드라마 리뷰 카드",sub:"플레이어 스타일 리뷰 카드 메이커",theme:"테마",thumb:"썸네일",thumbIn:"클릭하여 업로드",thumbChange:"이미지 변경",canvasThumb:"이미지 업로드",workTitle:"작품 제목",circle:"제작사 (서클명)",artist:"성우명",genre:"장르 · 키워드",rating:"등급",star:"작품 별점",heart:"수위 · 농도",slider:"플레이 감성 재생 바 조절",review:"리뷰",color:"리뷰 텍스트 색상",reviewer:"작성자",preview:"미리보기",exportBtn:"📥 이미지 저장",reviewerPlace:"@ID 또는 닉네임",phTitle:"작품 제목을 입력하세요",phCircle:"서클명",phArtist:"CV. 성우명",phGenre:"로맨스, 힐링, 달달",phReview:"작품에 대한 리뷰를 작성해주세요",dateLabel:"작성일 표시",overflow:"⚠️ 리뷰가 너무 길어 일부가 잘립니다 (최대 4페이지)",ratings:["선택안함","전연령","R15","R18"],stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
+  ko:{
+    title:"🎧 Voice Drama Review Card",
+    sub:"플레이어 스타일 리뷰 카드 메이커",
+    theme:"테마",
+    thumb:"썸네일",
+    thumbIn:"클릭하여 업로드",
+    thumbChange:"이미지 변경",
+    canvasThumb:"이미지 업로드",
+    workTitle:"작품 제목",
+    circle:"제작사 (서클명)",
+    artist:"성우명",
+    genre:"장르 · 키워드",
+    rating:"등급",
+    star:"작품 별점",
+    heart:"수위 · 농도",
+    slider:"플레이 감성 재생 바 조절",
+    headline:"한줄 코멘트",
+    review:"리뷰",
+    color:"리뷰 텍스트 색상",
+    reviewer:"작성자",
+    preview:"미리보기",
+    exportBtn:"📥 이미지 저장",
+    reviewerPlace:"@ID 또는 닉네임",
+    phTitle:"작품 제목을 입력하세요",
+    phCircle:"서클명",
+    phArtist:"CV. 성우명",
+    phGenre:"로맨스, 힐링, 달달",
+    phReview:"작품에 대한 리뷰를 작성해주세요",
+    phHeadline:"이 작품은 꼭 들어보세요!",
+    fontSize:"리뷰 글씨 크기",
+    spoiler:"🚨 스포일러 포함",
+    qr:"작품 링크(QR)",
+    dateLabel:"작성일 표시",
+    overflow:"⚠️ 리뷰가 너무 길어 일부가 잘립니다 (최대 4페이지)",
+    resetConfirm:"모든 입력을 초기화할까요?",
+    ratings:["선택안함","전연령","R15","R18"],
+    stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],
+    hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",filter:"🎛️ 필터",undo:"↩ 되돌리기",reset:"🗑 초기화",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",cropBtn:"선택 영역 자르기",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1 썸네일"}},
-  ja:{title:"🎧 ボイスドラマ レビューカード",sub:"プレイヤー風レビューカードメーカー",theme:"テーマ",thumb:"サムネイル",thumbIn:"クリックしてアップロード",thumbChange:"画像を変更",canvasThumb:"画像アップロード",workTitle:"作品タイトル",circle:"サークル名",artist:"キャスト (CV)",genre:"ジャンル・キーワード",rating:"年齢制限",star:"作品の評価 (星)",heart:"えろ度・刺激度 (ハート)",slider:"再生バー位置の調整",review:"レビュー・感想",color:"レビューの文字色",reviewer:"レビュアー",preview:"プレビュー",exportBtn:"📥 画像を保存",reviewerPlace:"@ID または ニックネーム",phTitle:"作品タイトルを入力",phCircle:"サークル名",phArtist:"CV. キャスト名",phGenre:"ロマンス, 甘々, 癒し",phReview:"作品のレビューを書いてください",dateLabel:"作成日を表示",overflow:"⚠️ レビューが長すぎて一部が省略されます（最大4ページ）",ratings:["非表示","全年齢","R15","R18"],stars:["非表示","1/5","2/5","3/5","4/5","5/5"],hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
+  ja:{
+    title:"🎧 Voice Drama Review Card",
+    sub:"プレイヤー風レビューカードメーカー",
+    theme:"テーマ",
+    thumb:"サムネイル",
+    thumbIn:"クリックしてアップロード",
+    thumbChange:"画像を変更",
+    canvasThumb:"画像アップロード",
+    workTitle:"作品タイトル",
+    circle:"サークル名",
+    artist:"キャスト (CV)",
+    genre:"ジャンル・キーワード",
+    rating:"年齢制限",
+    star:"作品の評価 (星)",
+    heart:"エロ度・刺激度 (ハート)",
+    slider:"再生バー位置の調整",       
+    headline:"ひとことコメント",
+    review:"レビュー・感想",
+    color:"レビューの文字色",
+    reviewer:"レビュアー",
+    preview:"プレビュー",
+    exportBtn:"📥 画像を保存",
+    reviewerPlace:"@ID または ニックネーム",
+    phTitle:"作品タイトルを入力",
+    phCircle:"サークル名",
+    phArtist:"CV. キャスト名",
+    phGenre:"ロマンス, 甘々, 癒し",
+    phReview:"作品のレビューを書いてください",
+    phHeadline:"この作品は絶対聴いてほしい！", 
+    fontSize:"レビュー文字サイズ",
+    spoiler:"🚨 ネタバレ注意",         
+    qr:"作品リンク(QR)",
+    dateLabel:"作成日を表示",
+    overflow:"⚠️ レビューが長すぎて一部が省略されます（最大4ページ）",
+    resetConfirm:"すべての入力をリセットしますか？",
+    ratings:["非表示","全年齢","R-15","R-18"], 
+    stars:["非表示","1/5","2/5","3/5","4/5","5/5"],
+    hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",cancel:"キャンセル",apply:"✅ 適用",intensity:"濃度",brushSize:"ブラシ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1 サムネ"}}
 };
-const THEMES=[["frost",{name:"Frost",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],["mono",{name:"Mono",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],["white",{name:"White",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],["ocean",{name:"Ocean",bg1:"#3d6b7e",bg2:"#1c3a4a",glass:"rgba(120,180,210,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#8ddae8",progressBg:"rgba(255,255,255,0.18)",progressFill:"#8ddae8",ctrl:"#fff"}],["sage",{name:"Sage",bg1:"#6b8576",bg2:"#3d5247",glass:"rgba(160,200,170,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#c8e0c5",progressBg:"rgba(255,255,255,0.2)",progressFill:"#c8e0c5",ctrl:"#fff"}],["midnight",{name:"Midnight",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}],["noir",{name:"Noir",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],["rose",{name:"Rose",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}],["wine",{name:"Wine",bg1:"#6b2a36",bg2:"#3a1218",glass:"rgba(160,80,90,0.28)",glassBorder:"rgba(255,255,255,0.16)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#f0b8b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#f0b8b0",ctrl:"#fff"}]];
+
+const THEMES=[["frost",{name:"Frost",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],["mono",{name:"Mono",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],["white",{name:"White",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],["ocean",{name:"Ocean",bg1:"#3d6b7e",bg2:"#1c3a4a",glass:"rgba(120,180,210,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#8ddae8",progressBg:"rgba(255,255,255,0.18)",progressFill:"#8ddae8",ctrl:"#fff"}],["sage",{name:"Sage",bg1:"#6b8576",bg2:"#3d5247",glass:"rgba(160,200,170,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#c8e0c5",progressBg:"rgba(255,255,255,0.2)",progressFill:"#c8e0c5",ctrl:"#fff"}],["midnight",{name:"Midnight",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}],["noir",{name:"Noir",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],["rose",{name:"Rose",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"FFb3c6",ctrl:"#fff"}],["wine",{name:"Wine",bg1:"#6b2a36",bg2:"#3a1218",glass:"rgba(160,80,90,0.28)",glassBorder:"rgba(255,255,255,0.16)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#f0b8b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#f0b8b0",ctrl:"#fff"}]];
 const UNIFIED_THEMES=["frost","mono","white"];
 const THEME_MAP=Object.fromEntries(THEMES);
-const TEXT_COLORS=[{n:"테마 자동",h:"auto"},{n:"순백",h:"#ffffff"},{n:"크림",h:"#fdf6e3"},{n:"밀크티",h:"#f4eccf"},{n:"연회색",h:"#cccccc"},{n:"블랙",h:"#000000"},{n:"차콜",h:"#2c3e50"},{n:"초콜릿",h:"#3e2723"},{n:"네이비",h:"#1a237e"},{n:"로즈",h:"#ffb3c6"},{n:"코랄",h:"#ffd6c0"},{n:"옐로우",h:"#fff3b0"},{n:"민트",h:"#b8f0d8"},{n:"스카이",h:"#a8d8ea"},{n:"라벤더",h:"#d4c5f9"},{n:"비비드",h:"#ff8a80"},{n:"시안",h:"#80deea"}];
-let state={themeKey:"frost",starRating:"5/5",eroRating:"❤ 4",ageRating:"R18",thumbUrl:null,thumbImg:null,originalImg:null,progress:0.55,reviewColor:"auto",showDate:false};
+const TEXT_COLORS=[{n:"자동",h:"auto"},{n:"순백",h:"#ffffff"},{n:"아이보리",h:"#faf8f0"},{n:"크림",h:"#fdf6e3"},{n:"연회색",h:"#d0d0d0"},{n:"실버",h:"#a8a8a8"},{n:"블랙",h:"#000000"},{n:"차콜",h:"#333333"},{n:"다크그레이",h:"#555555"},{n:"로즈핑크",h:"#f8b4c8"},{n:"피치",h:"#ffd4b8"},{n:"살몬",h:"#ff9a8b"},{n:"민트",h:"#a8e6cf"},{n:"스카이",h:"#87ceeb"},{n:"라벤더",h:"#c9b8f0"},{n:"골드",h:"#ffd700"},{n:"코랄",h:"#ff7f7f"},{n:"틸",h:"#5fbdbd"}];
+let state={themeKey:"frost",starRating:"5/5",eroRating:"❤ 4",ageRating:"R18",thumbUrl:null,thumbImg:null,originalImg:null,progress:0.55,reviewColor:"auto",showDate:false,spoiler:false,fontSize:24,qrUrl:""};
 
 const themeSelect=document.getElementById("themeSelect");
 THEMES.forEach(([k,t])=>{const o=document.createElement("option");o.value=k;o.textContent=t.name;themeSelect.appendChild(o);});
 themeSelect.addEventListener("change",e=>{state.themeKey=e.target.value;updateAll();});
 let _previewRAF=null;function schedulePreview(){if(_previewRAF)return;_previewRAF=requestAnimationFrame(()=>{_previewRAF=null;renderPreview();});}
-document.getElementById("progressSlider").addEventListener("input",e=>{state.progress=parseFloat(e.target.value);schedulePreview();});
+document.getElementById("progressSlider").addEventListener("input",e=>{state.progress=parseFloat(e.target.value);autoSave();schedulePreview();});
 const colorGrid=document.getElementById("colorGrid");
 TEXT_COLORS.forEach(c=>{const s=document.createElement("div");s.className="color-swatch"+(c.h==="auto"?" color-swatch-auto":"");s.title=c.n;if(c.h!=="auto")s.style.background=c.h;s.dataset.hex=c.h;s.onclick=()=>{state.reviewColor=c.h;updateAll();};colorGrid.appendChild(s);});
-document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;const u=URL.createObjectURL(f);const img=new Image();img.onload=()=>{state.originalImg=img;state.thumbImg=img;state.thumbUrl=u;updateAll();};img.src=u;});
-["inTitle","inCircle","inArtist","inGenre","inReview","inReviewer"].forEach(id=>document.getElementById(id).addEventListener("input",()=>renderPreview()));
+
+document.getElementById("fileInput").addEventListener("change",e=>{
+  const f=e.target.files?.[0];if(!f)return;
+  if(state.thumbUrl&&state.thumbUrl.startsWith('blob:')){URL.revokeObjectURL(state.thumbUrl);}
+  const u=URL.createObjectURL(f);const img=new Image();img.onload=()=>{state.originalImg=img;state.thumbImg=img;state.thumbUrl=u;updateAll();};img.src=u;
+});
+
+["inTitle","inCircle","inArtist","inGenre","inReview","inReviewer","inHeadline","inQR"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{if(id==="inQR")state.qrUrl=document.getElementById("inQR").value;autoSave();renderPreview();}));
 
 function setLanguage(lang){
   currentLang=lang;
@@ -278,6 +392,10 @@ function setLanguage(lang){
   document.getElementById("lblRating").textContent=d.rating;document.getElementById("lblStar").textContent=d.star;
   document.getElementById("lblHeart").textContent=d.heart;document.getElementById("lblSlider").textContent=d.slider;
   document.getElementById("lblReview").textContent=d.review;document.getElementById("lblColor").textContent=d.color;
+  document.getElementById("lblHeadline").textContent=d.headline;
+  document.getElementById("inHeadline").placeholder=d.phHeadline;
+  document.getElementById("lblSpoiler").textContent=d.spoiler;
+  document.getElementById("lblQR").textContent=d.qr;
   document.getElementById("lblReviewer").textContent=d.reviewer;
   document.getElementById("exportBtn").textContent=d.exportBtn;
   document.getElementById("lblDate").textContent=d.dateLabel;
@@ -295,35 +413,103 @@ function setLanguage(lang){
     else ab[i].textContent=label;
   });
   rebuildSelectors();updateAll();
+} /* [보정] 구조 붕괴 방지를 위해 setLanguage 마감 괄호 정상 매칭 완료 */
+
+function updateAll(){
+  themeSelect.value=state.themeKey;
+  
+  // 1. 등급 버튼 활성화 클래스
+  document.getElementById("ratingRow").querySelectorAll(".rating-btn").forEach((b,i)=>{
+    const v=I18N.ko.ratings[i];let c="rating-btn";
+    if(v===state.ageRating){
+      if(v==="\uc120\ud0dd\uc548\ud568")c+=" active-none";
+      else if(v==="\uc804\uc5f0\ub839")c+=" active-all";
+      else if(v==="R15")c+=" active-r15";
+      else if(v==="R18")c+=" active-r18";
+    }
+    b.className=c;
+  });
+  
+  // 2. 별점 버튼 활성화 클래스 (선택 시 노란색 테두리 활성화)
+  document.getElementById("starSelectRow").querySelectorAll(".rating-btn").forEach((b,i)=>{
+    b.className="rating-btn"+(I18N.ko.stars[i]===state.starRating?(i===0?" active-none":" active-r15"):"");
+  });
+  
+  // 3. 수위 농도 버튼 활성화 클래스 (선택 시 붉은색 테두리 활성화)
+  document.getElementById("heartSelectRow").querySelectorAll(".rating-btn").forEach((b,i)=>{
+    b.className="rating-btn"+(I18N.ko.hearts[i]===state.eroRating?(i===0?" active-none":" active-r18"):"");
+  });
+
+  // [복원] 누락되었던 스와치 활성화 및 썸네일 액션 박스 동기화 영역
+  colorGrid.querySelectorAll(".color-swatch").forEach(s=>s.className="color-swatch"+(s.dataset.hex==="auto"?" color-swatch-auto":"")+(s.dataset.hex===state.reviewColor?" active":""));
+  document.getElementById("headerTitle").style.color=THEME_MAP[state.themeKey].accent;
+  const ta=document.getElementById("thumbActions");
+  if(!state.thumbImg){
+    document.getElementById("thumbLabel").textContent=I18N[currentLang].thumbIn;
+    ta.classList.remove("show");
+  } else {
+    document.getElementById("thumbLabel").innerHTML='<img src="'+state.thumbUrl+'" class="thumb-preview"><span style="font-size:12px;color:'+THEME_MAP[state.themeKey].accent+'">'+I18N[currentLang].thumbChange+'</span>';
+    ta.classList.add("show");
+  }
+  const t=THEME_MAP[state.themeKey];
+  document.getElementById("exportBtn").style.background="linear-gradient(135deg,"+t.accent+","+t.bg1+")";
+  document.getElementById("thumbBox").style.borderColor=t.accent+"40";
+  
+  const layout=getReviewLayout(),d=I18N[currentLang],total=layout.pages.length;
+  document.getElementById("exportBtn").textContent=total>1?(d.exportBtn+" ("+total+"\ud398\uc774\uc9c0)"):d.exportBtn;
+  const ow=document.getElementById("pvOverflow");
+  if(layout.overflow){ow.textContent=d.overflow;ow.classList.add("show");}else{ow.classList.remove("show");}
+  
+  renderPreview();
 }
+
 function rebuildSelectors(){
   const d=I18N[currentLang];
-  const SHORT={starSelectRow:["—","1","2","3","4","5"],heartSelectRow:["—","❤1","❤2","❤3","❤4","❤5"]};
+  const SHORT_FINAL={
+    starSelectRow:["—","★","★★","★★★","★★★★","★★★★★"],
+    heartSelectRow:["—","❤","❤❤","❤❤❤","❤❤❤❤","❤❤❤❤❤"]
+  };
   ["ratingRow","starSelectRow","heartSelectRow"].forEach((id,gi)=>{
-    const el=document.getElementById(id),arr=gi===0?d.ratings:gi===1?d.stars:d.hearts,kArr=gi===0?I18N.ko.ratings:gi===1?I18N.ko.stars:I18N.ko.hearts,stKey=gi===0?"ageRating":gi===1?"starRating":"eroRating",disp=SHORT[id]||arr;
-    el.innerHTML="";arr.forEach((t,i)=>{const b=document.createElement("button");b.className="rating-btn";b.textContent=disp[i]||t;b.dataset.val=kArr[i];b.onclick=()=>{state[stKey]=b.dataset.val;updateAll();};el.appendChild(b);});
+    const el=document.getElementById(id),
+          arr=gi===0?d.ratings:gi===1?d.stars:d.hearts,
+          kArr=gi===0?I18N.ko.ratings:gi===1?I18N.ko.stars:I18N.ko.hearts,
+          stKey=gi===0?"ageRating":gi===1?"starRating":"eroRating",
+          disp=SHORT_FINAL[id]||arr;
+          
+    el.innerHTML="";
+    arr.forEach((t,i)=>{
+      const b=document.createElement("button");
+      b.className="rating-btn";
+      b.textContent=disp[i]||t;
+      b.dataset.val=kArr[i];
+      b.onclick=()=>{state[stKey]=b.dataset.val;updateAll();};
+      el.appendChild(b);
+    });
   });
 }
+
 function drawRR(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 function wrapLines(ctx,t,mW){const ls=[];for(const p of t.split("\n")){if(!p.trim()){ls.push("");continue;}let l="";for(const c of p){const x=l+c;if(ctx.measureText(x).width>mW&&l.length){ls.push(l);l=c;}else l=x;}if(l)ls.push(l);}return ls;}
 function drawWrap(ctx,t,x,y,mW,lh,mL){const a=wrapLines(ctx,t,mW),ls=a.slice(0,mL);if(a.length>mL)ls[mL-1]=ls[mL-1].slice(0,-2)+"…";for(let i=0;i<ls.length;i++)ctx.fillText(ls[i],x,y+i*lh);return ls.length;}
-function getV(){return{title:document.getElementById("inTitle").value,circle:document.getElementById("inCircle").value,artist:document.getElementById("inArtist").value,genre:document.getElementById("inGenre").value,review:document.getElementById("inReview").value,reviewer:document.getElementById("inReviewer").value};}
-function formatTime(s){const m=Math.floor(s/60),ss=Math.floor(s%60);return m+":"+(ss<10?"0":"")+ss;}
-const MAX_PAGE_H=1000,MAX_PAGES=4,REVIEW_LH=38,PAGE_PAD_BOTTOM=40,REVIEWER_H=52,DATE_H=28,CONT_TOP_PAD=120,TOP_H=480,REVIEW_GAP=90;
+function getV(){return{title:document.getElementById("inTitle").value,circle:document.getElementById("inCircle").value,artist:document.getElementById("inArtist").value,genre:document.getElementById("inGenre").value,review:document.getElementById("inReview").value,reviewer:document.getElementById("inReviewer").value,headline:document.getElementById("inHeadline").value};}
+function formatTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=Math.floor(s%60);if(h>0)return h+":"+(m<10?"0":"")+m+":"+(ss<10?"0":"")+ss;return m+":"+(ss<10?"0":"")+ss;}
 
-function footerH(){const rv=!!document.getElementById("inReviewer").value;const dt=state.showDate;return (rv?REVIEWER_H:0)+(dt?DATE_H:0);}
-function calcP1H(n){return TOP_H+REVIEW_GAP+n*REVIEW_LH+footerH()+PAGE_PAD_BOTTOM;}
+const MAX_PAGE_H=1000,MAX_PAGES=4,PAGE_PAD_BOTTOM=40,REVIEWER_H=52,DATE_H=28,CONT_TOP_PAD=120,TOP_H=480,REVIEW_GAP=90;
+function reviewLH(){return Math.round(state.fontSize*1.58);}
+function headlineH(){return document.getElementById("inHeadline").value?40:0;}
+function footerH(){const rv=!!document.getElementById("inReviewer").value;const dt=state.showDate;return (rv?30:0)+(dt?DATE_H:0);}
+function calcP1H(n){return TOP_H+REVIEW_GAP+headlineH()+n*reviewLH()+footerH()+PAGE_PAD_BOTTOM;}
 
 function getReviewLayout(){
   const tmp=document.createElement("canvas");tmp.width=CARD_W;tmp.height=2000;
   const c=tmp.getContext("2d"),v=getV(),rvW=CARD_W-160;
-  c.font="400 24px 'Pretendard',sans-serif";
+  c.font="400 "+state.fontSize+"px 'Pretendard',sans-serif";
   const allLines=wrapLines(c,v.review||"",rvW);
   const fH=footerH();
   const p1Full=calcP1H(allLines.length||1);
   if(p1Full<=MAX_PAGE_H) return{lines:allLines,pages:[{start:0,count:allLines.length||1,h:p1Full}],overflow:false};
-  const p1Max=Math.max(1,Math.floor((MAX_PAGE_H-TOP_H-REVIEW_GAP-fH-PAGE_PAD_BOTTOM)/REVIEW_LH));
-  const contMax=Math.max(1,Math.floor((MAX_PAGE_H-CONT_TOP_PAD-fH-PAGE_PAD_BOTTOM)/REVIEW_LH));
+  const p1Max=Math.max(1,Math.floor((MAX_PAGE_H-TOP_H-REVIEW_GAP-headlineH()-fH-PAGE_PAD_BOTTOM)/reviewLH()));
+  const contMax=Math.max(1,Math.floor((MAX_PAGE_H-CONT_TOP_PAD-fH-PAGE_PAD_BOTTOM)/reviewLH()));
   const pages=[{start:0,count:Math.min(allLines.length,p1Max),h:MAX_PAGE_H}];
   let used=pages[0].count;
   while(used<allLines.length&&pages.length<MAX_PAGES){
@@ -349,26 +535,23 @@ function drawBg(ctx,W,H,t,isL,unified,topH){
   ctx.restore();
 }
 
-function drawFooter(ctx,v,t,isL,unified,rvX,rvW,H){
-  const fH=footerH();
-  if(fH===0)return;
-  let cy=H-PAGE_PAD_BOTTOM-fH+16;
-  // subtle footer separator
-  ctx.strokeStyle=unified?(isL?"rgba(0,0,0,0.06)":"rgba(255,255,255,0.08)"):(isL?"rgba(0,0,0,0.06)":"rgba(255,255,255,0.08)");
-  ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(rvX,cy-10);ctx.lineTo(rvX+rvW,cy-10);ctx.stroke();
-  if(state.showDate){
-    const now=new Date(),ds=now.getFullYear()+"."+(now.getMonth()+1).toString().padStart(2,"0")+"."+now.getDate().toString().padStart(2,"0");
-    ctx.font="500 14px 'Pretendard',sans-serif";
-    if(unified)ctx.fillStyle=isL?"rgba(0,0,0,0.35)":"rgba(255,255,255,0.4)";
-    else ctx.fillStyle="rgba(255,255,255,0.35)";
-    ctx.textAlign="right";ctx.fillText(ds,rvX+rvW,cy);ctx.textAlign="left";
-    cy+=DATE_H;
-  }
-  if(v.reviewer){
-    ctx.font="500 17px 'Pretendard',sans-serif";
-    if(unified)ctx.fillStyle=isL?"rgba(0,0,0,0.55)":"rgba(255,255,255,0.6)";
-    else ctx.fillStyle="rgba(255,255,255,0.5)";
+function drawFooter(ctx,v,t,isL,unified,rvX,rvW,H,textEndY){
+  const hasR=!!v.reviewer, hasD=state.showDate;
+  if(!hasR&&!hasD)return;
+  let cy=textEndY+28;
+  if(hasR){
+    ctx.font="500 16px 'Pretendard',sans-serif";
+    if(unified)ctx.fillStyle=isL?"rgba(0,0,0,0.5)":"rgba(255,255,255,0.55)";
+    else ctx.fillStyle="rgba(255,255,255,0.45)";
     ctx.textAlign="right";ctx.fillText(v.reviewer,rvX+rvW,cy);ctx.textAlign="left";
+    cy+=24;
+  }
+  if(hasD){
+    const now=new Date(),ds=now.getFullYear()+"."+(now.getMonth()+1).toString().padStart(2,"0")+"."+now.getDate().toString().padStart(2,"0");
+    ctx.font="500 13px 'Pretendard',sans-serif";
+    if(unified)ctx.fillStyle=isL?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.35)";
+    else ctx.fillStyle="rgba(255,255,255,0.3)";
+    ctx.textAlign="right";ctx.fillText(ds,rvX+rvW,cy);ctx.textAlign="left";
   }
 }
 
@@ -378,11 +561,46 @@ function drawPageIndicator(ctx,W,H,t,cur,total){
   ctx.textAlign="center";ctx.fillText(cur+" / "+total,W/2,H-16);ctx.textAlign="left";ctx.globalAlpha=1;
 }
 
+let _qrCache={url:"",img:null};
+function genQR(url){
+  if(!url)return null;
+  if(_qrCache.url===url&&_qrCache.img)return _qrCache.img;
+  try{
+    const qr=qrcode(0,"M");qr.addData(url);qr.make();
+    const size=qr.getModuleCount(),px=4,cvs=document.createElement("canvas");
+    cvs.width=cvs.height=size*px;const c=cvs.getContext("2d");
+    c.fillStyle="#fff";c.fillRect(0,0,cvs.width,cvs.height);
+    c.fillStyle="#000";
+    for(let r=0;r<size;r++)for(let col=0;col<size;col++)if(qr.isDark(r,col))c.fillRect(col*px,r*px,px,px);
+    _qrCache={url,img:cvs};return cvs;
+  }catch(e){return null;}
+}
+function drawQR(ctx,t,isL,x,y,size){
+  const qrImg=genQR(state.qrUrl);if(!qrImg)return;
+  const pad=6,full=size+pad*2;
+  drawRR(ctx,x-pad,y-pad,full,full,8);
+  ctx.fillStyle="#fff";ctx.fill();
+  ctx.strokeStyle=isL?"rgba(0,0,0,0.1)":"rgba(255,255,255,0.15)";ctx.lineWidth=1;ctx.stroke();
+  ctx.drawImage(qrImg,x,y,size,size);
+}
+
+function drawSpoiler(ctx,t,isL,unified,x,y){
+  if(!state.spoiler)return;
+  const bTxt=currentLang==="ja"?"⚠ ネタバレ注意":"⚠ 스포일러 주의";
+  ctx.font="700 13px 'Pretendard',sans-serif";
+  const bw=ctx.measureText(bTxt).width+18,bh=24;
+  drawRR(ctx,x,y,bw,bh,6);
+  ctx.fillStyle="rgba(231,76,60,0.15)";ctx.fill();
+  ctx.strokeStyle="rgba(231,76,60,0.4)";ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle="#e74c3c";ctx.fillText(bTxt,x+9,y+16);
+}
+
 function drawPage1(ctx,W,H,layout){
   const t=THEME_MAP[state.themeKey],v=getV(),isL=state.themeKey==="white",prog=state.progress;
   const unified=UNIFIED_THEMES.includes(state.themeKey);
   const topH=480,pg=layout.pages[0],total=layout.pages.length;
   drawBg(ctx,W,H,t,isL,unified,topH);
+  
   const ts=380,tx=60,ty=60,pad=6;
   drawRR(ctx,tx,ty,ts,ts,28);
   const fg=ctx.createLinearGradient(tx,ty,tx+ts,ty+ts);
@@ -391,85 +609,147 @@ function drawPage1(ctx,W,H,layout){
   ctx.fillStyle=fg;ctx.fill();
   const itx=tx+pad,ity=ty+pad,its=ts-pad*2;
   ctx.save();drawRR(ctx,itx,ity,its,its,22);ctx.clip();
-  if(state.thumbImg){const img=state.thumbImg,sc=Math.max(its/img.width,its/img.height),sw=img.width*sc,sh=img.height*sc;ctx.drawImage(img,itx+(its-sw)/2,ity+(its-sh)/2,sw,sh);}
-  else{ctx.fillStyle=isL?"rgba(0,0,0,0.35)":"rgba(255,255,255,0.6)";ctx.font="500 80px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("\ud83c\udfa7",itx+its/2,ity+its/2);ctx.textAlign="left";ctx.textBaseline="alphabetic";}
+  if(state.thumbImg){
+    const img=state.thumbImg,sc=Math.max(its/img.width,its/img.height),sw=img.width*sc,sh=img.height*sc;
+    ctx.drawImage(img,itx+(its-sw)/2,ity+(its-sh)/2,sw,sh);
+  } else {
+    ctx.fillStyle=isL?"rgba(0,0,0,0.25)":"rgba(255,255,255,0.35)";ctx.font="500 16px 'Pretendard',sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("📷",itx+its/2,ity+its/2-12);ctx.font="500 13px 'Pretendard',sans-serif";ctx.fillText(currentLang==="ja"?"画像をアップロード":"이미지를 올려주세요",itx+its/2,ity+its/2+14);ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  }
   ctx.restore();
   drawRR(ctx,itx,ity,its,its,22);ctx.strokeStyle=isL?"rgba(0,0,0,0.04)":"rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
   drawRR(ctx,tx,ty,ts,ts,28);ctx.strokeStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.stroke();
-  const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2,tTop=ty+76;
-  ctx.font="700 32px 'Pretendard',sans-serif";ctx.fillStyle=t.text;
-  ctx.textAlign="left";const tl=drawWrap(ctx,v.title,rX,tTop,rW,40,2);const aT=tTop+tl*40+10;
+  
+  const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2;
+  
+  /* [보정 완료] 제목 Y축 하향 평준화 정렬 및 각 요소 오버플로우 방지 셋팅 */
+  const tTop=ty+32; 
+  ctx.font="700 32px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.textAlign="left";
+  const tl=drawWrap(ctx,v.title,rX,tTop,rW,40,2);
+  
+  const aT=tTop+(tl*40)+10;
   ctx.font="500 20px 'Pretendard',sans-serif";ctx.fillStyle=t.sub;
-  const meta=[v.circle,v.artist].filter(s=>s&&s.trim()).join(" \u00b7 ");if(meta)ctx.fillText(meta,rX,aT);
-  const iY=aT+36,badge=state.ageRating;let sX=rX;
-  if(badge!=="\uc120\ud0dd\uc548\ud568"){ctx.font="700 12px 'Pretendard',sans-serif";const bt=currentLang==="ja"?I18N.ja.ratings[I18N.ko.ratings.indexOf(badge)]:badge;const bW=ctx.measureText(bt).width+16;drawRR(ctx,rX,iY-14,bW,22,11);if(badge==="\uc804\uc5f0\ub839")ctx.fillStyle="#2ecc71";else if(badge==="R15")ctx.fillStyle="#e67e22";else if(badge==="R18")ctx.fillStyle="#e74c3c";ctx.fill();ctx.fillStyle="#fff";ctx.fillText(bt,rX+8,iY+2);sX=rX+bW+14;}
-  if(state.starRating!=="\uc120\ud0dd\uc548\ud568"){ctx.font="17px sans-serif";ctx.fillStyle="#ffb432";ctx.fillText("\u2605",sX,iY+2);ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.fillText(state.starRating,sX+20,iY+1);sX+=20+ctx.measureText(state.starRating).width+14;}
-  if(state.eroRating!=="\uc120\ud0dd\uc548\ud568"){const hc=parseInt(state.eroRating.replace("\u2764 ",""));ctx.font="17px sans-serif";ctx.fillStyle="#ff6b6b";let hs="";for(let i=0;i<hc;i++)hs+="\u2665";ctx.fillText(hs,sX,iY+2);}
-  if(v.genre){const gY=iY+30;ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;const tags=v.genre.split(/[,，、·]/).map(s=>s.trim()).filter(Boolean).map(s=>s.startsWith("#")?"#"+s.slice(1):"#"+s).join("  ");ctx.fillText(tags,rX,gY);}
-  const bY=ty+228;drawRR(ctx,rX,bY,rW,4,2);ctx.fillStyle=t.progressBg;ctx.fill();drawRR(ctx,rX,bY,rW*prog,4,2);ctx.fillStyle=t.progressFill;ctx.fill();ctx.beginPath();ctx.arc(rX+rW*prog,bY+2,7,0,Math.PI*2);ctx.fillStyle=t.progressFill;ctx.fill();
-  const dur=1200,cur=dur*prog,rem=dur-cur;ctx.font="500 13px 'Pretendard',monospace,sans-serif";ctx.fillStyle=t.sub;ctx.textAlign="left";ctx.fillText(formatTime(cur),rX,bY+24);ctx.textAlign="right";ctx.fillText("-"+formatTime(rem),rX+rW,bY+24);ctx.textAlign="left";
-  const ctY=bY+74;ctx.textAlign="center";ctx.fillStyle=t.ctrl;ctx.font="500 32px 'Pretendard',sans-serif";ctx.fillText("\u25c0",rCX-66,ctY);drawRR(ctx,rCX-12,ctY-24,8,28,3);ctx.fill();drawRR(ctx,rCX+4,ctY-24,8,28,3);ctx.fill();ctx.fillText("\u25b6",rCX+66,ctY);ctx.textAlign="left";
+  let meta=[v.circle,v.artist].filter(s=>s&&s.trim()).join(" \u00b7 ");
+  if(meta){
+    if(ctx.measureText(meta).width>rW){
+      while(meta.length>0&&ctx.measureText(meta+"...").width>rW){meta=meta.slice(0,-1);}
+      meta+="...";
+    }
+    ctx.fillText(meta,rX,aT);
+  }
+  
+  const iY=aT+38;
+  const badge=state.ageRating;let sX=rX;
+  if(badge!=="\uc120\ud0dd\uc548\ud568"){
+    ctx.font="700 12px 'Pretendard',sans-serif";
+    const bt=currentLang==="ja"?I18N.ja.ratings[I18N.ko.ratings.indexOf(badge)]:badge;
+    const bW=ctx.measureText(bt).width+16;drawRR(ctx,rX,iY-14,bW,22,11);
+    if(badge==="\uc804\uc5f0\ub839")ctx.fillStyle="#2ecc71";
+    else if(badge==="R15")ctx.fillStyle="#e67e22";
+    else if(badge==="R18")ctx.fillStyle="#e74c3c";
+    ctx.fill();ctx.fillStyle="#fff";ctx.fillText(bt,rX+8,iY+2);sX=rX+bW+18;
+  }
+  if(state.starRating!=="\uc120\ud0dd\uc548\ud568"){
+    ctx.font="17px sans-serif";ctx.fillStyle="#ffb432";ctx.fillText("\u2605",sX,iY+2);
+    ctx.font="600 16px 'Pretendard',sans-serif";ctx.fillStyle=t.text;ctx.fillText(state.starRating,sX+20,iY+1);
+    sX+=20+ctx.measureText(state.starRating).width+18;
+  }
+  if(state.eroRating!=="\uc120\ud0dd\uc548\ud568"){
+    const hc=parseInt(state.eroRating.replace("\u2764 ",""));ctx.font="17px sans-serif";ctx.fillStyle="#ff6b6b";
+    let hs="";for(let i=0;i<hc;i++)hs+="\u2665";ctx.fillText(hs,sX,iY+2);
+  }
+  
+  if(v.genre){
+    const gY=iY+38;
+    ctx.font="600 15px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;
+    let tags=v.genre.split(/[,，、·]/).map(s=>s.trim()).filter(Boolean).map(s=>s.startsWith("#")?s:"#"+s).join("  ");
+    if(ctx.measureText(tags).width>rW){
+      while(tags.length>0&&ctx.measureText(tags+"...").width>rW){tags=tags.slice(0,-1);}
+      tags+="...";
+    }
+    ctx.fillText(tags,rX,gY);
+  }
+  
+  /* 재생 위젯 제어 구역 절대 위치 타이트하게 고정 */
+  const bY=ty+255; 
+  drawRR(ctx,rX,bY,rW,4,2);ctx.fillStyle=t.progressBg;ctx.fill();
+  drawRR(ctx,rX,bY,rW*prog,4,2);ctx.fillStyle=t.progressFill;ctx.fill();
+  ctx.beginPath();ctx.arc(rX+rW*prog,bY+2,7,0,Math.PI*2);ctx.fillStyle=t.progressFill;ctx.fill();
+  
+  const dur=1200,cur=dur*prog,rem=dur-cur;
+  ctx.font="500 13px 'Pretendard',monospace,sans-serif";ctx.fillStyle=t.sub;
+  ctx.textAlign="left";ctx.fillText(formatTime(cur),rX,bY+24);
+  ctx.textAlign="right";ctx.fillText("-"+formatTime(rem),rX+rW,bY+24);ctx.textAlign="left";
+  
+  const ctY=bY+70;ctx.textAlign="center";ctx.fillStyle=t.ctrl;ctx.font="500 32px 'Pretendard',sans-serif";
+  ctx.fillText("\u25c0",rCX-66,ctY);
+  drawRR(ctx,rCX-12,ctY-24,8,28,3);ctx.fill();drawRR(ctx,rCX+4,ctY-24,8,28,3);ctx.fill();
+  ctx.fillText("\u25b6",rCX+66,ctY);ctx.textAlign="left";
+  
+  drawQR(ctx,t,isL,rX+rW-44,topH-72,42);
+  
   const panelIsDark=unified?(!isL):true;
   if(!unified){ctx.fillStyle=isL?"#fafaf7":"#14141c";ctx.fillRect(0,topH,W,H-topH);}
-  ctx.strokeStyle=isL?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(80,topH);ctx.lineTo(W-80,topH);ctx.stroke();
+  ctx.strokeStyle=isL?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(80,topH);ctx.lineTo(W-80,topH);ctx.stroke();
+  
   const rvX=80,rvW=W-160;
-  ctx.font="700 60px Georgia,serif";ctx.fillStyle=t.accent;ctx.globalAlpha=unified?1:0.7;ctx.textBaseline="top";ctx.fillText("\u201c",rvX-6,topH+18);ctx.textBaseline="alphabetic";ctx.globalAlpha=1;
+  ctx.font="700 60px Georgia,serif";ctx.fillStyle=t.accent;ctx.globalAlpha=unified?1:0.7;
+  ctx.textBaseline="top";ctx.fillText("\u201c",rvX-6,topH+18);ctx.textBaseline="alphabetic";ctx.globalAlpha=1;
+  
   let cY=topH+REVIEW_GAP;
-  ctx.font="400 24px 'Pretendard',sans-serif";
+  if(v.headline){
+    ctx.font="700 26px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;
+    drawWrap(ctx,v.headline,rvX,cY,rvW,34,1);cY+=40;
+  }
+  ctx.font="400 "+state.fontSize+"px 'Pretendard',sans-serif";
   ctx.fillStyle=unified?resolveReviewColor(!isL,t,isL):resolveReviewColor(true,t,isL);
   const pLines=layout.lines.slice(pg.start,pg.start+pg.count);
-  // left accent line
-  const acLineTop=cY-10,acLineBot=cY+pLines.length*REVIEW_LH-10;
+  const acLineTop=cY-10,acLineBot=cY+pLines.length*reviewLH()-10;
   ctx.save();ctx.globalAlpha=unified?0.25:0.45;ctx.strokeStyle=t.accent;ctx.lineWidth=2.5;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(rvX-16,acLineTop);ctx.lineTo(rvX-16,acLineBot);ctx.stroke();ctx.restore();
-  for(let i=0;i<pLines.length;i++)ctx.fillText(pLines[i],rvX,cY+i*REVIEW_LH);
-  drawFooter(ctx,v,t,isL,unified,rvX,rvW,H);
-  if(total>1){ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;}
+  for(let i=0;i<pLines.length;i++)ctx.fillText(pLines[i],rvX,cY+i*reviewLH());
+  
+  const textEndY=cY+pLines.length*reviewLH();
+  drawSpoiler(ctx,t,isL,unified,rvX+rvW-120,topH+24);
+  drawFooter(ctx,v,t,isL,unified,rvX,rvW,H,textEndY);
+  if(total>1){
+    ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;
+    ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;
+  }
   drawPageIndicator(ctx,W,H,t,1,total);
-  // watermark
-  ctx.font="500 11px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.12;
-  ctx.textAlign="center";ctx.fillText("design by coconut",W/2,H-4);ctx.textAlign="left";ctx.globalAlpha=1;
+  ctx.font="500 10px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.08;
+  ctx.textAlign="right";ctx.fillText("made with VDCard",W-30,H-8);ctx.textAlign="left";ctx.globalAlpha=1;
 }
 
 function drawContPage(ctx,W,H,layout,pageIdx){
   const t=THEME_MAP[state.themeKey],v=getV(),isL=state.themeKey==="white";
   const unified=UNIFIED_THEMES.includes(state.themeKey);
   const pg=layout.pages[pageIdx],total=layout.pages.length;
-  // background
   if(unified){
     const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,t.bg1);bg.addColorStop(1,t.bg2);ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
   } else {
-    // split themes: dark base + gradient accent band at top for visual connection
     ctx.fillStyle=isL?"#fafaf7":"#14141c";ctx.fillRect(0,0,W,H);
-    const bandH=100;
-    const band=ctx.createLinearGradient(0,0,W*0.6,bandH);
-    band.addColorStop(0,t.bg1);band.addColorStop(1,"transparent");
-    ctx.globalAlpha=0.32;ctx.fillStyle=band;ctx.fillRect(0,0,W,bandH);ctx.globalAlpha=1;
   }
-  // top accent line
   ctx.strokeStyle=t.accent;ctx.globalAlpha=unified?0.15:0.25;ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(80,0);ctx.lineTo(W-80,0);ctx.stroke();ctx.globalAlpha=1;
   const rvX=80,rvW=W-160;
-  // quote mark — aligned with CONT_TOP_PAD
   ctx.font="700 48px Georgia,serif";ctx.fillStyle=t.accent;ctx.globalAlpha=unified?0.15:0.35;
   ctx.textBaseline="top";ctx.fillText("\u201c",rvX-6,CONT_TOP_PAD-56);ctx.textBaseline="alphabetic";ctx.globalAlpha=1;
-  // left accent line
-  const acLineTop=CONT_TOP_PAD-10,acLineBot=CONT_TOP_PAD+pg.count*REVIEW_LH-10;
+  const acLineTop=CONT_TOP_PAD-10,acLineBot=CONT_TOP_PAD+pg.count*reviewLH()-10;
   ctx.save();ctx.globalAlpha=unified?0.25:0.45;ctx.strokeStyle=t.accent;ctx.lineWidth=2.5;ctx.lineCap="round";
   ctx.beginPath();ctx.moveTo(rvX-16,acLineTop);ctx.lineTo(rvX-16,acLineBot);ctx.stroke();ctx.restore();
-  // review text
   let cY=CONT_TOP_PAD;
-  ctx.font="400 24px 'Pretendard',sans-serif";
+  ctx.font="400 "+state.fontSize+"px 'Pretendard',sans-serif";
   ctx.fillStyle=unified?resolveReviewColor(!isL,t,isL):resolveReviewColor(true,t,isL);
   const pLines=layout.lines.slice(pg.start,pg.start+pg.count);
-  for(let i=0;i<pLines.length;i++)ctx.fillText(pLines[i],rvX,cY+i*REVIEW_LH);
-  // footer + indicators
-  drawFooter(ctx,v,t,isL,unified,rvX,rvW,H);
+  for(let i=0;i<pLines.length;i++)ctx.fillText(pLines[i],rvX,cY+i*reviewLH());
+  const textEndY=cY+pLines.length*reviewLH();
+  drawSpoiler(ctx,t,isL,unified,rvX+rvW-120,30);
+  drawFooter(ctx,v,t,isL,unified,rvX,rvW,H,textEndY);
   if(pageIdx<total-1){ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;}
   drawPageIndicator(ctx,W,H,t,pageIdx+1,total);
-  // watermark
-  ctx.font="500 11px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.12;
-  ctx.textAlign="center";ctx.fillText("design by coconut",W/2,H-4);ctx.textAlign="left";ctx.globalAlpha=1;
+  ctx.font="500 10px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.08;
+  ctx.textAlign="right";ctx.fillText("made with VDCard",W-30,H-8);ctx.textAlign="left";ctx.globalAlpha=1;
 }
 
 let pvPage=0,pvLayout=null;
@@ -482,13 +762,11 @@ function renderPreview(){
   c.width=CARD_W;c.height=pg.h;
   if(pvPage===0)drawPage1(c.getContext("2d"),CARD_W,pg.h,pvLayout);
   else drawContPage(c.getContext("2d"),CARD_W,pg.h,pvLayout,pvPage);
-  // nav UI
   const nav=document.getElementById("pvNav"),ind=document.getElementById("pvNavInd");
   if(total>1){nav.classList.add("show");ind.textContent=(pvPage+1)+" / "+total;
     nav.querySelector(".pv-nav-btn:first-child").disabled=pvPage===0;
     nav.querySelector(".pv-nav-btn:last-child").disabled=pvPage>=total-1;
   } else {nav.classList.remove("show");}
-  // overflow warning + button text
   const d=I18N[currentLang],ow=document.getElementById("pvOverflow");
   if(pvLayout.overflow){ow.textContent=d.overflow;ow.classList.add("show");}else{ow.classList.remove("show");}
   document.getElementById("exportBtn").textContent=total>1?(d.exportBtn+" ("+total+"\ud398\uc774\uc9c0)"):d.exportBtn;
@@ -496,24 +774,12 @@ function renderPreview(){
 function prevPage(){if(pvPage>0){pvPage--;renderPreview();}}
 function nextPage(){if(pvLayout&&pvPage<pvLayout.pages.length-1){pvPage++;renderPreview();}}
 
-function updateAll(){
-  themeSelect.value=state.themeKey;
-  document.getElementById("ratingRow").querySelectorAll(".rating-btn").forEach((b,i)=>{const v=I18N.ko.ratings[i];let c="rating-btn";if(v===state.ageRating){if(v==="\uc120\ud0dd\uc548\ud568")c+=" active-none";else if(v==="\uc804\uc5f0\ub839")c+=" active-all";else if(v==="R15")c+=" active-r15";else if(v==="R18")c+=" active-r18";}b.className=c;});
-  document.getElementById("starSelectRow").querySelectorAll(".rating-btn").forEach((b,i)=>b.className="rating-btn"+(I18N.ko.stars[i]===state.starRating?" active-none":""));
-  document.getElementById("heartSelectRow").querySelectorAll(".rating-btn").forEach((b,i)=>b.className="rating-btn"+(I18N.ko.hearts[i]===state.eroRating?" active-none":""));
-  colorGrid.querySelectorAll(".color-swatch").forEach(s=>s.className="color-swatch"+(s.dataset.hex===state.reviewColor?" active":""));
-  document.getElementById("headerTitle").style.color=THEME_MAP[state.themeKey].accent;
-  const ta=document.getElementById("thumbActions");
-  if(!state.thumbImg){document.getElementById("thumbLabel").textContent=I18N[currentLang].thumbIn;ta.classList.remove("show");}
-  else{document.getElementById("thumbLabel").innerHTML='<img src="'+state.thumbUrl+'" class="thumb-preview"><span style="font-size:12px;color:'+THEME_MAP[state.themeKey].accent+'">'+I18N[currentLang].thumbChange+'</span>';ta.classList.add("show");}
-  const t=THEME_MAP[state.themeKey];document.getElementById("exportBtn").style.background="linear-gradient(135deg,"+t.accent+","+t.bg1+")";document.getElementById("thumbBox").style.borderColor=t.accent+"40";
-  const layout=getReviewLayout(),d=I18N[currentLang],total=layout.pages.length;
-  document.getElementById("exportBtn").textContent=total>1?(d.exportBtn+" ("+total+"\ud398\uc774\uc9c0)"):d.exportBtn;
-  const ow=document.getElementById("pvOverflow");
-  if(layout.overflow){ow.textContent=d.overflow;ow.classList.add("show");}else{ow.classList.remove("show");}
-  renderPreview();
+// [수정] 썸네일 완전 삭제 (메모리 누수 차단)
+function removeThumb(){
+  if(state.thumbUrl&&state.thumbUrl.startsWith('blob:')){URL.revokeObjectURL(state.thumbUrl);}
+  state.thumbImg=null;state.thumbUrl=null;state.originalImg=null;
+  document.getElementById("fileInput").value="";updateAll();
 }
-function removeThumb(){state.thumbImg=null;state.thumbUrl=null;state.originalImg=null;document.getElementById("fileInput").value="";updateAll();}
 
 function exportImage(){
   const layout=getReviewLayout(),total=layout.pages.length;
@@ -541,13 +807,12 @@ function exportImage(){
       canvases[ci].toBlob(async blob=>{
         await saveBlob(blob,"voice-drama-"+sfx+"-"+ts+"-"+(ci+1)+".png");
         if(idx<canvases.length)setTimeout(saveNext,500);
-      },"image/png");
+      });
     }
     saveNext();
   }
 }
 
-/* ===== IMAGE EDITOR ===== */
 const ieCanvas=document.getElementById("ieCanvas"),ieCtx=ieCanvas.getContext("2d",{willReadFrequently:true});
 let ie={tool:"crop",originalImg:null,history:[],historyIdx:-1,brushSize:30,intensity:50,crop:{active:false,sx:0,sy:0,ex:0,ey:0},cropRatio:null,cropAction:null,cropDragStart:null,cropOrigRect:null,painting:false,stickers:[],stickerDrag:null,stickerResize:null,scale:1,filter:{blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0},filterBase:null};
 let _ieRAF=null;function scheduleIERender(){if(_ieRAF)return;_ieRAF=requestAnimationFrame(()=>{_ieRAF=null;ieRender();});}
@@ -564,7 +829,7 @@ function openImageEditor(){
 function closeImageEditor(){document.getElementById("ieOverlay").classList.remove("open");}
 function iePushHistory(c){ie.history=ie.history.slice(0,ie.historyIdx+1);const n=document.createElement("canvas");n.width=c.width;n.height=c.height;n.getContext("2d").drawImage(c,0,0);ie.history.push(n);ie.historyIdx=ie.history.length-1;}
 function ieGetCurrent(){return ie.history[ie.historyIdx];}
-function ieUndo(){if(ie.historyIdx>0){ie.historyIdx--;ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0};ie.filterBase=null;if(ie.tool==="filter"||ie.tool==="blur"||ie.tool==="mosaic")ieTool(ie.tool);else ieTool(ie.tool);}}
+function ieUndo(){if(ie.historyIdx>0){ie.historyIdx--;ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0};ie.filterBase=null;ieTool(ie.tool);}}
 function ieReset(){if(ie.history.length>0){ie.historyIdx=0;ie.stickers=[];ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0};ie.filterBase=null;ie.cropRatio=null;ie.cropAction=null;ie.cropDragStart=null;ie.cropOrigRect=null;ie.brushSize=30;ie.intensity=50;ie.crop={active:false,sx:0,sy:0,ex:0,ey:0};ieTool("crop");}}
 
 function ensureFilterBase(){
@@ -644,35 +909,26 @@ function enforceCropRatio(){
 function ieRender(){
   const cur=ieGetCurrent();if(!cur)return;
   let src=cur;
-  // apply filter preview (works for blur/mosaic/filter tools with "전체" sliders)
   const _hf=ie.filter,_hasF=_hf.blur>0||_hf.mosaic>0||_hf.gray>0||_hf.brightness>0||_hf.contrast>0||_hf.sepia>0||_hf.saturate>0;
-  if(_hasF&&ie.filterBase){
-    src=applyFilters(ie.filterBase,ie.filter);
-  }
+  if(_hasF&&ie.filterBase){src=applyFilters(ie.filterBase,ie.filter);}
   const wrap=document.getElementById("ieCanvasWrap"),maxW=wrap.clientWidth-32,maxH=wrap.clientHeight-32;
-  // scale relative to FULL-resolution source so canvas size stays stable across modes
   const sc=Math.min(1,maxW/cur.width,maxH/cur.height);ie.scale=sc;
   ieCanvas.width=Math.round(cur.width*sc);ieCanvas.height=Math.round(cur.height*sc);
   ieCtx.imageSmoothingEnabled=true;ieCtx.drawImage(src,0,0,ieCanvas.width,ieCanvas.height);
-  // stickers
   ie.stickers.forEach(st=>{
     ieCtx.drawImage(st.img,st.x*sc,st.y*sc,st.w*sc,st.h*sc);
     if(ie.tool==="sticker"){ieCtx.strokeStyle="rgba(100,160,220,0.6)";ieCtx.lineWidth=2;ieCtx.setLineDash([4,4]);ieCtx.strokeRect(st.x*sc,st.y*sc,st.w*sc,st.h*sc);ieCtx.setLineDash([]);
-      const hx=st.x*sc+st.w*sc-6,hy=st.y*sc+st.h*sc-6;ieCtx.fillStyle="var(--accent)";ieCtx.fillStyle="#a8c8e8";ieCtx.fillRect(hx,hy,12,12);
+      const hx=st.x*sc+st.w*sc-6,hy=st.y*sc+st.h*sc-6;ieCtx.fillStyle="#a8c8e8";ieCtx.fillRect(hx,hy,12,12);
       ieCtx.fillStyle="rgba(231,76,60,0.9)";ieCtx.beginPath();ieCtx.arc(st.x*sc+st.w*sc,st.y*sc,10,0,Math.PI*2);ieCtx.fill();ieCtx.fillStyle="#fff";ieCtx.font="bold 12px sans-serif";ieCtx.textAlign="center";ieCtx.textBaseline="middle";ieCtx.fillText("✕",st.x*sc+st.w*sc,st.y*sc);ieCtx.textAlign="left";ieCtx.textBaseline="alphabetic";}
   });
-  // crop overlay
   if(ie.tool==="crop"&&ie.crop.active){const c=ie.crop,x=Math.min(c.sx,c.ex),y=Math.min(c.sy,c.ey),w=Math.abs(c.ex-c.sx),h=Math.abs(c.ey-c.sy);ieCtx.fillStyle="rgba(0,0,0,0.5)";ieCtx.fillRect(0,0,ieCanvas.width,y);ieCtx.fillRect(0,y,x,h);ieCtx.fillRect(x+w,y,ieCanvas.width-x-w,h);ieCtx.fillRect(0,y+h,ieCanvas.width,ieCanvas.height-y-h);ieCtx.strokeStyle="#a8c8e8";ieCtx.lineWidth=2;ieCtx.setLineDash([6,3]);ieCtx.strokeRect(x,y,w,h);ieCtx.setLineDash([]);
-    // rule-of-thirds grid
     if(w>60&&h>60){ieCtx.strokeStyle="rgba(168,200,232,0.25)";ieCtx.lineWidth=1;
       for(let i=1;i<=2;i++){ieCtx.beginPath();ieCtx.moveTo(x+w*i/3,y);ieCtx.lineTo(x+w*i/3,y+h);ieCtx.stroke();ieCtx.beginPath();ieCtx.moveTo(x,y+h*i/3);ieCtx.lineTo(x+w,y+h*i/3);ieCtx.stroke();}}
-    // corner handles
     if(w>20&&h>20){const hs=7;
       [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([hx,hy])=>{
         ieCtx.fillStyle="#a8c8e8";ieCtx.fillRect(hx-hs,hy-hs,hs*2,hs*2);
         ieCtx.strokeStyle="rgba(255,255,255,0.8)";ieCtx.lineWidth=1.5;ieCtx.strokeRect(hx-hs,hy-hs,hs*2,hs*2);
       });}
-    // dimension display
     const rW=Math.round(w/ie.scale),rH=Math.round(h/ie.scale);
     if(rW>0&&rH>0){const dt=rW+" × "+rH;ieCtx.font="bold 11px 'Pretendard',sans-serif";const tw=ieCtx.measureText(dt).width;const bW=tw+16,bH=22;
       let bx=x+w/2-bW/2,by=y>30?y-26:y+h+6;
@@ -680,12 +936,9 @@ function ieRender(){
       if(bx<2)bx=2;if(bx+bW>ieCanvas.width-2)bx=ieCanvas.width-bW-2;
       ieCtx.fillStyle="rgba(0,0,0,0.7)";drawRR(ieCtx,bx,by,bW,bH,6);ieCtx.fill();
       ieCtx.fillStyle="#fff";ieCtx.textAlign="center";ieCtx.fillText(dt,bx+bW/2,by+15);ieCtx.textAlign="left";}
-    // confirm button
     if(w>60&&h>30){const bw=140,bh=32,bx=x+w/2-bw/2,by=y+h/2-bh/2;ieCtx.fillStyle="rgba(168,200,232,0.9)";drawRR(ieCtx,bx,by,bw,bh,8);ieCtx.fill();ieCtx.fillStyle="#0c0c14";ieCtx.font="bold 12px 'Pretendard',sans-serif";ieCtx.textAlign="center";ieCtx.fillText(I18N[currentLang].ie.cropBtn,bx+bw/2,by+bh/2+4);ieCtx.textAlign="left";}}
-  // crop hint
   let hint=document.getElementById("ieCropHint");
   if(ie.tool==="crop"&&!ie.crop.active){if(!hint){hint=document.createElement("div");hint.id="ieCropHint";hint.className="ie-crop-hint";document.getElementById("ieCanvasWrap").appendChild(hint);}hint.textContent=I18N[currentLang].ie.cropHint;hint.style.display="block";}else{if(hint)hint.style.display="none";}
-  // filter sliders UI
   renderFilterUI();
 }
 
@@ -706,25 +959,21 @@ function renderFilterUI(){
 function applyFilters(srcCanvas,f){
   const w=srcCanvas.width,h=srcCanvas.height;
   let c=document.createElement("canvas");c.width=w;c.height=h;let ctx=c.getContext("2d");
-  // mosaic first (pixelate)
   if(f.mosaic>0){
     const bs=Math.max(2,Math.round(f.mosaic/100*40));
     const smW=Math.max(1,Math.round(w/bs)),smH=Math.max(1,Math.round(h/bs));
     const tmp=document.createElement("canvas");tmp.width=smW;tmp.height=smH;
     const tc=tmp.getContext("2d");tc.imageSmoothingEnabled=true;tc.drawImage(srcCanvas,0,0,smW,smH);
     ctx.imageSmoothingEnabled=false;ctx.drawImage(tmp,0,0,w,h);
-    // use this as new source for next filters
     const next=document.createElement("canvas");next.width=w;next.height=h;next.getContext("2d").drawImage(c,0,0);
     c=next;ctx=c.getContext("2d");
   } else { ctx.drawImage(srcCanvas,0,0); }
-  // blur (gaussian via filter)
   if(f.blur>0){
     const px=Math.max(1,Math.round(f.blur/100*30));
     const tmp=document.createElement("canvas");tmp.width=w;tmp.height=h;const tc=tmp.getContext("2d");
     tc.filter="blur("+px+"px)";tc.drawImage(c,0,0);
     ctx.clearRect(0,0,w,h);ctx.drawImage(tmp,0,0);
   }
-  // grayscale + brightness + contrast + sepia + saturate (combined CSS filter)
   let cssFilters=[];
   if(f.gray>0) cssFilters.push("grayscale("+f.gray+"%)");
   if(f.brightness>0) cssFilters.push("brightness("+(1+f.brightness/100)+")");
@@ -739,11 +988,9 @@ function applyFilters(srcCanvas,f){
   return c;
 }
 
-/* Canvas events */
 function iePos(e){
   const r=ieCanvas.getBoundingClientRect();
   const t=e.touches&&e.touches.length?e.touches[0]:(e.changedTouches&&e.changedTouches.length?e.changedTouches[0]:e);
-  // Account for CSS scaling (e.g. max-height:60vh shrinks canvas display while intrinsic pixels stay larger)
   const sx=r.width>0?ieCanvas.width/r.width:1;
   const sy=r.height>0?ieCanvas.height/r.height:1;
   return{x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};
@@ -769,10 +1016,8 @@ function ieDown(e){
     ie.cropAction='draw';ie.cropDragStart={x:p.x,y:p.y};
     ie.crop={active:true,sx:p.x,sy:p.y,ex:p.x,ey:p.y};
   } else if(ie.tool==="blur"||ie.tool==="mosaic"){
-    // Snapshot the PRE-paint state for blending math
     ie._paintSnapshot=document.createElement("canvas");ie._paintSnapshot.width=ieGetCurrent().width;ie._paintSnapshot.height=ieGetCurrent().height;
     ie._paintSnapshot.getContext("2d").drawImage(ieGetCurrent(),0,0);
-    // Push a fresh working copy onto history so the original entry stays intact (enables undo/reset)
     const work=document.createElement("canvas");work.width=ie._paintSnapshot.width;work.height=ie._paintSnapshot.height;
     work.getContext("2d").drawImage(ie._paintSnapshot,0,0);
     iePushHistory(work);
@@ -825,7 +1070,6 @@ function ieMove(e){
 function ieUp(){
   ie.cropAction=null;
   if((ie.tool==="blur"||ie.tool==="mosaic")&&ie.painting){ie.painting=false;
-    // refresh filterBase after brush painting so "전체" preview stays current
     const _uf=ie.filter;if((_uf.blur>0||_uf.mosaic>0)&&ie.filterBase)ensureFilterBase();
   }
   ie.stickerDrag=null;ie.stickerResize=null;
@@ -837,15 +1081,12 @@ function iePaintAt(rx,ry){
   const sx=Math.max(0,Math.floor(rx-r)),sy=Math.max(0,Math.floor(ry-r)),sw=Math.min(src.width-sx,r*2),sh=Math.min(src.height-sy,r*2);
   if(sw<=0||sh<=0)return;
   if(ie.tool==="blur"){
-    // Soft dreamy gaussian with feathered edge
     const px=Math.max(2,Math.round(strength*40)),pad=px*3;
     const ex=Math.max(0,sx-pad),ey=Math.max(0,sy-pad),ew=Math.min(src.width-ex,sw+pad*2),eh=Math.min(src.height-ey,sh+pad*2);
     const tmp=document.createElement("canvas");tmp.width=ew;tmp.height=eh;const tc=tmp.getContext("2d");
-    // Double-pass blur for dreamy softness
     tc.filter="blur("+px+"px)";tc.drawImage(snap,ex,ey,ew,eh,0,0,ew,eh);
     const tmp2=document.createElement("canvas");tmp2.width=ew;tmp2.height=eh;const tc2=tmp2.getContext("2d");
     tc2.filter="blur("+Math.round(px*0.5)+"px)";tc2.drawImage(tmp,0,0);
-    // Feathered circular mask (soft edge)
     const mask=document.createElement("canvas");mask.width=src.width;mask.height=src.height;const mc=mask.getContext("2d");
     const grad=mc.createRadialGradient(rx,ry,r*0.3,rx,ry,r);
     grad.addColorStop(0,"rgba(255,255,255,1)");grad.addColorStop(0.7,"rgba(255,255,255,0.6)");grad.addColorStop(1,"rgba(255,255,255,0)");
@@ -874,19 +1115,36 @@ document.getElementById("stickerFileInput").addEventListener("change",e=>{
   Array.from(files).forEach(f=>{const u=URL.createObjectURL(f);const img=new Image();img.onload=()=>{const src=ieGetCurrent();const md=Math.min(src.width,src.height)*0.3,asp=img.width/img.height;
     ie.stickers.push({img,x:src.width/2-md/2,y:src.height/2-md/asp/2,w:md,h:md/asp});ieRender();};img.src=u;});e.target.value="";
 });
-function ieApply(){
-  // commit filters at FULL resolution if any are active
-  const _af=ie.filter,_anyF=_af.blur>0||_af.mosaic>0||_af.gray>0||_af.brightness>0||_af.contrast>0||_af.sepia>0||_af.saturate>0;
-  if(_anyF){
-    const full=ieGetCurrent();
-    const filtered=applyFilters(full,ie.filter);
-    iePushHistory(filtered);ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0};ie.filterBase=null;
+
+function ieApply() {
+  const _af = ie.filter, _anyF = _af.blur > 0 || _af.mosaic > 0 || _af.gray > 0 || _af.brightness > 0 || _af.contrast > 0 || _af.sepia > 0 || _af.saturate > 0;
+  if (_anyF) {
+    const full = ieGetCurrent();
+    const filtered = applyFilters(full, ie.filter);
+    iePushHistory(filtered);
+    ie.filter = { blur: 0, mosaic: 0, gray: 0, brightness: 0, contrast: 0, sepia: 0, saturate: 0 };
+    ie.filterBase = null;
   }
-  let src=ieGetCurrent();
-  const final=document.createElement("canvas");final.width=src.width;final.height=src.height;const fc=final.getContext("2d");fc.drawImage(src,0,0);
-  ie.stickers.forEach(st=>fc.drawImage(st.img,st.x,st.y,st.w,st.h));
-  const du=final.toDataURL("image/png");const img=new Image();img.onload=()=>{state.thumbImg=img;state.thumbUrl=du;closeImageEditor();updateAll();};img.src=du;
+  let src = ieGetCurrent();
+  const final = document.createElement("canvas");
+  final.width = src.width; final.height = src.height;
+  const fc = final.getContext("2d"); fc.drawImage(src, 0, 0);
+  ie.stickers.forEach(st => fc.drawImage(st.img, st.x, st.y, st.w, st.h));
+  
+  const du = final.toDataURL("image/png");
+  const img = new Image();
+  img.onload = () => {
+    if (state.thumbUrl && state.thumbUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(state.thumbUrl);
+    }
+    state.thumbImg = img;
+    state.thumbUrl = du;
+    closeImageEditor();
+    updateAll();
+  };
+  img.src = du;
 }
+
 window.addEventListener("resize",()=>{if(document.getElementById("ieOverlay").classList.contains("open"))ieRender();});
 window.addEventListener("keydown",e=>{
   if(document.getElementById("ieOverlay").classList.contains("open")){
@@ -895,7 +1153,6 @@ window.addEventListener("keydown",e=>{
   }
 });
 
-/* ===== PREVIEW MODE (mobile A: sticky / C: float) ===== */
 function setPvMode(mode){
   document.body.dataset.pvMode=mode;
   localStorage.setItem("pvMode",mode);
@@ -919,12 +1176,72 @@ function openPvFull(){
   overlay.classList.add("open");
 }
 function closePvFull(){document.getElementById("pvFull").classList.remove("open");}
-// Hook into card preview so mini stays in sync
 const _origRenderPreview=renderPreview;
 renderPreview=function(){_origRenderPreview();if(document.body.dataset.pvMode==="float")renderMiniPreview();};
-// Init: restore saved mode (default sticky)
 setPvMode(localStorage.getItem("pvMode")||"sticky");
-// Esc to close fullscreen
 window.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.getElementById("pvFull").classList.contains("open"))closePvFull();});
-rebuildSelectors();setLanguage("ko");
+
+const SAVE_KEY="vdrc_save";
+let _saveTimer=null;
+function autoSave(){
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(()=>{
+    const d={themeKey:state.themeKey,starRating:state.starRating,eroRating:state.eroRating,ageRating:state.ageRating,progress:state.progress,reviewColor:state.reviewColor,showDate:state.showDate,spoiler:state.spoiler,qrUrl:state.qrUrl,
+      title:document.getElementById("inTitle").value,circle:document.getElementById("inCircle").value,artist:document.getElementById("inArtist").value,genre:document.getElementById("inGenre").value,
+      review:document.getElementById("inReview").value,reviewer:document.getElementById("inReviewer").value,headline:document.getElementById("inHeadline").value,lang:currentLang};
+    try{localStorage.setItem(SAVE_KEY,JSON.stringify(d));}catch(e){}
+  },400);
+}
+function autoLoad(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);if(!raw)return;
+    const d=JSON.parse(raw);
+    if(d.themeKey)state.themeKey=d.themeKey;
+    if(d.starRating)state.starRating=d.starRating;
+    if(d.eroRating)state.eroRating=d.eroRating;
+    if(d.ageRating)state.ageRating=d.ageRating;
+    if(d.progress!=null){state.progress=d.progress;document.getElementById("progressSlider").value=d.progress;}
+    if(d.reviewColor)state.reviewColor=d.reviewColor;
+    if(d.showDate!=null){state.showDate=d.showDate;document.getElementById("chkDate").checked=d.showDate;}
+    if(d.spoiler!=null){state.spoiler=d.spoiler;document.getElementById("chkSpoiler").checked=d.spoiler;}
+    if(d.qrUrl){state.qrUrl=d.qrUrl;document.getElementById("inQR").value=d.qrUrl;}
+    if(d.title)document.getElementById("inTitle").value=d.title;
+    if(d.circle)document.getElementById("inCircle").value=d.circle;
+    if(d.artist)document.getElementById("inArtist").value=d.artist;
+    if(d.genre)document.getElementById("inGenre").value=d.genre;
+    if(d.review)document.getElementById("inReview").value=d.review;
+    if(d.reviewer)document.getElementById("inReviewer").value=d.reviewer;
+    if(d.headline)document.getElementById("inHeadline").value=d.headline;
+    if(d.lang)currentLang=d.lang;
+  }catch(e){}
+}
+function resetAll(){
+  if(!confirm(I18N[currentLang].resetConfirm))return;
+  localStorage.removeItem(SAVE_KEY);
+  state={themeKey:"frost",starRating:"5/5",eroRating:"❤ 4",ageRating:"R18",thumbUrl:null,thumbImg:null,originalImg:null,progress:0.55,reviewColor:"auto",showDate:false,spoiler:false,fontSize:24,qrUrl:""};
+  document.getElementById("inTitle").value="";document.getElementById("inCircle").value="";
+  document.getElementById("inArtist").value="";document.getElementById("inGenre").value="";
+  document.getElementById("inReview").value="";document.getElementById("inReviewer").value="";
+  document.getElementById("inHeadline").value="";document.getElementById("inQR").value="";
+  document.getElementById("progressSlider").value=0.55;document.getElementById("chkDate").checked=false;
+  document.getElementById("fileInput").value="";pvPage=0;
+  rebuildSelectors();updateAll();
+}
+
+["themeSelect", "progressSlider", "chkSpoiler", "chkDate"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("change", () => {
+      autoSave();
+      if (id === "themeSelect" || id === "progressSlider") {
+        renderPreview(); 
+      }
+    });
+  }
+});
+
+autoLoad();
+rebuildSelectors();
+setLanguage(currentLang);
+autoSave(); 
 </script></body></html>
