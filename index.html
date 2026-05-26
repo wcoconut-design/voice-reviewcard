@@ -650,7 +650,7 @@ function drawPage1(ctx,W,H,layout){
   drawBg(ctx,W,H,t,isL,unified,topH);
   
   // 썸네일 박스 드로잉 (1:1)
-  const tw=320,th=320,tx=60,ty=60,pad=6;
+  const tw=350,th=350,tx=60,ty=60,pad=6;
   drawRR(ctx,tx,ty,tw,th,28);
   const fg=ctx.createLinearGradient(tx,ty,tx+tw,ty+th);
   fg.addColorStop(0,isL?"rgba(0,0,0,0.025)":"rgba(255,255,255,0.09)");
