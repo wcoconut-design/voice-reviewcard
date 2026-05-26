@@ -747,10 +747,14 @@ function drawPage1(ctx,W,H,layout){
   ctx.textAlign="left";ctx.fillText(formatTime(cur),rX,bY+24);
   ctx.textAlign="right";ctx.fillText("-"+formatTime(rem),rX+rW,bY+24);ctx.textAlign="left";
   
-  const ctY=bY+70;ctx.textAlign="center";ctx.fillStyle=t.ctrl;ctx.font="500 32px 'Pretendard',sans-serif";
-  ctx.fillText("\u25c0",rCX-66,ctY);
+  const ctY=bY+70;ctx.fillStyle=t.ctrl;
+  // ◀ 뒤로 — 일시정지와 같은 중심(ctY-10)에 정렬
+  ctx.beginPath();ctx.moveTo(rCX-76,ctY-10);ctx.lineTo(rCX-56,ctY-20);ctx.lineTo(rCX-56,ctY);ctx.closePath();ctx.fill();
+  // ⏸ 일시정지 — 중심 ctY-10 (y: ctY-24, h:28)
   drawRR(ctx,rCX-12,ctY-24,8,28,3);ctx.fill();drawRR(ctx,rCX+4,ctY-24,8,28,3);ctx.fill();
-  ctx.fillText("\u25b6",rCX+66,ctY);ctx.textAlign="left";
+  // ▶ 앞으로
+  ctx.beginPath();ctx.moveTo(rCX+76,ctY-10);ctx.lineTo(rCX+56,ctY-20);ctx.lineTo(rCX+56,ctY);ctx.closePath();ctx.fill();
+  ctx.textAlign="left";
   
   // QR 코드 위치 고정
   drawQR(ctx,t,isL,rX+rW-44,topH-72,42);
@@ -782,8 +786,11 @@ function drawPage1(ctx,W,H,layout){
   drawSpoiler(ctx,t,isL,unified,rvX+rvW-120,topH+24);
   drawFooter(ctx,v,t,isL,unified,rvX,rvW,H,textEndY);
   if(total>1){
-    ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;
-    ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;
+    ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;
+    const _npx=rvX+rvW,_npy=H-PAGE_PAD_BOTTOM+10;
+    ctx.beginPath();ctx.moveTo(_npx-16,_npy-5);ctx.lineTo(_npx-8,_npy);ctx.lineTo(_npx-16,_npy+5);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(_npx-8,_npy-5);ctx.lineTo(_npx,_npy);ctx.lineTo(_npx-8,_npy+5);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=1;
   }
   drawPageIndicator(ctx,W,H,t,1,total);
 }
@@ -819,7 +826,7 @@ function drawContPage(ctx,W,H,layout,pageIdx){
   const textEndY=cY+pLines.length*reviewLH();
   drawSpoiler(ctx,t,isL,unified,rvX+rvW-120,30);
   drawFooter(ctx,v,t,isL,unified,rvX,rvW,H,textEndY);
-  if(pageIdx<total-1){ctx.font="500 14px 'Pretendard',sans-serif";ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;ctx.textAlign="right";ctx.fillText("\u25b8\u25b8",rvX+rvW,H-PAGE_PAD_BOTTOM+10);ctx.textAlign="left";ctx.globalAlpha=1;}
+  if(pageIdx<total-1){ctx.fillStyle=t.accent;ctx.globalAlpha=0.5;const _npx2=rvX+rvW,_npy2=H-PAGE_PAD_BOTTOM+10;ctx.beginPath();ctx.moveTo(_npx2-16,_npy2-5);ctx.lineTo(_npx2-8,_npy2);ctx.lineTo(_npx2-16,_npy2+5);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(_npx2-8,_npy2-5);ctx.lineTo(_npx2,_npy2);ctx.lineTo(_npx2-8,_npy2+5);ctx.closePath();ctx.fill();ctx.globalAlpha=1;}
   drawPageIndicator(ctx,W,H,t,pageIdx+1,total);
 }
 
