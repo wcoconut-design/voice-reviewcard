@@ -1052,35 +1052,78 @@ function renderFilterUI(){
   } else { if(el) el.style.display="none"; }
 }
 
-// [Safari 호환] ctx.filter 대신 다운스케일/업스케일 방식 블러
-function softBlur(srcCanvas,radius){
-  if(radius<=0)return srcCanvas;
-  const w=srcCanvas.width,h=srcCanvas.height;
-  const factor=Math.max(0.02,1-radius/100*0.95);
-  const sw=Math.max(1,Math.round(w*factor)),sh=Math.max(1,Math.round(h*factor));
-  _fBuf2.width=sw;_fBuf2.height=sh;
-  const tc=_fBuf2.getContext("2d");tc.imageSmoothingEnabled=true;tc.imageSmoothingQuality="high";
-  tc.drawImage(srcCanvas,0,0,sw,sh);
-  // 2차 다운스케일로 더 부드러운 블러
-  if(radius>30){const f2=Math.max(0.3,1-radius/200);const sw2=Math.max(1,Math.round(sw*f2)),sh2=Math.max(1,Math.round(sh*f2));
-    _fBuf3.width=sw2;_fBuf3.height=sh2;const tc2=_fBuf3.getContext("2d");tc2.imageSmoothingEnabled=true;tc2.imageSmoothingQuality="high";
-    tc2.drawImage(_fBuf2,0,0,sw2,sh2);_fBuf2.width=sw2;_fBuf2.height=sh2;_fBuf2.getContext("2d").drawImage(_fBuf3,0,0);}
-  const out=document.createElement("canvas");out.width=w;out.height=h;
-  const oc=out.getContext("2d");oc.imageSmoothingEnabled=true;oc.imageSmoothingQuality="high";
-  oc.drawImage(_fBuf2,0,0,w,h);return out;
+// [Safari 호환] StackBlur — ctx.filter 없이 가우시안 블러 구현
+const _sbMulTable=[512,512,456,512,328,456,335,512,405,328,271,456,388,335,292,512,454,405,364,328,298,271,496,456,420,388,360,335,312,292,273,512,482,454,428,405,383,364,345,328,312,298,284,271,259,496,475,456,437,420,404,388,374,360,347,335,323,312,302,292,282,273,265,512,497,482,468,454,441,428,417,405,394,383,373,364,354,345,337,328,320,312,305,298,291,284,278,271,265,259,507,496,485,475,465,456,446,437,428,420,412,404,396,388,381,374,367,360,354,347,341,335,329,323,318,312,307,302,297,292,287,282,278,273,269,265,261,512,505,497,489,482,475,468,461,454,447,441,435,428,422,417,411,405,399,394,389,383,378,373,368,364,359,354,350,345,341,337,332,328,324,320,316,312,309,305,301,298,294,291,287,284,281,278,274,271,268,265,262,259,257,507,501,496,491,485,480,475,470,465,460,456,451,446,442,437,433,428,424,420,416,412,408,404,400,396,392,388,385,381,377,374,370,367,363,360,357,354,350,347,344,341,338,335,332,329,326,323,320,318,315,312,310,307,304,302,299,297,294,292,289,287,285,282,280,278,275,273,271,269,267,265,263,261,259];
+const _sbShgTable=[9,11,12,13,13,14,14,15,15,15,15,16,16,16,16,17,17,17,17,17,17,17,18,18,18,18,18,18,18,18,18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24];
+function stackBlur(canvas,radius){
+  if(radius<=0)return;
+  radius=Math.round(Math.min(180,radius));
+  const w=canvas.width,h=canvas.height,ctx=canvas.getContext("2d");
+  const imgD=ctx.getImageData(0,0,w,h),px=imgD.data;
+  const wm=w-1,hm=h-1,rad1=radius+1;
+  const mulSum=_sbMulTable[radius],shgSum=_sbShgTable[radius];
+  const rS=new Int32Array(w*h),gS=new Int32Array(w*h),bS=new Int32Array(w*h);
+  let rSum,gSum,bSum,rInS,gInS,bInS,rOutS,gOutS,bOutS,p,yi=0,stackStart,stackEnd,idx;
+  const div=2*radius+1,stack=new Int32Array(div*3);
+  for(let y=0;y<h;y++){
+    rInS=gInS=bInS=rOutS=gOutS=bOutS=rSum=gSum=bSum=0;
+    for(let i=-radius;i<=radius;i++){
+      p=(yi+Math.min(wm,Math.max(0,i)))*4;
+      const si=(i+radius)*3,wt=rad1-Math.abs(i);
+      stack[si]=px[p];stack[si+1]=px[p+1];stack[si+2]=px[p+2];
+      rSum+=stack[si]*wt;gSum+=stack[si+1]*wt;bSum+=stack[si+2]*wt;
+      if(i>0){rInS+=stack[si];gInS+=stack[si+1];bInS+=stack[si+2];}
+      else{rOutS+=stack[si];gOutS+=stack[si+1];bOutS+=stack[si+2];}
+    }
+    stackStart=radius;
+    for(let x=0;x<w;x++){
+      idx=yi+x;rS[idx]=(rSum*mulSum)>>>shgSum;gS[idx]=(gSum*mulSum)>>>shgSum;bS[idx]=(bSum*mulSum)>>>shgSum;
+      rSum-=rOutS;gSum-=gOutS;bSum-=bOutS;
+      const si1=((stackStart-radius+div)%div)*3;
+      rOutS-=stack[si1];gOutS-=stack[si1+1];bOutS-=stack[si1+2];
+      p=(yi+Math.min(wm,x+rad1))*4;
+      stack[si1]=px[p];stack[si1+1]=px[p+1];stack[si1+2]=px[p+2];
+      rInS+=stack[si1];gInS+=stack[si1+1];bInS+=stack[si1+2];
+      rSum+=rInS;gSum+=gInS;bSum+=bInS;
+      stackStart=(stackStart+1)%div;
+      const si2=stackStart*3;
+      rOutS+=stack[si2];gOutS+=stack[si2+1];bOutS+=stack[si2+2];
+      rInS-=stack[si2];gInS-=stack[si2+1];bInS-=stack[si2+2];
+    }
+    yi+=w;
+  }
+  for(let x=0;x<w;x++){
+    rInS=gInS=bInS=rOutS=gOutS=bOutS=rSum=gSum=bSum=0;
+    let yp=-radius*w;
+    for(let i=-radius;i<=radius;i++){
+      yi=Math.max(0,yp)+x;
+      const si=(i+radius)*3,wt=rad1-Math.abs(i);
+      stack[si]=rS[yi];stack[si+1]=gS[yi];stack[si+2]=bS[yi];
+      rSum+=stack[si]*wt;gSum+=stack[si+1]*wt;bSum+=stack[si+2]*wt;
+      if(i>0){rInS+=stack[si];gInS+=stack[si+1];bInS+=stack[si+2];}
+      else{rOutS+=stack[si];gOutS+=stack[si+1];bOutS+=stack[si+2];}
+      if(i<hm)yp+=w;
+    }
+    yi=x;stackStart=radius;
+    for(let y=0;y<h;y++){
+      p=yi*4;px[p]=Math.min(255,(rSum*mulSum)>>>shgSum);px[p+1]=Math.min(255,(gSum*mulSum)>>>shgSum);px[p+2]=Math.min(255,(bSum*mulSum)>>>shgSum);
+      rSum-=rOutS;gSum-=gOutS;bSum-=bOutS;
+      const si1=((stackStart-radius+div)%div)*3;
+      rOutS-=stack[si1];gOutS-=stack[si1+1];bOutS-=stack[si1+2];
+      const yIdx=Math.min(hm,y+rad1)*w+x;
+      stack[si1]=rS[yIdx];stack[si1+1]=gS[yIdx];stack[si1+2]=bS[yIdx];
+      rInS+=stack[si1];gInS+=stack[si1+1];bInS+=stack[si1+2];
+      rSum+=rInS;gSum+=gInS;bSum+=bInS;
+      stackStart=(stackStart+1)%div;
+      const si2=stackStart*3;
+      rOutS+=stack[si2];gOutS+=stack[si2+1];bOutS+=stack[si2+2];
+      rInS-=stack[si2];gInS-=stack[si2+1];bInS-=stack[si2+2];
+      yi+=w;
+    }
+  }
+  ctx.putImageData(imgD,0,0);
 }
-// [Safari 호환] 브러시 영역 블러
-function softBlurRegion(srcCanvas,ex,ey,ew,eh,radius){
-  if(radius<=0||ew<=0||eh<=0)return null;
-  const factor=Math.max(0.05,1-radius/60);
-  const sw=Math.max(1,Math.round(ew*factor)),sh=Math.max(1,Math.round(eh*factor));
-  _pBuf1.width=sw;_pBuf1.height=sh;
-  const tc=_pBuf1.getContext("2d");tc.imageSmoothingEnabled=true;tc.imageSmoothingQuality="high";
-  tc.drawImage(srcCanvas,ex,ey,ew,eh,0,0,sw,sh);
-  _pBuf2.width=ew;_pBuf2.height=eh;
-  const tc2=_pBuf2.getContext("2d");tc2.imageSmoothingEnabled=true;tc2.imageSmoothingQuality="high";
-  tc2.drawImage(_pBuf1,0,0,ew,eh);return _pBuf2;
-}
+
 // [크로스플랫폼] 캔버스 Path 기반 별/하트 (시스템 이모지 의존 제거)
 function drawStarPath(ctx,cx,cy,outerR,innerR){
   ctx.beginPath();
@@ -1134,8 +1177,8 @@ function applyFilters(srcCanvas,f){
     ctx.imageSmoothingEnabled=true;
   } else { ctx.drawImage(srcCanvas,0,0); }
   if(f.blur>0){
-    const blurred=softBlur(_fBuf1,f.blur);
-    ctx.clearRect(0,0,w,h);ctx.drawImage(blurred,0,0);
+    const rad=Math.max(1,Math.round(f.blur/100*40));
+    stackBlur(_fBuf1,rad);
   }
   applyColorFilters(_fBuf1,f);
   return _fBuf1;
@@ -1256,12 +1299,14 @@ function iePaintAt(rx,ry){
   const sx=Math.max(0,Math.floor(rx-r)),sy=Math.max(0,Math.floor(ry-r)),sw=Math.min(src.width-sx,r*2),sh=Math.min(src.height-sy,r*2);
   if(sw<=0||sh<=0)return;
   if(ie.tool==="blur"){
-    const px=Math.max(2,Math.round(strength*40)),pad=px*2;
+    const px=Math.max(2,Math.round(strength*30)),pad=px*2;
     const ex=Math.max(0,sx-pad),ey=Math.max(0,sy-pad),ew=Math.min(src.width-ex,sw+pad*2),eh=Math.min(src.height-ey,sh+pad*2);
-    const blurred=softBlurRegion(snap,ex,ey,ew,eh,px);
-    if(!blurred)return;
+    if(ew<=0||eh<=0)return;
+    _pBuf1.width=ew;_pBuf1.height=eh;
+    _pBuf1.getContext("2d").drawImage(snap,ex,ey,ew,eh,0,0,ew,eh);
+    stackBlur(_pBuf1,px);
     ctx.save();ctx.beginPath();ctx.arc(rx,ry,r,0,Math.PI*2);ctx.clip();
-    ctx.globalAlpha=0.85;ctx.drawImage(blurred,ex,ey);ctx.globalAlpha=1;ctx.restore();
+    ctx.drawImage(_pBuf1,ex,ey);ctx.restore();
   } else if(ie.tool==="mosaic"){
     const bs=Math.max(2,Math.round(2+strength*20)),imgD=snap.getContext("2d").getImageData(sx,sy,sw,sh),out=ctx.createImageData(sw,sh);
     for(let by=0;by<sh;by+=bs){for(let bx=0;bx<sw;bx+=bs){let rr=0,gg=0,bb=0,aa=0,cnt=0;
@@ -1415,4 +1460,5 @@ setLanguage(currentLang);
 autoResizeTextarea(reviewTA);
 autoSave(); 
 </script></body></html>
+
 
