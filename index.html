@@ -709,14 +709,12 @@ function drawPage1(ctx,W,H,layout){
   }
   if(state.starRating!=="\uc120\ud0dd\uc548\ud568"){
     const sc=parseInt(state.starRating.split("/")[0])||0;
-    ctx.font="17px sans-serif";
-    for(let i=0;i<5;i++){ctx.fillStyle=i<sc?"#ffb432":"rgba(255,180,50,0.25)";ctx.fillText("\u2605",sX+i*20,iY+2);}
+    for(let i=0;i<5;i++){ctx.fillStyle=i<sc?"#ffb432":"rgba(255,180,50,0.25)";drawStarPath(ctx,sX+i*20+8,iY-3,9,4);}
     sX+=5*20+12;
   }
   if(state.eroRating!=="\uc120\ud0dd\uc548\ud568"){
     const hc=parseInt(state.eroRating.replace("\u2764 ",""));
-    ctx.font="17px sans-serif";
-    for(let i=0;i<5;i++){ctx.fillStyle=i<hc?"#ff6b6b":"rgba(255,107,107,0.2)";ctx.fillText("\u2665",sX+i*18,iY+2);}
+    for(let i=0;i<5;i++){ctx.fillStyle=i<hc?"#ff6b6b":"rgba(255,107,107,0.2)";drawHeartPath(ctx,sX+i*18+7,iY-3,16);}
   }
   
   // 4. 장르 태그 pill 스타일
@@ -1054,6 +1052,73 @@ function renderFilterUI(){
   } else { if(el) el.style.display="none"; }
 }
 
+// [Safari 호환] ctx.filter 대신 다운스케일/업스케일 방식 블러
+function softBlur(srcCanvas,radius){
+  if(radius<=0)return srcCanvas;
+  const w=srcCanvas.width,h=srcCanvas.height;
+  const factor=Math.max(0.02,1-radius/100*0.95);
+  const sw=Math.max(1,Math.round(w*factor)),sh=Math.max(1,Math.round(h*factor));
+  _fBuf2.width=sw;_fBuf2.height=sh;
+  const tc=_fBuf2.getContext("2d");tc.imageSmoothingEnabled=true;tc.imageSmoothingQuality="high";
+  tc.drawImage(srcCanvas,0,0,sw,sh);
+  // 2차 다운스케일로 더 부드러운 블러
+  if(radius>30){const f2=Math.max(0.3,1-radius/200);const sw2=Math.max(1,Math.round(sw*f2)),sh2=Math.max(1,Math.round(sh*f2));
+    _fBuf3.width=sw2;_fBuf3.height=sh2;const tc2=_fBuf3.getContext("2d");tc2.imageSmoothingEnabled=true;tc2.imageSmoothingQuality="high";
+    tc2.drawImage(_fBuf2,0,0,sw2,sh2);_fBuf2.width=sw2;_fBuf2.height=sh2;_fBuf2.getContext("2d").drawImage(_fBuf3,0,0);}
+  const out=document.createElement("canvas");out.width=w;out.height=h;
+  const oc=out.getContext("2d");oc.imageSmoothingEnabled=true;oc.imageSmoothingQuality="high";
+  oc.drawImage(_fBuf2,0,0,w,h);return out;
+}
+// [Safari 호환] 브러시 영역 블러
+function softBlurRegion(srcCanvas,ex,ey,ew,eh,radius){
+  if(radius<=0||ew<=0||eh<=0)return null;
+  const factor=Math.max(0.05,1-radius/60);
+  const sw=Math.max(1,Math.round(ew*factor)),sh=Math.max(1,Math.round(eh*factor));
+  _pBuf1.width=sw;_pBuf1.height=sh;
+  const tc=_pBuf1.getContext("2d");tc.imageSmoothingEnabled=true;tc.imageSmoothingQuality="high";
+  tc.drawImage(srcCanvas,ex,ey,ew,eh,0,0,sw,sh);
+  _pBuf2.width=ew;_pBuf2.height=eh;
+  const tc2=_pBuf2.getContext("2d");tc2.imageSmoothingEnabled=true;tc2.imageSmoothingQuality="high";
+  tc2.drawImage(_pBuf1,0,0,ew,eh);return _pBuf2;
+}
+// [크로스플랫폼] 캔버스 Path 기반 별/하트 (시스템 이모지 의존 제거)
+function drawStarPath(ctx,cx,cy,outerR,innerR){
+  ctx.beginPath();
+  for(let i=0;i<10;i++){const r=i%2===0?outerR:innerR;const a=i*Math.PI/5-Math.PI/2;
+    if(i===0)ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
+    else ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
+  ctx.closePath();ctx.fill();
+}
+function drawHeartPath(ctx,cx,cy,size){
+  const s=size*0.55;ctx.beginPath();
+  ctx.moveTo(cx,cy+s*0.35);
+  ctx.bezierCurveTo(cx,cy-s*0.2,cx-s*0.55,cy-s*0.55,cx-s*0.55,cy-s*0.1);
+  ctx.bezierCurveTo(cx-s*0.55,cy+s*0.2,cx,cy+s*0.55,cx,cy+s*0.7);
+  ctx.bezierCurveTo(cx,cy+s*0.55,cx+s*0.55,cy+s*0.2,cx+s*0.55,cy-s*0.1);
+  ctx.bezierCurveTo(cx+s*0.55,cy-s*0.55,cx,cy-s*0.2,cx,cy+s*0.35);
+  ctx.closePath();ctx.fill();
+}
+// [Safari 호환] 픽셀 기반 컬러 필터 (ctx.filter 미지원 대응)
+function applyColorFilters(srcCanvas,f){
+  const w=srcCanvas.width,h=srcCanvas.height;
+  const tc=srcCanvas.getContext("2d");
+  const imgD=tc.getImageData(0,0,w,h),d=imgD.data;
+  const hasG=f.gray>0,hasB2=f.brightness>0,hasC=f.contrast>0,hasS=f.sepia>0,hasSa=f.saturate>0;
+  if(!hasG&&!hasB2&&!hasC&&!hasS&&!hasSa)return;
+  const ga=f.gray/100,ba=1+f.brightness/100,ca=1+f.contrast/100,sa=f.sepia/100,saa=1+f.saturate*2/100;
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i],g=d[i+1],b=d[i+2];
+    if(hasSa){const gray2=0.299*r+0.587*g+0.114*b;r=gray2+saa*(r-gray2);g=gray2+saa*(g-gray2);b=gray2+saa*(b-gray2);}
+    if(hasG){const gray=0.299*r+0.587*g+0.114*b;r=r+(gray-r)*ga;g=g+(gray-g)*ga;b=b+(gray-b)*ga;}
+    if(hasB2){r*=ba;g*=ba;b*=ba;}
+    if(hasC){r=(r-128)*ca+128;g=(g-128)*ca+128;b=(b-128)*ca+128;}
+    if(hasS){const sr=0.393*r+0.769*g+0.189*b,sg=0.349*r+0.686*g+0.168*b,sb=0.272*r+0.534*g+0.131*b;
+      r=r+(sr-r)*sa;g=g+(sg-g)*sa;b=b+(sb-b)*sa;}
+    d[i]=Math.max(0,Math.min(255,r));d[i+1]=Math.max(0,Math.min(255,g));d[i+2]=Math.max(0,Math.min(255,b));
+  }
+  tc.putImageData(imgD,0,0);
+}
+
 // [수정 #4] 필터용 버퍼 캔버스 재사용 (매 프레임 생성 방지)
 const _fBuf1=document.createElement("canvas"),_fBuf2=document.createElement("canvas"),_fBuf3=document.createElement("canvas");
 
@@ -1069,22 +1134,10 @@ function applyFilters(srcCanvas,f){
     ctx.imageSmoothingEnabled=true;
   } else { ctx.drawImage(srcCanvas,0,0); }
   if(f.blur>0){
-    const px=Math.max(1,Math.round(f.blur/100*30));
-    _fBuf2.width=w;_fBuf2.height=h;const tc=_fBuf2.getContext("2d");
-    tc.filter="blur("+px+"px)";tc.drawImage(_fBuf1,0,0);
-    ctx.clearRect(0,0,w,h);ctx.drawImage(_fBuf2,0,0);
+    const blurred=softBlur(_fBuf1,f.blur);
+    ctx.clearRect(0,0,w,h);ctx.drawImage(blurred,0,0);
   }
-  let cssFilters=[];
-  if(f.gray>0) cssFilters.push("grayscale("+f.gray+"%)");
-  if(f.brightness>0) cssFilters.push("brightness("+(1+f.brightness/100)+")");
-  if(f.contrast>0) cssFilters.push("contrast("+(1+f.contrast/100)+")");
-  if(f.sepia>0) cssFilters.push("sepia("+f.sepia+"%)");
-  if(f.saturate>0) cssFilters.push("saturate("+(1+f.saturate*2/100)+")");
-  if(cssFilters.length>0){
-    _fBuf3.width=w;_fBuf3.height=h;const tc=_fBuf3.getContext("2d");
-    tc.filter=cssFilters.join(" ");tc.drawImage(_fBuf1,0,0);
-    ctx.clearRect(0,0,w,h);ctx.drawImage(_fBuf3,0,0);
-  }
+  applyColorFilters(_fBuf1,f);
   return _fBuf1;
 }
 
@@ -1203,14 +1256,12 @@ function iePaintAt(rx,ry){
   const sx=Math.max(0,Math.floor(rx-r)),sy=Math.max(0,Math.floor(ry-r)),sw=Math.min(src.width-sx,r*2),sh=Math.min(src.height-sy,r*2);
   if(sw<=0||sh<=0)return;
   if(ie.tool==="blur"){
-    const px=Math.max(2,Math.round(strength*40)),pad=px*3;
+    const px=Math.max(2,Math.round(strength*40)),pad=px*2;
     const ex=Math.max(0,sx-pad),ey=Math.max(0,sy-pad),ew=Math.min(src.width-ex,sw+pad*2),eh=Math.min(src.height-ey,sh+pad*2);
-    _pBuf1.width=ew;_pBuf1.height=eh;const tc=_pBuf1.getContext("2d");
-    tc.filter="blur("+px+"px)";tc.drawImage(snap,ex,ey,ew,eh,0,0,ew,eh);
-    _pBuf2.width=ew;_pBuf2.height=eh;const tc2=_pBuf2.getContext("2d");
-    tc2.filter="blur("+Math.round(px*0.5)+"px)";tc2.drawImage(_pBuf1,0,0);
+    const blurred=softBlurRegion(snap,ex,ey,ew,eh,px);
+    if(!blurred)return;
     ctx.save();ctx.beginPath();ctx.arc(rx,ry,r,0,Math.PI*2);ctx.clip();
-    ctx.globalAlpha=0.85;ctx.drawImage(_pBuf2,ex,ey);ctx.globalAlpha=1;ctx.restore();
+    ctx.globalAlpha=0.85;ctx.drawImage(blurred,ex,ey);ctx.globalAlpha=1;ctx.restore();
   } else if(ie.tool==="mosaic"){
     const bs=Math.max(2,Math.round(2+strength*20)),imgD=snap.getContext("2d").getImageData(sx,sy,sw,sh),out=ctx.createImageData(sw,sh);
     for(let by=0;by<sh;by+=bs){for(let bx=0;bx<sw;bx+=bs){let rr=0,gg=0,bb=0,aa=0,cnt=0;
