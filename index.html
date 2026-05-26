@@ -151,6 +151,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-opts span{font-size:11px;color:var(--accent);font-weight:700;min-width:32px;text-align:right}
 .ie-canvas-wrap{flex:1;overflow:auto;display:flex;justify-content:center;align-items:center;padding:14px;background:var(--bg);position:relative;min-height:240px}
 .ie-canvas-wrap canvas{border-radius:8px;cursor:crosshair;max-width:100%;max-height:60vh;touch-action:none}
+.ie-opts,.ie-opts input[type=range],.ie-filter-panel,.ie-filter-panel input[type=range]{touch-action:auto!important}
 @media(max-width:600px){
   .ie-modal{max-height:96vh;border-radius:14px;width:100vw}
   .ie-header{padding:10px 14px}
@@ -159,13 +160,15 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   .ie-tool-btn{padding:6px 9px;font-size:11px}
   .ie-separator{margin:0 3px}
   .ie-opts{margin-left:0;width:100%;padding:6px 0 0;justify-content:flex-start}
+  .ie-opts input[type=range]{width:120px}
   .ie-canvas-wrap{padding:10px;min-height:180px}
   .ie-canvas-wrap canvas{max-height:48vh}
   .ie-footer{padding:10px 14px}
   .ie-btn{padding:8px 18px;font-size:12px}
-  .ie-filter-panel{padding:6px 14px 10px;gap:4px 10px}
+  .ie-filter-panel{padding:6px 14px 10px;gap:4px 10px;grid-template-columns:1fr}
   .ie-filter-cell label{min-width:30px;font-size:10px}
   .ie-filter-cell span{min-width:26px;font-size:10px}
+  .ie-filter-cell input[type=range],.ie-opts input[type=range]{height:36px;padding:8px 0;cursor:pointer}
 }
 .ie-footer{display:flex;gap:8px;padding:12px 18px;justify-content:flex-end}
 .ie-btn{padding:9px 22px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;transition:background .15s,opacity .15s,box-shadow .15s}
@@ -902,7 +905,16 @@ function exportImage(){
 
 const ieCanvas=document.getElementById("ieCanvas"),ieCtx=ieCanvas.getContext("2d",{willReadFrequently:true});
 let ie={tool:"crop",originalImg:null,history:[],historyIdx:-1,brushSize:30,intensity:50,crop:{active:false,sx:0,sy:0,ex:0,ey:0},cropRatio:null,cropAction:null,cropDragStart:null,cropOrigRect:null,painting:false,stickers:[],stickerDrag:null,stickerResize:null,scale:1,filter:{blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0},filterBase:null};
-let _ieRAF=null;function scheduleIERender(){if(_ieRAF)return;_ieRAF=requestAnimationFrame(()=>{_ieRAF=null;ieRender();});}
+let _ieRAF=null,_ieDebounce=null;
+const _isMobile='ontouchstart' in window;
+function scheduleIERender(){
+  if(_isMobile){
+    clearTimeout(_ieDebounce);
+    _ieDebounce=setTimeout(()=>{if(_ieRAF)return;_ieRAF=requestAnimationFrame(()=>{_ieRAF=null;ieRender();});},30);
+  } else {
+    if(_ieRAF)return;_ieRAF=requestAnimationFrame(()=>{_ieRAF=null;ieRender();});
+  }
+}
 
 function openImageEditor(){
   if(!state.originalImg)return;
@@ -944,13 +956,13 @@ function ieTool(name){
     opts.innerHTML='<label>'+d.brushSize+'</label><input type="range" min="10" max="80" value="'+ie.brushSize+'" oninput="ie.brushSize=+this.value">'
       +'<label>'+d.intensity+'</label><input type="range" min="5" max="100" step="1" value="'+ie.intensity+'" oninput="ie.intensity=+this.value;document.getElementById(\'ieIntVal\').textContent=this.value+\'%\'"><span id="ieIntVal">'+ie.intensity+'%</span>'
       +'<div class="ie-separator"></div>'
-      +'<label>'+d.fBlur+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.blur+'" oninput="ie.filter.blur=+this.value;document.getElementById(\'ieFullVal\').textContent=this.value+\'%\';ensureFilterBase();scheduleIERender()"><span id="ieFullVal">'+ie.filter.blur+'%</span>';
+      +'<label>'+d.fBlur+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.blur+'" oninput="ie.filter.blur=+this.value;document.getElementById(\'ieFullVal\').textContent=this.value+\'%\';scheduleIERender()"><span id="ieFullVal">'+ie.filter.blur+'%</span>';
     ensureFilterBase();
   } else if(name==="mosaic"){
     opts.innerHTML='<label>'+d.brushSize+'</label><input type="range" min="10" max="80" value="'+ie.brushSize+'" oninput="ie.brushSize=+this.value">'
       +'<label>'+d.intensity+'</label><input type="range" min="5" max="100" step="1" value="'+ie.intensity+'" oninput="ie.intensity=+this.value;document.getElementById(\'ieIntVal\').textContent=this.value+\'%\'"><span id="ieIntVal">'+ie.intensity+'%</span>'
       +'<div class="ie-separator"></div>'
-      +'<label>'+d.fMosaic+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.mosaic+'" oninput="ie.filter.mosaic=+this.value;document.getElementById(\'ieFullVal\').textContent=this.value+\'%\';ensureFilterBase();scheduleIERender()"><span id="ieFullVal">'+ie.filter.mosaic+'%</span>';
+      +'<label>'+d.fMosaic+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.mosaic+'" oninput="ie.filter.mosaic=+this.value;document.getElementById(\'ieFullVal\').textContent=this.value+\'%\';scheduleIERender()"><span id="ieFullVal">'+ie.filter.mosaic+'%</span>';
     ensureFilterBase();
   } else if(name==="sticker"){
     opts.innerHTML='<button class="ie-btn-sm" onclick="document.getElementById(\'stickerFileInput\').click()">'+d.addSticker+'</button>';
@@ -1088,6 +1100,9 @@ function ieRealPos(e){const p=iePos(e);return{x:p.x/ie.scale,y:p.y/ie.scale};}
 ieCanvas.addEventListener("mousedown",ieDown);ieCanvas.addEventListener("touchstart",e=>{e.preventDefault();ieDown(e);},{passive:false});
 ieCanvas.addEventListener("mousemove",ieMove);ieCanvas.addEventListener("touchmove",e=>{e.preventDefault();ieMove(e);},{passive:false});
 window.addEventListener("mouseup",ieUp);window.addEventListener("touchend",ieUp);
+// 슬라이더 터치 이벤트가 캔버스 핸들러에 전파되지 않도록 차단
+document.querySelector(".ie-modal").addEventListener("touchstart",e=>{if(e.target.tagName==="INPUT")e.stopPropagation();},{passive:true});
+document.querySelector(".ie-modal").addEventListener("touchmove",e=>{if(e.target.tagName==="INPUT")e.stopPropagation();},{passive:true});
 
 function ieDown(e){
   const p=iePos(e),rp=ieRealPos(e);
