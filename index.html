@@ -649,27 +649,27 @@ function drawPage1(ctx,W,H,layout){
   const topH=480,pg=layout.pages[0],total=layout.pages.length;
   drawBg(ctx,W,H,t,isL,unified,topH);
   
-  // 썸네일 박스 드로잉
-  const ts=380,tx=60,ty=60,pad=6;
-  drawRR(ctx,tx,ty,ts,ts,28);
-  const fg=ctx.createLinearGradient(tx,ty,tx+ts,ty+ts);
+  // 썸네일 박스 드로잉 (1:1)
+  const tw=320,th=320,tx=60,ty=60,pad=6;
+  drawRR(ctx,tx,ty,tw,th,28);
+  const fg=ctx.createLinearGradient(tx,ty,tx+tw,ty+th);
   fg.addColorStop(0,isL?"rgba(0,0,0,0.025)":"rgba(255,255,255,0.09)");
   fg.addColorStop(1,isL?"rgba(0,0,0,0.005)":"rgba(255,255,255,0.02)");
   ctx.fillStyle=fg;ctx.fill();
-  const itx=tx+pad,ity=ty+pad,its=ts-pad*2;
-  ctx.save();drawRR(ctx,itx,ity,its,its,22);ctx.clip();
+  const itx=tx+pad,ity=ty+pad,itw=tw-pad*2,ith=th-pad*2;
+  ctx.save();drawRR(ctx,itx,ity,itw,ith,22);ctx.clip();
   if(state.thumbImg){
-    const img=state.thumbImg,sc=Math.max(its/img.width,its/img.height),sw=img.width*sc,sh=img.height*sc;
-    ctx.drawImage(img,itx+(its-sw)/2,ity+(its-sh)/2,sw,sh);
+    const img=state.thumbImg,sc=Math.max(itw/img.width,ith/img.height),sw=img.width*sc,sh=img.height*sc;
+    ctx.drawImage(img,itx+(itw-sw)/2,ity+(ith-sh)/2,sw,sh);
   } else {
-    ctx.fillStyle=isL?"rgba(0,0,0,0.25)":"rgba(255,255,255,0.35)";ctx.font="500 16px 'Pretendard',sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("📷",itx+its/2,ity+its/2-12);ctx.font="500 13px 'Pretendard',sans-serif";ctx.fillText(currentLang==="ja"?"画像をアップロード":"이미지를 올려주세요",itx+its/2,ity+its/2+14);ctx.textAlign="left";ctx.textBaseline="alphabetic";
+    ctx.fillStyle=isL?"rgba(0,0,0,0.25)":"rgba(255,255,255,0.35)";ctx.font="500 16px 'Pretendard',sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("📷",itx+itw/2,ity+ith/2-12);ctx.font="500 13px 'Pretendard',sans-serif";ctx.fillText(currentLang==="ja"?"画像をアップロード":"이미지를 올려주세요",itx+itw/2,ity+ith/2+14);ctx.textAlign="left";ctx.textBaseline="alphabetic";
   }
   ctx.restore();
-  drawRR(ctx,itx,ity,its,its,22);ctx.strokeStyle=isL?"rgba(0,0,0,0.04)":"rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
-  drawRR(ctx,tx,ty,ts,ts,28);ctx.strokeStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.stroke();
+  drawRR(ctx,itx,ity,itw,ith,22);ctx.strokeStyle=isL?"rgba(0,0,0,0.04)":"rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
+  drawRR(ctx,tx,ty,tw,th,28);ctx.strokeStyle=isL?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.09)";ctx.lineWidth=1;ctx.stroke();
   
   // 우측 오디오 플레이어 영역 좌표 설정
-  const rX=tx+ts+44,rW=W-rX-60,rCX=rX+rW/2;
+  const rX=tx+tw+44,rW=W-rX-60,rCX=rX+rW/2;
   
   /* ========================================================
      [구역 1: 상단 정보 블록 - 글자수 제한 및 말줄임표 보정]
@@ -1340,3 +1340,4 @@ setLanguage(currentLang);
 autoResizeTextarea(reviewTA);
 autoSave(); 
 </script></body></html>
+
