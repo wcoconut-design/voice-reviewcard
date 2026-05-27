@@ -195,21 +195,30 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-stk-thumb:hover{transform:translateY(-1px) scale(1.06);border-color:var(--accent);box-shadow:0 4px 12px var(--shadow)}
 .ie-stk-thumb canvas,.ie-stk-thumb img{width:100%;height:100%;object-fit:contain}
 .ie-stk-upload{font-size:18px;color:var(--accent);background:transparent}
+/* ratio grid for crop */
+.ie-ratio-grid{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.ie-ratio-grid .ie-btn-sm{padding:6px 12px;border-radius:7px;background:var(--input);border:1px solid var(--border)}
+.ie-ratio-grid .ie-btn-sm.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 /* rotate/flip pill row */
 .ie-pillrow{display:inline-flex;gap:2px;background:var(--input);border-radius:9px;padding:3px;border:1px solid var(--border)}
 .ie-pillrow .ie-btn-sm{border-radius:6px;padding:5px 9px;background:transparent;border:none}
 .ie-pillrow .ie-btn-sm:hover{background:var(--surface)}
 /* mobile bottom-sheet for tool options */
 @media(max-width:600px){
-  .ie-opts.has-content{position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;width:100%;display:flex;flex-direction:column;gap:10px;align-items:stretch;max-height:45vh;max-height:45dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .ie-opts.has-content{position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;width:100%;display:flex;flex-direction:column;gap:10px;align-items:stretch;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .ie-opts.has-content::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-4px auto 8px;flex-shrink:0}
   .ie-opts label{font-size:11px}
   .ie-opts input[type=range]{width:100%;flex:1;height:36px;padding:8px 0;cursor:pointer}
   .ie-opts .ie-pillrow{width:auto;align-self:flex-start}
-  .ie-stk-palette{padding:0}
-  .ie-stk-thumb{width:42px;height:42px}
+  .ie-ratio-grid{gap:6px}
+  .ie-ratio-grid .ie-btn-sm{flex:1;min-width:0;text-align:center;padding:8px 4px;font-size:11px}
+  .ie-stk-palette{padding:0;gap:8px}
+  .ie-stk-row{gap:4px}
+  .ie-stk-row-label{font-size:10px}
+  .ie-stk-thumbs{gap:4px}
+  .ie-stk-thumb{width:36px;height:36px;border-radius:7px;padding:2px}
   /* filter panel as bottom sheet too */
-  .ie-filter-panel{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;padding:16px 16px calc(16px + env(safe-area-inset-bottom)) !important;max-height:45vh;max-height:45dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .ie-filter-panel{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;padding:16px 16px calc(16px + env(safe-area-inset-bottom)) !important;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .ie-filter-panel::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-6px auto 10px;grid-column:1/-1}
 }
 </style>
@@ -938,6 +947,7 @@ function exportImage(){
 const ieCanvas=document.getElementById("ieCanvas"),ieCtx=ieCanvas.getContext("2d",{willReadFrequently:true});
 let ie={tool:"crop",originalImg:null,history:[],historyIdx:-1,brushSize:30,intensity:50,crop:{active:false,sx:0,sy:0,ex:0,ey:0},cropRatio:null,cropAction:null,cropDragStart:null,cropOrigRect:null,painting:false,stickers:[],stickerDrag:null,stickerResize:null,stickerFreeResize:null,scale:1,filter:{blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0},filterBase:null};
 let _ieRAF=null;
+let _ieSkipRender=false;
 const _isMobile='ontouchstart' in window;
 function scheduleIERender(){if(_ieRAF)return;_ieRAF=requestAnimationFrame(()=>{_ieRAF=null;ieRender();});}
 
@@ -957,7 +967,10 @@ function openImageEditor(){
   const tmp=document.createElement("canvas");
   tmp.width=Math.round(ow*wsc);tmp.height=Math.round(oh*wsc);
   tmp.getContext("2d").drawImage(ie.originalImg,0,0,tmp.width,tmp.height);
-  iePushHistory(tmp);ieTool("crop");ieRender();
+  iePushHistory(tmp);
+  _ieSkipRender=true;ieTool("crop");_ieSkipRender=false;
+  // 레이아웃 안정 후 렌더 (iOS에서 이미지 크기 점프 방지)
+  requestAnimationFrame(()=>requestAnimationFrame(()=>ieRender()));
 }
 function closeImageEditor(){
   document.getElementById("ieOverlay").classList.remove("open");
@@ -1237,12 +1250,14 @@ function ieTool(name){
   if(name==="crop"){
     ie.cropRatio=null;ie.cropAction=null;
     opts.innerHTML='<div class="ie-pillrow"><button class="ie-btn-sm" onclick="ieRotate(-90)" title="-90°">↺</button><button class="ie-btn-sm" onclick="ieRotate(90)" title="+90°">↻</button><button class="ie-btn-sm" onclick="ieFlip(\'h\')" title="flip H">⇆</button><button class="ie-btn-sm" onclick="ieFlip(\'v\')" title="flip V">⇅</button></div>'
-      +' <button class="ie-btn-sm active" data-ratio="free" onclick="setCropRatio(null)">'+d.cropFree+'</button>'
-      +' <button class="ie-btn-sm" data-ratio="1" onclick="setCropRatio(1)">'+d.crop11+'</button>'
-      +' <button class="ie-btn-sm" data-ratio="1.333" onclick="setCropRatio(4/3)">4:3</button>'
-      +' <button class="ie-btn-sm" data-ratio="1.778" onclick="setCropRatio(16/9)">16:9</button>'
-      +' <button class="ie-btn-sm" data-ratio="0.75" onclick="setCropRatio(3/4)">3:4</button>'
-      +' <button class="ie-btn-sm" data-ratio="0.5625" onclick="setCropRatio(9/16)">9:16</button>';
+      +'<div class="ie-ratio-grid">'
+      +'<button class="ie-btn-sm active" data-ratio="free" onclick="setCropRatio(null)">'+d.cropFree+'</button>'
+      +'<button class="ie-btn-sm" data-ratio="1" onclick="setCropRatio(1)">'+d.crop11+'</button>'
+      +'<button class="ie-btn-sm" data-ratio="1.333" onclick="setCropRatio(4/3)">4:3</button>'
+      +'<button class="ie-btn-sm" data-ratio="1.778" onclick="setCropRatio(16/9)">16:9</button>'
+      +'<button class="ie-btn-sm" data-ratio="0.75" onclick="setCropRatio(3/4)">3:4</button>'
+      +'<button class="ie-btn-sm" data-ratio="0.5625" onclick="setCropRatio(9/16)">9:16</button>'
+      +'</div>';
   } else if(name==="blur"){
     opts.innerHTML='<label>'+d.brushSize+'</label><input type="range" min="10" max="80" value="'+ie.brushSize+'" data-ie="brushSize">'
       +'<label>'+d.intensity+'</label><input type="range" min="5" max="100" step="1" value="'+ie.intensity+'" data-ie="intensity"><span id="ieIntVal">'+ie.intensity+'%</span>'
@@ -1262,7 +1277,7 @@ function ieTool(name){
     opts.innerHTML='';
   } else { opts.innerHTML=""; }
   opts.classList.toggle("has-content",opts.innerHTML.trim().length>0);
-  ieRender();
+  if(!_ieSkipRender)ieRender();
 }
 
 function setCropRatio(r){
@@ -1861,5 +1876,7 @@ setLanguage(currentLang);
 autoResizeTextarea(reviewTA);
 autoSave(); 
 </script></body></html>
+
+
 
 
