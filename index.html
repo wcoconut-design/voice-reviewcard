@@ -1265,6 +1265,7 @@ function ieTool(name){
     ensureFilterBase();
     opts.innerHTML='';
   } else { opts.innerHTML=""; }
+  opts.classList.toggle("has-content",opts.innerHTML.trim().length>0);
   ieRender();
 }
 
