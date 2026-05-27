@@ -132,15 +132,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);box-shadow:0 1px 4px var(--shadow);transition:transform .15s ease,box-shadow .15s ease}
 input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2);box-shadow:0 2px 8px var(--shadow)}
 input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-thumb{transform:scale(1.2);box-shadow:0 2px 8px var(--shadow)}
-.ie-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);opacity:0;transition:opacity .25s ease;overflow:hidden}
+.ie-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);opacity:0;transition:opacity .2s ease;overflow:hidden;touch-action:none}
 .ie-overlay.open{display:flex;opacity:1}
-.ie-modal{background:var(--surface);border-radius:18px;border:1px solid var(--border);width:95vw;max-width:720px;max-height:95vh;max-height:95dvh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 60px var(--shadow);transform:translateY(8px);transition:transform .25s ease}
-.ie-overlay.open .ie-modal{transform:translateY(0)}
-.ie-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px}
+.ie-modal{background:var(--surface);border-radius:18px;border:1px solid var(--border);width:95vw;max-width:720px;max-height:95vh;max-height:95dvh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 60px var(--shadow)}
+.ie-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;flex-shrink:0}
 .ie-header h2{font-size:14px;font-weight:700;letter-spacing:-0.01em}
 .ie-close{width:28px;height:28px;border-radius:8px;border:none;background:transparent;color:var(--sub);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
 .ie-close:hover{background:var(--input);color:var(--text)}
-.ie-toolbar{display:flex;gap:2px;padding:4px 14px 12px;flex-wrap:wrap;align-items:center}
+.ie-toolbar{display:flex;gap:2px;padding:4px 14px 10px;flex-wrap:wrap;align-items:center;flex-shrink:0}
 .ie-tool-btn{padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--sub);border:none;transition:background .15s,color .15s;white-space:nowrap}
 .ie-tool-btn:hover{color:var(--text);background:var(--input)}
 .ie-tool-btn.active{background:var(--input);color:var(--accent)}
@@ -171,7 +170,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   .ie-filter-cell span{min-width:26px;font-size:10px}
   .ie-filter-cell input[type=range],.ie-opts input[type=range]{height:36px;padding:8px 0;cursor:pointer}
 }
-.ie-footer{display:flex;gap:8px;padding:12px 18px;justify-content:flex-end}
+.ie-footer{display:flex;gap:8px;padding:12px 18px;justify-content:flex-end;flex-shrink:0}
 .ie-btn{padding:9px 22px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;transition:background .15s,opacity .15s,box-shadow .15s}
 .ie-btn-cancel{background:transparent;color:var(--sub)}.ie-btn-cancel:hover{background:var(--input);color:var(--text)}
 .ie-btn-apply{background:var(--accent);color:var(--bg)}.ie-btn-apply:hover{filter:brightness(1.08);box-shadow:0 4px 14px var(--shadow)}
@@ -215,8 +214,9 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   .ie-stk-palette{padding:0;gap:8px}
   .ie-stk-row{gap:4px}
   .ie-stk-row-label{font-size:10px}
-  .ie-stk-thumbs{gap:4px}
-  .ie-stk-thumb{width:36px;height:36px;border-radius:7px;padding:2px}
+  .ie-stk-thumbs{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .ie-stk-thumbs::-webkit-scrollbar{display:none}
+  .ie-stk-thumb{width:46px;height:46px;border-radius:8px;padding:3px;flex-shrink:0}
   /* filter panel as bottom sheet too */
   .ie-filter-panel{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;padding:16px 16px calc(16px + env(safe-area-inset-bottom)) !important;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .ie-filter-panel::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-6px auto 10px;grid-column:1/-1}
@@ -951,16 +951,25 @@ let _ieSkipRender=false;
 const _isMobile='ontouchstart' in window;
 function scheduleIERender(){if(_ieRAF)return;_ieRAF=requestAnimationFrame(()=>{_ieRAF=null;ieRender();});}
 
+// ResizeObserver: canvas-wrap 크기 변경 시 자동 리렌더 (초기, 리사이즈, 주소창 변동 모두 커버)
+let _ieROTimer=null;
+const _ieRO=new ResizeObserver(()=>{
+  clearTimeout(_ieROTimer);
+  _ieROTimer=setTimeout(()=>{
+    if(document.getElementById("ieOverlay").classList.contains("open"))ieRender();
+  },30);
+});
+
 function openImageEditor(){
   if(!state.originalImg)return;
-  document.getElementById("ieOverlay").classList.add("open");
+  const overlay=document.getElementById("ieOverlay");
+  overlay.classList.add("open");
   document.body.style.overflow="hidden";
   document.body.style.position="fixed";
   document.body.style.width="100%";
   document.body.style.top=(-window.scrollY)+"px";
   ie.originalImg=state.originalImg;ie.history=[];ie.historyIdx=-1;ie.stickers=[];
   ie.crop={active:false,sx:0,sy:0,ex:0,ey:0};ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0};ie.filterBase=null;
-  // 작업용 해상도 제한 — 모바일 성능 보장
   const maxWork=_isMobile?1000:1400;
   const ow=ie.originalImg.width,oh=ie.originalImg.height;
   const wsc=Math.min(1,maxWork/Math.max(ow,oh));
@@ -969,10 +978,11 @@ function openImageEditor(){
   tmp.getContext("2d").drawImage(ie.originalImg,0,0,tmp.width,tmp.height);
   iePushHistory(tmp);
   _ieSkipRender=true;ieTool("crop");_ieSkipRender=false;
-  // 레이아웃 안정 후 렌더 (iOS에서 이미지 크기 점프 방지)
-  requestAnimationFrame(()=>requestAnimationFrame(()=>ieRender()));
+  // ResizeObserver가 canvas-wrap 크기 확정 후 자동으로 첫 렌더 수행
+  _ieRO.observe(document.getElementById("ieCanvasWrap"));
 }
 function closeImageEditor(){
+  _ieRO.disconnect();
   document.getElementById("ieOverlay").classList.remove("open");
   const scrollY=Math.abs(parseInt(document.body.style.top||"0"));
   document.body.style.overflow="";document.body.style.position="";document.body.style.width="";document.body.style.top="";
@@ -1779,10 +1789,6 @@ function ieApply() {
   }, "image/png");
 }
 
-let _ieResizeTimer=null;
-function _ieOnResize(){clearTimeout(_ieResizeTimer);_ieResizeTimer=setTimeout(()=>{if(document.getElementById("ieOverlay").classList.contains("open"))ieRender();},100);}
-window.addEventListener("resize",_ieOnResize);
-if(window.visualViewport)window.visualViewport.addEventListener("resize",_ieOnResize);
 window.addEventListener("keydown",e=>{
   if(document.getElementById("ieOverlay").classList.contains("open")){
     if(e.key==="Enter"&&ie.tool==="crop"&&ie.crop.active){e.preventDefault();doCrop();}
@@ -1876,6 +1882,7 @@ setLanguage(currentLang);
 autoResizeTextarea(reviewTA);
 autoSave(); 
 </script></body></html>
+
 
 
 
