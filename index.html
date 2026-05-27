@@ -145,7 +145,8 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-tool-btn:hover{color:var(--text);background:var(--input)}
 .ie-tool-btn.active{background:var(--input);color:var(--accent)}
 .ie-separator{width:1px;height:18px;background:var(--border);margin:0 6px;opacity:.6}
-.ie-opts{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+.ie-opts{display:none;align-items:center;gap:8px;padding:0 14px 10px;flex-wrap:wrap;flex-shrink:0}
+.ie-opts.has-content{display:flex}
 .ie-opts label{font-size:11px;color:var(--sub);margin:0;font-weight:600}
 .ie-opts input[type=range]{width:88px;padding:6px 0}
 .ie-opts span{font-size:11px;color:var(--accent);font-weight:700;min-width:32px;text-align:right}
@@ -161,8 +162,6 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   .ie-toolbar::-webkit-scrollbar{display:none}
   .ie-tool-btn{padding:6px 9px;font-size:11px;flex-shrink:0}
   .ie-separator{margin:0 3px;flex-shrink:0}
-  .ie-opts{margin-left:0;width:100%;padding:6px 0 0;justify-content:flex-start}
-  .ie-opts input[type=range]{width:120px}
   .ie-canvas-wrap{padding:8px;min-height:0;flex:1;overflow:hidden}
   .ie-canvas-wrap canvas{max-height:100%}
   .ie-footer{padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom));flex-shrink:0}
@@ -202,14 +201,11 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-pillrow .ie-btn-sm:hover{background:var(--surface)}
 /* mobile bottom-sheet for tool options */
 @media(max-width:600px){
-  .ie-modal{position:relative}
-  .ie-opts{position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;width:100%;flex-direction:column;gap:10px;align-items:stretch;max-height:45vh;max-height:45dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateY(0);transition:transform .25s ease}
-  .ie-opts:empty,.ie-opts:not(.has-content){display:none}
-  .ie-opts::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-4px auto 8px}
+  .ie-opts.has-content{position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;width:100%;display:flex;flex-direction:column;gap:10px;align-items:stretch;max-height:45vh;max-height:45dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .ie-opts.has-content::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-4px auto 8px;flex-shrink:0}
   .ie-opts label{font-size:11px}
-  .ie-opts input[type=range]{width:100%;flex:1}
+  .ie-opts input[type=range]{width:100%;flex:1;height:36px;padding:8px 0;cursor:pointer}
   .ie-opts .ie-pillrow{width:auto;align-self:flex-start}
-  .ie-canvas-wrap{padding-bottom:14px}
   .ie-stk-palette{padding:0}
   .ie-stk-thumb{width:42px;height:42px}
   /* filter panel as bottom sheet too */
@@ -292,8 +288,8 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
       <div class="ie-separator"></div>
       <button class="ie-btn-sm" onclick="ieUndo()" title="되돌리기">↩</button>
       <button class="ie-btn-sm danger" onclick="ieReset()">🗑 초기화</button>
-      <div class="ie-opts" id="ieOpts"></div>
     </div>
+    <div class="ie-opts" id="ieOpts"></div>
     <div class="ie-canvas-wrap" id="ieCanvasWrap"><canvas id="ieCanvas"></canvas></div>
     <div class="ie-footer"><button class="ie-btn ie-btn-cancel" onclick="closeImageEditor()">취소</button><button class="ie-btn ie-btn-apply" onclick="ieApply()">✅ 적용</button></div>
   </div>
