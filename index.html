@@ -1376,7 +1376,16 @@ function ieTool(name){
     opts.innerHTML=buildStickerPalette();
   } else if(name==="filter"){
     ensureFilterBase();
-    opts.innerHTML='';
+    // 필터 슬라이더를 ieOpts에 직접 배치 (데스크탑: 상단, 모바일: 바텀시트)
+    opts.innerHTML='<div class="ie-slider-group">'
+      +'<div class="ie-slider-row"><label>'+d.fGray+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.gray+'" data-ie="fGray"><span>'+ie.filter.gray+'%</span></div>'
+      +'<div class="ie-slider-row"><label>'+d.fBright+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.brightness+'" data-ie="fBright"><span>'+ie.filter.brightness+'%</span></div>'
+      +'</div>'
+      +'<div class="ie-slider-divider"></div>'
+      +'<div class="ie-slider-group">'
+      +'<div class="ie-slider-row"><label>'+d.fContrast+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.contrast+'" data-ie="fContrast"><span>'+ie.filter.contrast+'%</span></div>'
+      +'<div class="ie-slider-row"><label>'+d.fSepia+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.sepia+'" data-ie="fSepia"><span>'+ie.filter.sepia+'%</span></div>'
+      +'</div>';
   } else { opts.innerHTML=""; }
   opts.classList.toggle("has-content",opts.innerHTML.trim().length>0);
   if(!_ieSkipRender)ieRender();
@@ -1519,17 +1528,9 @@ function ieRender(){
 }
 
 function renderFilterUI(){
-  const d=I18N[currentLang].ie;
-  let el=document.getElementById("ieFilterSliders");
-  if(ie.tool==="filter"){
-    if(!el){el=document.createElement("div");el.id="ieFilterSliders";el.className="ie-filter-panel";
-      document.querySelector(".ie-modal .ie-footer").before(el);}
-    el.style.display="grid";
-    el.innerHTML='<div class="ie-filter-cell"><label>'+d.fGray+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.gray+'" data-ie="fGray"><span>'+ie.filter.gray+'%</span></div>'
-      +'<div class="ie-filter-cell"><label>'+d.fBright+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.brightness+'" data-ie="fBright"><span>'+ie.filter.brightness+'%</span></div>'
-      +'<div class="ie-filter-cell"><label>'+d.fContrast+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.contrast+'" data-ie="fContrast"><span>'+ie.filter.contrast+'%</span></div>'
-      +'<div class="ie-filter-cell"><label>'+d.fSepia+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.sepia+'" data-ie="fSepia"><span>'+ie.filter.sepia+'%</span></div>';
-  } else { if(el) el.style.display="none"; }
+  // 기존 분리형 패널이 남아있으면 제거 (이제 ieOpts에 통합)
+  const el=document.getElementById("ieFilterSliders");
+  if(el)el.remove();
 }
 
 // [Safari 호환] StackBlur — ctx.filter 없이 가우시안 블러 구현
