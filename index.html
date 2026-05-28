@@ -151,6 +151,13 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-opts label{font-size:11px;color:var(--sub);margin:0;font-weight:600}
 .ie-opts input[type=range]{width:88px;padding:6px 0}
 .ie-opts span{font-size:11px;color:var(--accent);font-weight:700;min-width:32px;text-align:right}
+/* 블러/모자이크 슬라이더 그룹 — 데스크탑: 한줄 인라인 */
+.ie-slider-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ie-slider-row{display:flex;align-items:center;gap:6px}
+.ie-slider-row label{min-width:34px;flex-shrink:0;margin:0;font-size:11px;color:var(--sub);font-weight:600;white-space:nowrap}
+.ie-slider-row input[type=range]{width:80px}
+.ie-slider-row span{font-size:11px;color:var(--accent);font-weight:700;min-width:32px;text-align:right}
+.ie-slider-divider{width:1px;height:18px;background:var(--border);margin:0 4px;opacity:.6}
 .ie-canvas-wrap{flex:1;overflow:auto;display:flex;justify-content:center;align-items:center;padding:14px;background:var(--bg);position:relative;min-height:0}
 .ie-canvas-wrap canvas{border-radius:8px;cursor:crosshair;max-width:100%;max-height:100%;touch-action:none}
 .ie-opts,.ie-opts input[type=range],.ie-filter-panel,.ie-filter-panel input[type=range]{touch-action:auto!important}
@@ -216,13 +223,13 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   .ie-opts label{font-size:11px}
   .ie-opts input[type=range]{width:100%;flex:1;height:36px;padding:8px 0;cursor:pointer}
   .ie-opts .ie-pillrow{width:auto;align-self:flex-start}
-  /* 블러/모자이크 슬라이더 그룹 레이아웃 */
-  .ie-slider-group{display:flex;flex-direction:column;gap:2px;width:100%}
-  .ie-slider-group .ie-slider-row{display:flex;align-items:center;gap:8px}
-  .ie-slider-group .ie-slider-row label{min-width:42px;flex-shrink:0;margin:0}
-  .ie-slider-group .ie-slider-row input[type=range]{flex:1;min-width:0}
-  .ie-slider-group .ie-slider-row span{min-width:36px;text-align:right;flex-shrink:0}
-  .ie-slider-divider{height:1px;background:var(--border);margin:2px 0}
+  /* 블러/모자이크 슬라이더 그룹 — 모바일: 세로 배치 */
+  .ie-slider-group{flex-direction:column;gap:2px;width:100%;flex-wrap:nowrap}
+  .ie-slider-row{gap:8px;width:100%}
+  .ie-slider-row label{min-width:42px}
+  .ie-slider-row input[type=range]{flex:1;min-width:0;width:auto;height:36px;padding:8px 0;cursor:pointer}
+  .ie-slider-row span{min-width:36px}
+  .ie-slider-divider{width:100%;height:1px;margin:2px 0}
   .ie-ratio-grid{gap:6px}
   .ie-ratio-grid .ie-btn-sm{flex:1;min-width:0;text-align:center;padding:8px 4px;font-size:11px}
   /* 스티커 팔레트 — 모바일: 한 줄 통합 스크롤 */
@@ -1277,10 +1284,11 @@ function buildStickerPalette(){
   const isMob=window.innerWidth<=600;
   // 모바일: 한 줄 통합 스크롤 / 데스크탑: 카테고리별 행
   let html='<div class="ie-stk-palette'+(isMob?' ie-stk-single-row':'')+'">';
+  // 커스텀 이미지 업로드를 맨 앞에 배치
+  html+='<div class="ie-stk-row"><div class="ie-stk-row-label">'+d.stkCustom+'</div><div class="ie-stk-thumbs"><button class="ie-stk-thumb ie-stk-upload" onclick="document.getElementById(\'stickerFileInput\').click()" title="'+d.addSticker+'">+</button></div></div>';
   rows.forEach((r,ri)=>{
     if(isMob){
-      // 모바일: 카테고리 라벨 + 썸네일이 한줄에 연속 나열
-      if(ri>0) html+='<div class="ie-stk-divider"></div>';
+      html+='<div class="ie-stk-divider"></div>';
       html+='<div class="ie-stk-row"><div class="ie-stk-row-label">'+r.label+'</div><div class="ie-stk-thumbs">';
     } else {
       html+='<div class="ie-stk-row"><div class="ie-stk-row-label">'+r.label+'</div><div class="ie-stk-thumbs">';
@@ -1292,7 +1300,6 @@ function buildStickerPalette(){
     });
     html+='</div></div>';
   });
-  html+='<div class="ie-stk-row"><div class="ie-stk-row-label">'+d.stkCustom+'</div><div class="ie-stk-thumbs"><button class="ie-stk-thumb ie-stk-upload" onclick="document.getElementById(\'stickerFileInput\').click()" title="'+d.addSticker+'">+</button></div></div>';
   html+='</div>';
   return html;
 }
@@ -1343,8 +1350,7 @@ function ieTool(name){
       +'<button class="ie-btn-sm" data-ratio="1.778" onclick="setCropRatio(16/9)">16:9</button>'
       +'<button class="ie-btn-sm" data-ratio="0.75" onclick="setCropRatio(3/4)">3:4</button>'
       +'<button class="ie-btn-sm" data-ratio="0.5625" onclick="setCropRatio(9/16)">9:16</button>'
-      +'</div>'
-      +'<button class="ie-crop-cancel" onclick="cancelCrop()">✕ '+d.cropCancel+'</button>';
+      +'</div>';
   } else if(name==="blur"){
     // 모바일: 각 슬라이더를 label+range+값 한줄 그룹으로 정리
     opts.innerHTML='<div class="ie-slider-group">'
@@ -1418,6 +1424,8 @@ function cropHitTest(p){
   const c=ie.crop,x=Math.min(c.sx,c.ex),y=Math.min(c.sy,c.ey),w=Math.abs(c.ex-c.sx),h=Math.abs(c.ey-c.sy);
   if(w<10||h<10)return'outside';
   const hs=14;
+  // X 취소 버튼 (좌상단 바깥)
+  if(Math.hypot(p.x-(x-14),p.y-(y-14))<14)return'cancel';
   if(p.x>=x-hs&&p.x<=x+hs&&p.y>=y-hs&&p.y<=y+hs)return'nw';
   if(p.x>=x+w-hs&&p.x<=x+w+hs&&p.y>=y-hs&&p.y<=y+hs)return'ne';
   if(p.x>=x-hs&&p.x<=x+hs&&p.y>=y+h-hs&&p.y<=y+h+hs)return'sw';
@@ -1501,7 +1509,10 @@ function ieRender(){
       if(bx<2)bx=2;if(bx+bW>ieCanvas.width-2)bx=ieCanvas.width-bW-2;
       ieCtx.fillStyle="rgba(0,0,0,0.7)";drawRR(ieCtx,bx,by,bW,bH,6);ieCtx.fill();
       ieCtx.fillStyle="#fff";ieCtx.textAlign="center";ieCtx.fillText(dt,bx+bW/2,by+15);ieCtx.textAlign="left";}
-    if(w>60&&h>30){const bw=140,bh=32,bx=x+w/2-bw/2,by=y+h/2-bh/2;ieCtx.fillStyle="rgba(168,200,232,0.9)";drawRR(ieCtx,bx,by,bw,bh,8);ieCtx.fill();ieCtx.fillStyle="#0c0c14";ieCtx.font="bold 12px 'Pretendard',sans-serif";ieCtx.textAlign="center";ieCtx.fillText(I18N[currentLang].ie.cropBtn,bx+bw/2,by+bh/2+4);ieCtx.textAlign="left";}}
+    if(w>60&&h>30){const bw=140,bh=32,bx=x+w/2-bw/2,by=y+h/2-bh/2;ieCtx.fillStyle="rgba(168,200,232,0.9)";drawRR(ieCtx,bx,by,bw,bh,8);ieCtx.fill();ieCtx.fillStyle="#0c0c14";ieCtx.font="bold 12px 'Pretendard',sans-serif";ieCtx.textAlign="center";ieCtx.fillText(I18N[currentLang].ie.cropBtn,bx+bw/2,by+bh/2+4);ieCtx.textAlign="left";}
+    // X 취소 버튼 (좌상단 바깥)
+    ieCtx.fillStyle="rgba(231,76,60,0.9)";ieCtx.beginPath();ieCtx.arc(x-14,y-14,12,0,Math.PI*2);ieCtx.fill();
+    ieCtx.fillStyle="#fff";ieCtx.font="bold 13px sans-serif";ieCtx.textAlign="center";ieCtx.textBaseline="middle";ieCtx.fillText("✕",x-14,y-14);ieCtx.textAlign="left";ieCtx.textBaseline="alphabetic";}
   let hint=document.getElementById("ieCropHint");
   if(ie.tool==="crop"&&!ie.crop.active){if(!hint){hint=document.createElement("div");hint.id="ieCropHint";hint.className="ie-crop-hint";document.getElementById("ieCanvasWrap").appendChild(hint);}hint.textContent=I18N[currentLang].ie.cropHint;hint.style.display="block";}else{if(hint)hint.style.display="none";}
   renderFilterUI();
@@ -1696,6 +1707,7 @@ function ieDown(e){
     if(ie.crop.active){
       const hit=cropHitTest(p);
       if(hit==='confirm'){doCrop();return;}
+      if(hit==='cancel'){cancelCrop();return;}
       if(hit==='move'||hit==='nw'||hit==='ne'||hit==='sw'||hit==='se'){
         const c=ie.crop,cx=Math.min(c.sx,c.ex),cy=Math.min(c.sy,c.ey),cw=Math.abs(c.ex-c.sx),ch=Math.abs(c.ey-c.sy);
         ie.cropAction=hit;ie.cropDragStart={x:p.x,y:p.y};ie.cropOrigRect={x:cx,y:cy,w:cw,h:ch};
@@ -1783,7 +1795,7 @@ function ieMove(e){
     scheduleIERender();}
   else if(ie.tool==="crop"&&!ie.cropAction&&ie.crop.active){
     const hit=cropHitTest(p);
-    const cur={nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',move:'move',confirm:'pointer'};
+    const cur={nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',move:'move',confirm:'pointer',cancel:'pointer'};
     ieCanvas.style.cursor=cur[hit]||'crosshair';}
   else if(ie.tool==="crop"&&!ie.crop.active){ieCanvas.style.cursor='crosshair';}
   else if((ie.tool==="blur"||ie.tool==="mosaic")&&ie.painting){iePaintAt(rp.x,rp.y);}
@@ -2012,6 +2024,7 @@ setLanguage(currentLang);
 autoResizeTextarea(reviewTA);
 autoSave(); 
 </script></body></html>
+
 
 
 
