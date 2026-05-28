@@ -209,22 +209,42 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-pillrow .ie-btn-sm:hover{background:var(--surface)}
 /* mobile bottom-sheet for tool options */
 @media(max-width:600px){
-  .ie-opts.has-content{position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;width:100%;display:flex;flex-direction:column;gap:10px;align-items:stretch;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-  .ie-opts.has-content::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-4px auto 8px;flex-shrink:0}
+  .ie-opts.has-content{position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;width:100%;display:flex;flex-direction:column;gap:10px;align-items:stretch;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;transition:transform .25s ease}
+  .ie-opts.has-content::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-4px auto 8px;flex-shrink:0;cursor:pointer}
+  /* 바텀시트 접기 상태 — 핸들바만 보임 */
+  .ie-opts.has-content.collapsed{transform:translateY(calc(100% - 28px));overflow:hidden}
   .ie-opts label{font-size:11px}
   .ie-opts input[type=range]{width:100%;flex:1;height:36px;padding:8px 0;cursor:pointer}
   .ie-opts .ie-pillrow{width:auto;align-self:flex-start}
+  /* 블러/모자이크 슬라이더 그룹 레이아웃 */
+  .ie-slider-group{display:flex;flex-direction:column;gap:2px;width:100%}
+  .ie-slider-group .ie-slider-row{display:flex;align-items:center;gap:8px}
+  .ie-slider-group .ie-slider-row label{min-width:42px;flex-shrink:0;margin:0}
+  .ie-slider-group .ie-slider-row input[type=range]{flex:1;min-width:0}
+  .ie-slider-group .ie-slider-row span{min-width:36px;text-align:right;flex-shrink:0}
+  .ie-slider-divider{height:1px;background:var(--border);margin:2px 0}
   .ie-ratio-grid{gap:6px}
   .ie-ratio-grid .ie-btn-sm{flex:1;min-width:0;text-align:center;padding:8px 4px;font-size:11px}
+  /* 스티커 팔레트 — 모바일: 한 줄 통합 스크롤 */
   .ie-stk-palette{padding:0;gap:6px;max-height:none}
+  .ie-stk-palette.ie-stk-single-row{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:8px;padding:4px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none;align-items:center}
+  .ie-stk-palette.ie-stk-single-row::-webkit-scrollbar{display:none}
+  .ie-stk-palette.ie-stk-single-row .ie-stk-row{flex-direction:row;gap:5px;align-items:center;flex-shrink:0}
+  .ie-stk-palette.ie-stk-single-row .ie-stk-row-label{writing-mode:vertical-rl;text-orientation:upright;font-size:9px;letter-spacing:0.1em;line-height:1;white-space:nowrap;flex-shrink:0;padding:0 2px;color:var(--accent)}
+  .ie-stk-palette.ie-stk-single-row .ie-stk-thumbs{gap:4px;overflow:visible;padding:0}
+  .ie-stk-palette.ie-stk-single-row .ie-stk-divider{width:1px;height:32px;background:var(--border);flex-shrink:0;margin:0 2px}
   .ie-stk-row{gap:3px}
   .ie-stk-row-label{font-size:10px}
   .ie-stk-thumbs{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
   .ie-stk-thumbs::-webkit-scrollbar{display:none}
   .ie-stk-thumb{width:38px;height:38px;border-radius:7px;padding:2px;flex-shrink:0}
   /* filter panel as bottom sheet too */
-  .ie-filter-panel{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;padding:16px 16px calc(16px + env(safe-area-inset-bottom)) !important;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-  .ie-filter-panel::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-6px auto 10px;grid-column:1/-1}
+  .ie-filter-panel{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;padding:16px 16px calc(16px + env(safe-area-inset-bottom)) !important;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;transition:transform .25s ease}
+  .ie-filter-panel::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-6px auto 10px;grid-column:1/-1;cursor:pointer}
+  .ie-filter-panel.collapsed{transform:translateY(calc(100% - 28px));overflow:hidden}
+  /* 크롭 선택해제 버튼 */
+  .ie-crop-cancel{padding:6px 14px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid rgba(231,76,60,0.3);background:rgba(231,76,60,0.08);color:#e74c3c;white-space:nowrap;flex-shrink:0;align-self:flex-start}
+  .ie-crop-cancel:active{background:rgba(231,76,60,0.15)}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -384,7 +404,7 @@ const I18N={
     ratings:["선택안함","전연령","R15","R18"],
     stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],
     hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
-    ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",filter:"🎛️ 필터",undo:"↩ 되돌리기",reset:"🗑 초기화",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",cropBtn:"선택 영역 자르기",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1 썸네일",stkPaint:"물감 튀김",stkCrayon:"색연필 칠",stkBrush:"붓 자국",stkBokashi:"보카시 그라데",stkCustom:"이미지 붙이기"}},
+    ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",filter:"🎛️ 필터",undo:"↩ 되돌리기",reset:"🗑 초기화",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",cropBtn:"선택 영역 자르기",cropCancel:"선택 해제",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1 썸네일",stkPaint:"물감 튀김",stkCrayon:"색연필 칠",stkBrush:"붓 자국",stkBokashi:"보카시 그라데",stkCustom:"이미지 붙이기"}},
   ja:{
     title:"🎧 Voice Drama Review Card",
     sub:"プレイヤー風レビューカードメーカー",
@@ -424,7 +444,7 @@ const I18N={
     ratings:["非表示","全年齢","R-15","R-18"], // 
     stars:["非表示","1/5","2/5","3/5","4/5","5/5"],
     hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
-    ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",cancel:"キャンセル",apply:"✅ 適用",intensity:"濃度",brushSize:"ブラシ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1 サムネ",stkPaint:"スプラッシュ",stkCrayon:"クレヨン塗り",stkBrush:"筆跡",stkBokashi:"ぼかし",stkCustom:"画像を貼り付け"}}
+    ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",cancel:"キャンセル",apply:"✅ 適用",intensity:"濃度",brushSize:"ブラシ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",cropCancel:"選択解除",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1 サムネ",stkPaint:"スプラッシュ",stkCrayon:"クレヨン塗り",stkBrush:"筆跡",stkBokashi:"ぼかし",stkCustom:"画像を貼り付け"}}
 };
 
 const THEMES=[["frost",{name:"Frost",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],["mono",{name:"Mono",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],["white",{name:"White",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],["ocean",{name:"Ocean",bg1:"#3d6b7e",bg2:"#1c3a4a",glass:"rgba(120,180,210,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#8ddae8",progressBg:"rgba(255,255,255,0.18)",progressFill:"#8ddae8",ctrl:"#fff"}],["sage",{name:"Sage",bg1:"#6b8576",bg2:"#3d5247",glass:"rgba(160,200,170,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#c8e0c5",progressBg:"rgba(255,255,255,0.2)",progressFill:"#c8e0c5",ctrl:"#fff"}],["midnight",{name:"Midnight",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}],["noir",{name:"Noir",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],["rose",{name:"Rose",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}],["wine",{name:"Wine",bg1:"#6b2a36",bg2:"#3a1218",glass:"rgba(160,80,90,0.28)",glassBorder:"rgba(255,255,255,0.16)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#f0b8b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#f0b8b0",ctrl:"#fff"}]];
@@ -1254,9 +1274,17 @@ function buildStickerPalette(){
     {kind:"brush",label:d.stkBrush},
     {kind:"bokashi",label:d.stkBokashi}
   ];
-  let html='<div class="ie-stk-palette">';
-  rows.forEach(r=>{
-    html+='<div class="ie-stk-row"><div class="ie-stk-row-label">'+r.label+'</div><div class="ie-stk-thumbs">';
+  const isMob=window.innerWidth<=600;
+  // 모바일: 한 줄 통합 스크롤 / 데스크탑: 카테고리별 행
+  let html='<div class="ie-stk-palette'+(isMob?' ie-stk-single-row':'')+'">';
+  rows.forEach((r,ri)=>{
+    if(isMob){
+      // 모바일: 카테고리 라벨 + 썸네일이 한줄에 연속 나열
+      if(ri>0) html+='<div class="ie-stk-divider"></div>';
+      html+='<div class="ie-stk-row"><div class="ie-stk-row-label">'+r.label+'</div><div class="ie-stk-thumbs">';
+    } else {
+      html+='<div class="ie-stk-row"><div class="ie-stk-row-label">'+r.label+'</div><div class="ie-stk-thumbs">';
+    }
     STK_COLORS.forEach(col=>{
       const c=col.h;
       const thumb=stickerThumbHTML(r.kind,c);
@@ -1303,6 +1331,8 @@ function ieTool(name){
   ieCanvas.style.cursor=name==="crop"?"crosshair":name==="sticker"?"default":"crosshair";
   document.querySelectorAll(".ie-tool-btn").forEach(b=>b.classList.toggle("active",b.dataset.tool===name));
   const opts=document.getElementById("ieOpts"),d=I18N[currentLang].ie;
+  // 도구 전환 시 바텀시트 접힘 해제
+  opts.classList.remove("collapsed");
   if(name==="crop"){
     ie.cropRatio=null;ie.cropAction=null;
     opts.innerHTML='<div class="ie-pillrow"><button class="ie-btn-sm" onclick="ieRotate(-90)" title="-90°">↺</button><button class="ie-btn-sm" onclick="ieRotate(90)" title="+90°">↻</button><button class="ie-btn-sm" onclick="ieFlip(\'h\')" title="flip H">⇆</button><button class="ie-btn-sm" onclick="ieFlip(\'v\')" title="flip V">⇅</button></div>'
@@ -1313,18 +1343,28 @@ function ieTool(name){
       +'<button class="ie-btn-sm" data-ratio="1.778" onclick="setCropRatio(16/9)">16:9</button>'
       +'<button class="ie-btn-sm" data-ratio="0.75" onclick="setCropRatio(3/4)">3:4</button>'
       +'<button class="ie-btn-sm" data-ratio="0.5625" onclick="setCropRatio(9/16)">9:16</button>'
-      +'</div>';
+      +'</div>'
+      +'<button class="ie-crop-cancel" onclick="cancelCrop()">✕ '+d.cropCancel+'</button>';
   } else if(name==="blur"){
-    opts.innerHTML='<label>'+d.brushSize+'</label><input type="range" min="10" max="80" value="'+ie.brushSize+'" data-ie="brushSize">'
-      +'<label>'+d.intensity+'</label><input type="range" min="5" max="100" step="1" value="'+ie.intensity+'" data-ie="intensity"><span id="ieIntVal">'+ie.intensity+'%</span>'
-      +'<div class="ie-separator"></div>'
-      +'<label>'+d.fBlur+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.blur+'" data-ie="fBlur"><span id="ieFullVal">'+ie.filter.blur+'%</span>';
+    // 모바일: 각 슬라이더를 label+range+값 한줄 그룹으로 정리
+    opts.innerHTML='<div class="ie-slider-group">'
+      +'<div class="ie-slider-row"><label>'+d.brushSize+'</label><input type="range" min="10" max="80" value="'+ie.brushSize+'" data-ie="brushSize"></div>'
+      +'<div class="ie-slider-row"><label>'+d.intensity+'</label><input type="range" min="5" max="100" step="1" value="'+ie.intensity+'" data-ie="intensity"><span id="ieIntVal">'+ie.intensity+'%</span></div>'
+      +'</div>'
+      +'<div class="ie-slider-divider"></div>'
+      +'<div class="ie-slider-group">'
+      +'<div class="ie-slider-row"><label>'+d.fBlur+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.blur+'" data-ie="fBlur"><span id="ieFullVal">'+ie.filter.blur+'%</span></div>'
+      +'</div>';
     ensureFilterBase();
   } else if(name==="mosaic"){
-    opts.innerHTML='<label>'+d.brushSize+'</label><input type="range" min="10" max="80" value="'+ie.brushSize+'" data-ie="brushSize">'
-      +'<label>'+d.intensity+'</label><input type="range" min="5" max="100" step="1" value="'+ie.intensity+'" data-ie="intensity"><span id="ieIntVal">'+ie.intensity+'%</span>'
-      +'<div class="ie-separator"></div>'
-      +'<label>'+d.fMosaic+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.mosaic+'" data-ie="fMosaic"><span id="ieFullVal">'+ie.filter.mosaic+'%</span>';
+    opts.innerHTML='<div class="ie-slider-group">'
+      +'<div class="ie-slider-row"><label>'+d.brushSize+'</label><input type="range" min="10" max="80" value="'+ie.brushSize+'" data-ie="brushSize"></div>'
+      +'<div class="ie-slider-row"><label>'+d.intensity+'</label><input type="range" min="5" max="100" step="1" value="'+ie.intensity+'" data-ie="intensity"><span id="ieIntVal">'+ie.intensity+'%</span></div>'
+      +'</div>'
+      +'<div class="ie-slider-divider"></div>'
+      +'<div class="ie-slider-group">'
+      +'<div class="ie-slider-row"><label>'+d.fMosaic+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.mosaic+'" data-ie="fMosaic"><span id="ieFullVal">'+ie.filter.mosaic+'%</span></div>'
+      +'</div>';
     ensureFilterBase();
   } else if(name==="sticker"){
     opts.innerHTML=buildStickerPalette();
@@ -1344,6 +1384,35 @@ function setCropRatio(r){
   });
   ieRender();
 }
+// 크롭 선택 영역 해제 (모바일용)
+function cancelCrop(){
+  ie.crop={active:false,sx:0,sy:0,ex:0,ey:0};ie.cropAction=null;ieRender();
+}
+// 모바일 바텀시트 접기/펼치기 토글 (핸들바 탭)
+(function(){
+  function toggleSheet(e){
+    // ::before 핸들바 영역 탭 감지 (상단 28px 이내)
+    const rect=e.currentTarget.getBoundingClientRect();
+    const y=e.clientY||((e.touches&&e.touches[0])?e.touches[0].clientY:0);
+    if(y-rect.top>28)return;
+    e.currentTarget.classList.toggle('collapsed');
+  }
+  document.getElementById('ieOpts').addEventListener('click',function(e){
+    if(window.innerWidth>600)return;
+    if(this.classList.contains('has-content'))toggleSheet(e);
+  });
+  // 필터 패널도 같은 토글
+  const fp=document.getElementById('ieFilterSliders');
+  if(fp) fp.addEventListener('click',function(e){if(window.innerWidth>600)return;toggleSheet(e);});
+  // 동적으로 생성되는 필터패널 대응
+  new MutationObserver(()=>{
+    const panel=document.getElementById('ieFilterSliders');
+    if(panel&&!panel._sheetBound){
+      panel._sheetBound=true;
+      panel.addEventListener('click',function(e){if(window.innerWidth>600)return;toggleSheet(e);});
+    }
+  }).observe(document.querySelector('.ie-modal'),{childList:true,subtree:true});
+})();
 function cropHitTest(p){
   if(!ie.crop.active)return'none';
   const c=ie.crop,x=Math.min(c.sx,c.ex),y=Math.min(c.sy,c.ey),w=Math.abs(c.ex-c.sx),h=Math.abs(c.ey-c.sy);
