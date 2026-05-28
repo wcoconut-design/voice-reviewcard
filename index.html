@@ -221,15 +221,17 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   /* 바텀시트 접기 상태 — 핸들바만 보임 */
   .ie-opts.has-content.collapsed{transform:translateY(calc(100% - 28px));overflow:hidden}
   .ie-opts label{font-size:11px}
-  .ie-opts input[type=range]{width:100%;flex:1;height:36px;padding:8px 0;cursor:pointer}
+  .ie-opts input[type=range]{width:100%;flex:1;height:32px;padding:4px 0;cursor:pointer}
   .ie-opts .ie-pillrow{width:auto;align-self:flex-start}
-  /* 블러/모자이크 슬라이더 그룹 — 모바일: 세로 배치 */
-  .ie-slider-group{flex-direction:column;gap:2px;width:100%;flex-wrap:nowrap}
-  .ie-slider-row{gap:8px;width:100%}
-  .ie-slider-row label{min-width:42px}
-  .ie-slider-row input[type=range]{flex:1;min-width:0;width:auto;height:36px;padding:8px 0;cursor:pointer}
-  .ie-slider-row span{min-width:36px}
-  .ie-slider-divider{width:100%;height:1px;margin:2px 0}
+  /* 모바일: 슬라이더를 2×2 그리드로 배치 (필터, 블러/모자이크 공용) */
+  .ie-opts>.ie-slider-group{display:contents}
+  .ie-opts>.ie-slider-divider{display:none}
+  .ie-opts.has-content.ie-opts-sliders{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;align-items:center}
+  .ie-opts.has-content.ie-opts-sliders::before{grid-column:1/-1}
+  .ie-opts-sliders .ie-slider-row{display:flex;align-items:center;gap:4px;width:100%}
+  .ie-opts-sliders .ie-slider-row label{min-width:0;flex-shrink:0;font-size:10px;white-space:nowrap}
+  .ie-opts-sliders .ie-slider-row input[type=range]{flex:1;min-width:0;height:28px;padding:2px 0}
+  .ie-opts-sliders .ie-slider-row span{font-size:10px;min-width:28px;text-align:right}
   .ie-ratio-grid{gap:6px}
   .ie-ratio-grid .ie-btn-sm{flex:1;min-width:0;text-align:center;padding:8px 4px;font-size:11px}
   /* 스티커 팔레트 — 모바일: 한 줄 통합 스크롤 */
@@ -1388,6 +1390,9 @@ function ieTool(name){
       +'</div>';
   } else { opts.innerHTML=""; }
   opts.classList.toggle("has-content",opts.innerHTML.trim().length>0);
+  // 모바일 2×2 그리드 레이아웃 적용 (필터/블러/모자이크)
+  const useGrid=window.innerWidth<=600&&(name==="filter"||name==="blur"||name==="mosaic");
+  opts.classList.toggle("ie-opts-sliders",useGrid);
   if(!_ieSkipRender)ieRender();
 }
 
