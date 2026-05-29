@@ -153,6 +153,12 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-opts span{font-size:11px;color:var(--accent);font-weight:700;min-width:32px;text-align:right}
 /* 블러/모자이크 슬라이더 그룹 — 데스크탑: 한줄 인라인 */
 .ie-slider-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ie-opts.ie-opts-sliders{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;align-items:center}
+.ie-opts-sliders>.ie-slider-group{display:contents}
+.ie-opts-sliders .ie-slider-divider{grid-column:1/-1;height:1px;background:var(--border);margin:2px 0}
+.ie-opts-sliders .ie-slider-row{display:flex;align-items:center;gap:6px;width:100%}
+.ie-opts-sliders .ie-slider-row label{min-width:62px;flex-shrink:0;font-size:11px;white-space:nowrap}
+.ie-opts-sliders .ie-slider-row input[type=range]{flex:1;min-width:0}
 .ie-slider-row{display:flex;align-items:center;gap:6px}
 .ie-slider-row label{min-width:34px;flex-shrink:0;margin:0;font-size:11px;color:var(--sub);font-weight:600;white-space:nowrap}
 .ie-slider-row input[type=range]{width:80px}
@@ -267,6 +273,18 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-mode-toggle{display:flex;gap:4px;background:var(--input);border:1px solid var(--border);border-radius:9px;padding:3px;width:100%}
 .ie-mode-toggle .ie-btn-sm{flex:1;text-align:center;border-radius:6px;background:transparent;border:none;padding:8px 4px}
 .ie-mode-toggle .ie-btn-sm.active{background:var(--accent);color:#fff;box-shadow:0 2px 6px var(--shadow)}
+.save-chooser-ov{position:fixed;inset:0;z-index:10060;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.45);opacity:0;transition:opacity .2s ease}
+.save-chooser-ov.show{opacity:1}
+.save-chooser{background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 0 0;width:100%;max-width:440px;padding:18px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px var(--shadow);transform:translateY(16px);transition:transform .22s ease}
+.save-chooser-ov.show .save-chooser{transform:translateY(0)}
+.sc-title{font-size:14px;font-weight:700;color:var(--text);text-align:center;margin-bottom:14px}
+.sc-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:13px 16px;margin-bottom:8px;border:1px solid var(--border);border-radius:12px;background:var(--input);cursor:pointer;transition:background .15s,border-color .15s}
+.sc-opt:hover{border-color:var(--accent);background:var(--surface)}
+.sc-opt b{font-size:14px;color:var(--text);font-weight:700}
+.sc-opt span{font-size:11.5px;color:var(--sub)}
+.sc-cancel{width:100%;padding:12px;margin-top:4px;border:none;border-radius:12px;background:transparent;color:var(--sub);font-size:13px;font-weight:600;cursor:pointer}
+.sc-cancel:hover{color:var(--text)}
+@media(min-width:560px){.save-chooser-ov{align-items:center}.save-chooser{border-radius:18px;transform:scale(0.96)}.save-chooser-ov.show .save-chooser{transform:scale(1)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 </head>
@@ -319,7 +337,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
         <div class="field full"><label for="inReviewer" id="lblReviewer">작성자</label><input type="text" id="inReviewer" placeholder="@ID 또는 닉네임"></div>
         <div class="pv-overflow full" id="pvOverflow"></div>
         <div class="btn-row full">
-          <button class="export-btn" id="exportBtn" onclick="exportImage()" style="flex:1">📥 이미지 저장</button>
+          <button class="export-btn" id="exportBtn" onclick="openSaveChooser()" style="flex:1">📥 이미지 저장</button>
           <button class="reset-btn" id="resetBtn" onclick="resetAll()" title="초기화" aria-label="모두 초기화">🗑</button>
         </div>
       </div>
@@ -342,11 +360,11 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
       <button class="ie-tool-btn" data-tool="filter" onclick="ieTool('filter')">🎛️ 필터</button>
       <div class="ie-separator"></div>
       <button class="ie-btn-sm" onclick="ieUndo()" title="되돌리기">↩</button>
-      <button class="ie-btn-sm danger" onclick="ieReset()">🗑 초기화</button>
+      <button class="ie-btn-sm danger" id="ieResetBtn" onclick="ieReset()">🗑 초기화</button>
     </div>
     <div class="ie-opts" id="ieOpts"></div>
     <div class="ie-canvas-wrap" id="ieCanvasWrap"><canvas id="ieCanvas"></canvas></div>
-    <div class="ie-footer"><button class="ie-btn ie-btn-save" onclick="ieDownload()" title="편집한 이미지를 파일로 저장">💾 저장</button><span class="ie-foot-right"><button class="ie-btn ie-btn-cancel" onclick="closeImageEditor()">취소</button><button class="ie-btn ie-btn-apply" onclick="ieApply()">✅ 적용</button></span></div>
+    <div class="ie-footer"><button class="ie-btn ie-btn-save" id="ieSaveBtn" onclick="ieDownload()" title="편집한 이미지를 파일로 저장">💾 저장</button><span class="ie-foot-right"><button class="ie-btn ie-btn-cancel" id="ieCancelBtn" onclick="closeImageEditor()">취소</button><button class="ie-btn ie-btn-apply" id="ieApplyBtn" onclick="ieApply()">✅ 적용</button></span></div>
   </div>
 </div>
 <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
@@ -384,7 +402,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =
   }
 });
 /* ===== CARD MAKER ===== */
-const CARD_W=1080;let currentLang="ko";
+const CARD_W=1080;let currentLang="ko";  // 저장 해상도: 기본 1080px / 고화질 2160px(2배) — 레이아웃 동일, 픽셀만 촘촘
 const I18N={
   ko:{
     title:"🎧 Voice Drama Review Card",
@@ -408,7 +426,7 @@ const I18N={
     color:"리뷰 텍스트 색상",
     reviewer:"작성자",
     preview:"미리보기",
-    exportBtn:"📥 이미지 저장",
+    exportBtn:"📥 이미지 저장",saveTitle:"💾 저장 해상도 선택",saveStd:"📄 기본",saveStdSub:"가볍고 빠름",saveHi:"✨ 고화질",saveHiSub:"QR·글자 선명 (권장)",saveCancel:"취소",
     reviewerPlace:"@ID 또는 닉네임",
     phTitle:"작품 제목을 입력하세요",
     phCircle:"서클명",
@@ -426,7 +444,7 @@ const I18N={
     ratings:["선택안함","전연령","R15","R18"],
     stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],
     hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
-    ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",filter:"🎛️ 필터",undo:"↩ 되돌리기",reset:"🗑 초기화",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",cropBtn:"선택 영역 자르기",cropCancel:"선택 해제",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1 썸네일",stkPaint:"물감 튀김",stkCrayon:"색연필 칠",stkBrush:"붓 자국",stkBokashi:"보카시 그라데",stkCustom:"이미지 붙이기",draw:"✏️ 낙서",stkHeart:"낙서 하트",fGrain:"그레인",brush:"🖌️ 브러시",bmBlur:"💧 블러",bmMosaic:"🔲 모자이크"}},
+    ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",filter:"🎛️ 필터",undo:"↩ 되돌리기",reset:"🗑 초기화",save:"💾 저장",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",cropBtn:"선택 영역 자르기",cropCancel:"선택 해제",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1 썸네일",stkPaint:"물감 튀김",stkCrayon:"색연필 칠",stkBrush:"붓 자국",stkBokashi:"보카시 그라데",stkCustom:"이미지 붙이기",draw:"✏️ 낙서",stkHeart:"낙서 하트",fGrain:"그레인",brush:"🖌️ 브러시",bmBlur:"💧 블러",bmMosaic:"🔲 모자이크"}},
   ja:{
     title:"🎧 Voice Drama Review Card",
     sub:"プレイヤー風レビューカードメーカー",
@@ -437,19 +455,19 @@ const I18N={
     thumbChange:"画像を変更",
     canvasThumb:"画像アップロード",
     workTitle:"作品タイトル",
-    circle:"サークル名",
-    artist:"キャスト (CV)",
+    circle:"制作サークル名",
+    artist:"出演声優 (CV)",
     genre:"ジャンル・キーワード",
     rating:"年齢制限",
     star:"作品の評価 (星)",
     heart:"エロ度・刺激度 (ハート)",
-    slider:"再生バー位置の調整",       
+    slider:"シークバー位置の調整",       
     headline:"ひとことコメント",
     review:"レビュー・感想",
-    color:"レビューの文字色",
+    color:"本文の文字色",
     reviewer:"レビュアー",
     preview:"プレビュー",
-    exportBtn:"📥 画像を保存",
+    exportBtn:"📥 画像を保存",saveTitle:"💾 保存解像度を選択",saveStd:"📄 標準",saveStdSub:"軽量・高速",saveHi:"✨ 高画質",saveHiSub:"QR・文字くっきり (推奨)",saveCancel:"キャンセル",
     reviewerPlace:"@ID または ニックネーム",
     phTitle:"作品タイトルを入力",
     phCircle:"サークル名",
@@ -467,7 +485,7 @@ const I18N={
     ratings:["非表示","全年齢","R-15","R-18"], // 
     stars:["非表示","1/5","2/5","3/5","4/5","5/5"],
     hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
-    ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",cancel:"キャンセル",apply:"✅ 適用",intensity:"濃度",brushSize:"ブラシ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",cropCancel:"選択解除",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1 サムネ",stkPaint:"スプラッシュ",stkCrayon:"クレヨン塗り",stkBrush:"筆跡",stkBokashi:"ぼかし",stkCustom:"画像を貼り付け",draw:"✏️ お絵描き",stkHeart:"落書きハート",fGrain:"グレイン",brush:"🖌️ ブラシ",bmBlur:"💧 ぼかし",bmMosaic:"🔲 モザイク"}}
+    ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",save:"💾 保存",cancel:"キャンセル",apply:"✅ 適用",intensity:"強さ",brushSize:"ブラシサイズ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",cropCancel:"選択解除",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1 サムネイル",stkPaint:"スプラッシュ",stkCrayon:"クレヨン塗り",stkBrush:"筆跡",stkBokashi:"ぼかし",stkCustom:"画像を貼り付け",draw:"✏️ お絵描き",stkHeart:"落書きハート",fGrain:"グレイン",brush:"🖌️ ブラシ",bmBlur:"💧 ぼかし",bmMosaic:"🔲 モザイク"}}
 };
 
 const THEMES=[["frost",{name:"Frost",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],["mono",{name:"Mono",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],["white",{name:"White",bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],["ocean",{name:"Ocean",bg1:"#3d6b7e",bg2:"#1c3a4a",glass:"rgba(120,180,210,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#8ddae8",progressBg:"rgba(255,255,255,0.18)",progressFill:"#8ddae8",ctrl:"#fff"}],["sage",{name:"Sage",bg1:"#6b8576",bg2:"#3d5247",glass:"rgba(160,200,170,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#c8e0c5",progressBg:"rgba(255,255,255,0.2)",progressFill:"#c8e0c5",ctrl:"#fff"}],["midnight",{name:"Midnight",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}],["noir",{name:"Noir",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],["rose",{name:"Rose",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}],["wine",{name:"Wine",bg1:"#6b2a36",bg2:"#3a1218",glass:"rgba(160,80,90,0.28)",glassBorder:"rgba(255,255,255,0.16)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#f0b8b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#f0b8b0",ctrl:"#fff"}]];
@@ -490,8 +508,10 @@ const THUMB_MAX=1200; // 업로드 이미지 긴 변 최대 px (메모리/성능
 function loadThumb(f){
   if(!f||!f.type.startsWith("image/"))return;
   if(state.thumbUrl&&state.thumbUrl.startsWith('blob:'))URL.revokeObjectURL(state.thumbUrl);
-  const u=URL.createObjectURL(f),img=new Image();
+  const u=URL.createObjectURL(f);
+  let img=new Image();
   img.onload=()=>{
+    img.onload=img.onerror=null;       // 핸들러 1회만 (중복 호출 방지)
     const long=Math.max(img.width,img.height);
     let useImg=img;
     if(long>THUMB_MAX){
@@ -500,14 +520,14 @@ function loadThumb(f){
       cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
       const cx=cv.getContext("2d");cx.imageSmoothingEnabled=true;cx.imageSmoothingQuality="high";
       cx.drawImage(img,0,0,cv.width,cv.height);
-      useImg=cv;                       // 캔버스도 drawImage 소스로 사용 가능
-      // 라벨 미리보기(<img src>)용으로 축소본을 dataURL 로 교체 (원본 blob 은 해제)
-      URL.revokeObjectURL(u);
-      state.thumbUrl=cv.toDataURL("image/jpeg",0.85);
+      useImg=cv;                       // 축소된 캔버스를 작업 원본으로 사용
+      URL.revokeObjectURL(u);          // 원본 blob URL 즉시 해제
+      state.thumbUrl=cv.toDataURL("image/jpeg",0.85); // 라벨 미리보기용 축소 dataURL
+      img.src="";img=null;             // 원본 디코드 이미지 참조 해제 → GC 유도 (메모리 절약)
     } else { state.thumbUrl=u; }
     state.originalImg=useImg;state.thumbImg=useImg;updateAll();
   };
-  img.onerror=()=>{URL.revokeObjectURL(u);};
+  img.onerror=()=>{img.onload=img.onerror=null;URL.revokeObjectURL(u);img=null;};
   img.src=u;
 }
 document.getElementById("fileInput").addEventListener("change",e=>loadThumb(e.target.files?.[0]));
@@ -585,7 +605,7 @@ const _origInputHandler=()=>{if(!_skipUndo)pushUndo();};
 window.addEventListener("keydown",e=>{
   if(document.getElementById("ieOverlay").classList.contains("open"))return;
   const mod=e.ctrlKey||e.metaKey;
-  if(mod&&e.key==="s"){e.preventDefault();exportImage();}
+  if(mod&&e.key==="s"){e.preventDefault();openSaveChooser();}
   if(mod&&e.key==="z"&&!e.shiftKey){e.preventDefault();editorUndo();}
   if(mod&&(e.key==="y"||(e.key==="z"&&e.shiftKey))){e.preventDefault();editorRedo();}
   if(!mod&&e.key==="ArrowLeft"&&document.activeElement===document.body){prevPage();}
@@ -620,6 +640,8 @@ function setLanguage(lang){
   document.getElementById("inReview").placeholder=d.phReview;
   document.getElementById("ieTitle").textContent=ie.title;
   document.querySelectorAll('.ie-tool-btn').forEach(b=>{if(b.dataset.tool&&ie[b.dataset.tool])b.textContent=ie[b.dataset.tool];});
+  {const _b={ieResetBtn:ie.reset,ieSaveBtn:ie.save,ieCancelBtn:ie.cancel,ieApplyBtn:ie.apply};
+   for(const id in _b){const el=document.getElementById(id);if(el&&_b[id])el.textContent=_b[id];}}
   const ab=document.querySelectorAll('.thumb-act-btn');
   [ie.editBtn,ie.changeBtn,ie.removeBtn].forEach((label,i)=>{
     if(!ab[i])return;
@@ -732,21 +754,33 @@ function genQR(url){
   if(_qrCache.url===url&&_qrCache.img)return _qrCache.img;
   try{
     const qr=qrcode(0,"M");qr.addData(url);qr.make();
-    const size=qr.getModuleCount(),px=4,cvs=document.createElement("canvas");
-    cvs.width=cvs.height=size*px;const c=cvs.getContext("2d");
+    const size=qr.getModuleCount();
+    const quiet=4;                 // 표준 흰 여백(quiet zone) 4모듈 — 스캔 인식률 필수
+    const px=10;                   // 모듈당 고해상도 px (선명한 마스터 생성 후 카드에 축소)
+    const total=size+quiet*2;
+    const cvs=document.createElement("canvas");
+    cvs.width=cvs.height=total*px;
+    const c=cvs.getContext("2d");
     c.fillStyle="#fff";c.fillRect(0,0,cvs.width,cvs.height);
     c.fillStyle="#000";
-    for(let r=0;r<size;r++)for(let col=0;col<size;col++)if(qr.isDark(r,col))c.fillRect(col*px,r*px,px,px);
+    for(let r=0;r<size;r++)for(let col=0;col<size;col++)if(qr.isDark(r,col))c.fillRect((col+quiet)*px,(r+quiet)*px,px,px);
+    cvs._modules=total;            // 여백 포함 총 모듈 수 (정수 배율 그리기에 사용)
     _qrCache={url,img:cvs};return cvs;
   }catch(e){return null;}
 }
 function drawQR(ctx,t,isL,x,y,size){
   const qrImg=genQR(state.qrUrl);if(!qrImg)return;
-  const pad=6,full=size+pad*2;
+  // QR 자체에 흰 여백이 포함됨. 모듈 수에 맞춰 정수 px로 떨어지도록 크기 보정해 선명도 확보
+  const mods=qrImg._modules||33;
+  const draw=Math.max(size, Math.round(size/mods)*mods); // 모듈당 정수 px
+  const pad=4,full=draw+pad*2;
   drawRR(ctx,x-pad,y-pad,full,full,8);
   ctx.fillStyle="#fff";ctx.fill();
-  ctx.strokeStyle=isL?"rgba(0,0,0,0.1)":"rgba(255,255,255,0.15)";ctx.lineWidth=1;ctx.stroke();
-  ctx.drawImage(qrImg,x,y,size,size);
+  ctx.strokeStyle=isL?"rgba(0,0,0,0.12)":"rgba(255,255,255,0.18)";ctx.lineWidth=1;ctx.stroke();
+  const _sm=ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled=false;   // 픽셀 경계 또렷하게 (뭉개짐 방지)
+  ctx.drawImage(qrImg,Math.round(x),Math.round(y),draw,draw);  // 좌표 정수화 → 외곽 픽셀 어긋남/스캔 저하 방지
+  ctx.imageSmoothingEnabled=_sm;
 }
 
 function drawSpoiler(ctx,t,isL,unified,x,y){
@@ -764,7 +798,7 @@ function drawSpoiler(ctx,t,isL,unified,x,y){
  * 1페이지(표지) 렌더링 — 배경 그라데이션, 썸네일, 오디오 컨트롤러,
  * 작품 정보(제목/서클/성우/등급/별점/하트/장르), 리뷰 텍스트, QR, 스포일러 배지, 작성자/날짜
  */
-function drawPage1(ctx,W,H,layout){
+function drawPage1(ctx,W,H,layout,qrSize){
   const t=THEME_MAP[state.themeKey],v=getV(),isL=state.themeKey==="white",prog=state.progress;
   const unified=UNIFIED_THEMES.includes(state.themeKey);
   const topH=480,pg=layout.pages[0],total=layout.pages.length;
@@ -874,8 +908,14 @@ function drawPage1(ctx,W,H,layout){
   ctx.beginPath();ctx.moveTo(rCX+76,ctY-10);ctx.lineTo(rCX+56,ctY-20);ctx.lineTo(rCX+56,ctY);ctx.closePath();ctx.fill();
   ctx.textAlign="left";
   
-  // QR 코드 위치 고정
-  drawQR(ctx,t,isL,rX+rW-44,topH-72,42);
+  // QR 코드 위치 고정 (42px). 고화질(2배) 저장 시 해상도가 올라가 사진앱에서도 또렷하게 읽힘
+  // 기본 42px. 고화질 저장 모드(qrSize 전달)면 URL 길이에 따라 56~72px 자동 (긴 URL일수록 키워 스캔 보장)
+  let _qs=42;
+  if(qrSize){
+    const _qi=genQR(state.qrUrl),_m=_qi?(_qi._modules||33):33;
+    _qs=Math.min(72,Math.max(56,Math.round(_m*1.5)));
+  }
+  drawQR(ctx,t,isL,rX+rW-_qs-2,topH-_qs-30,_qs);
   
   // 리뷰 패널
   const panelIsDark=unified?(!isL):true;
@@ -1019,7 +1059,28 @@ function showToast(msg,ms){
   el.textContent=msg;el.classList.add("show");
   clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>el.classList.remove("show"),ms||2800);
 }
-function exportImage(){
+// 저장 해상도 선택 시트 (기본 1080 / 고화질 2160). QR·글자 선명도가 필요하면 고화질.
+function openSaveChooser(){
+  let ov=document.getElementById("saveChooser");
+  if(ov){ov.remove();}
+  const d=I18N[currentLang];
+  ov=document.createElement("div");ov.id="saveChooser";ov.className="save-chooser-ov";
+  ov.innerHTML='<div class="save-chooser" role="dialog" aria-label="'+d.saveTitle+'">'
+    +'<div class="sc-title">'+d.saveTitle+'</div>'
+    +'<button class="sc-opt" data-sc="1"><b>'+d.saveStd+'</b><span>'+CARD_W+'px · '+d.saveStdSub+'</span></button>'
+    +'<button class="sc-opt" data-sc="2"><b>'+d.saveHi+'</b><span>'+(CARD_W*2)+'px · '+d.saveHiSub+'</span></button>'
+    +'<button class="sc-cancel">'+d.saveCancel+'</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+  requestAnimationFrame(()=>ov.classList.add("show"));
+  function close(){ov.classList.remove("show");setTimeout(()=>ov.remove(),200);}
+  ov.addEventListener("click",e=>{
+    if(e.target===ov||e.target.classList.contains("sc-cancel")){close();return;}
+    const btn=e.target.closest(".sc-opt");if(btn){const sc=+btn.dataset.sc;close();setTimeout(()=>exportImage(sc),120);}
+  });
+}
+function exportImage(scale){
+  scale=scale||1;
   const layout=getReviewLayout(),total=layout.pages.length;
   const sfx=currentLang==="ja"?"review-ja":"review-ko",ts=Date.now();
   const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/i.test(navigator.userAgent));
@@ -1028,14 +1089,16 @@ function exportImage(){
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);return true;
   }
   if(total===1){
-    const c=document.createElement("canvas");c.width=CARD_W;c.height=layout.pages[0].h;
-    drawPage1(c.getContext("2d"),CARD_W,layout.pages[0].h,layout);
+    const c=document.createElement("canvas");c.width=CARD_W*scale;c.height=Math.round(layout.pages[0].h*scale);
+    const cx=c.getContext("2d");cx.scale(scale,scale);
+    drawPage1(cx,CARD_W,layout.pages[0].h,layout,scale>=2?56:42);
     c.toBlob(blob=>saveBlob(blob,"voice-drama-"+sfx+"-"+ts+".png"),"image/png");
   } else {
     const canvases=layout.pages.map((pg,i)=>{
-      const c=document.createElement("canvas");c.width=CARD_W;c.height=pg.h;
-      if(i===0)drawPage1(c.getContext("2d"),CARD_W,pg.h,layout);
-      else drawContPage(c.getContext("2d"),CARD_W,pg.h,layout,i);
+      const c=document.createElement("canvas");c.width=CARD_W*scale;c.height=Math.round(pg.h*scale);
+      const cx=c.getContext("2d");cx.scale(scale,scale);
+      if(i===0)drawPage1(cx,CARD_W,pg.h,layout,scale>=2?56:42);
+      else drawContPage(cx,CARD_W,pg.h,layout,i);
       return c;
     });
     showToast(I18N[currentLang].multiSaveNotice);
@@ -1408,6 +1471,7 @@ function ieFlip(axis){
 
 function ensureFilterBase(){
   if(ie.filterBase)return;
+  _filtCache.sig=null;  // 베이스가 새로 만들어지면 필터 캐시 무효화 (같은 필터값이라도 재연산)
   const cur=ieGetCurrent();const maxPrev=_isMobile?500:900;
   const sc=Math.min(1,maxPrev/Math.max(cur.width,cur.height));
   ie.filterBase=document.createElement("canvas");
@@ -1467,7 +1531,7 @@ function ieTool(name){
       +'<div class="ie-slider-row"><label>'+d.fGrain+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.grain+'" data-ie="fGrain"><span>'+ie.filter.grain+'%</span></div>'
       +'</div>';
   } else if(name==="draw"){
-    ieBakeFilter(); // 펜 색이 흑백/그레인 필터에 덮이지 않도록, 진입 시 필터를 사진에 확정
+    ieBakeFilter();   // 스티커+필터를 사진에 확정 (펜이 그 위에 그려지고, 필터에 안 덮이게). 내부에서 스티커도 합성함
     opts.innerHTML='<div class="ie-draw-palette">'
       +DRAW_COLORS.map(h=>'<button class="ie-draw-sw'+(h===ie.drawColor?' active':'')+'" data-dc="'+h+'" style="background:'+h+'" onclick="ieSetDrawColor(\''+h+'\')"></button>').join('')
       +'</div>'
@@ -1476,7 +1540,7 @@ function ieTool(name){
   } else { opts.innerHTML=""; }
   opts.classList.toggle("has-content",opts.innerHTML.trim().length>0);
   // 모바일 2×2 그리드 레이아웃 적용 (필터/블러/모자이크)
-  const useGrid=window.innerWidth<=600&&(name==="filter"||name==="brush");
+  const useGrid=(name==="filter"||name==="brush");  // 데스크톱·모바일 공통 2열 그리드 (라벨 길이 차이로 인한 줄 틀어짐 방지)
   opts.classList.toggle("ie-opts-sliders",useGrid);
   if(!_ieSkipRender)ieRender();
 }
@@ -1495,18 +1559,22 @@ function setCropRatio(r){
   if(r===null){
     // 자유 비율: 박스 해제하고 사용자가 직접 드래그
     ie.crop={active:false,sx:0,sy:0,ex:0,ey:0};
+    ieRender();
   } else {
+    // 먼저 렌더해서 ie.scale 을 현재 히스토리 캔버스 기준으로 갱신 (굽기 후 크기 변동 대응)
+    ie.crop={active:false,sx:0,sy:0,ex:0,ey:0};
+    ieRender();
     // 고정 비율: 이미지(표시 크기) 중앙에 최대 크기 박스 자동 생성 → 확정만 누르면 됨
     const cur=ieGetCurrent();if(cur){
-      const sc=ie.scale,dw=cur.width*sc,dh=cur.height*sc; // 표시(캔버스) px 기준
+      const sc=ie.scale,dw=cur.width*sc,dh=cur.height*sc; // 갱신된 표시(캔버스) px 기준
       const m=0.9; // 여백 90%
       let bw=dw*m,bh=bw/r;
       if(bh>dh*m){bh=dh*m;bw=bh*r;}
       const x=(dw-bw)/2,y=(dh-bh)/2;
       ie.crop={active:true,sx:x,sy:y,ex:x+bw,ey:y+bh};
     }
+    ieRender();
   }
-  ieRender();
 }
 // 크롭 선택 영역 해제 (모바일용)
 function cancelCrop(){
@@ -1762,22 +1830,46 @@ function applyGrain(canvas,amount){
 }
 // 화면에 보이던 색상/그레인/전체블러·모자이크 필터를 작업 원본에 확정(flatten)하고 필터값을 0으로.
 // 낙서(펜) 진입 시 호출 → 이후 펜은 "필터가 구워진 사진" 위에 원래 색으로 칠해진다.
+// 현재 스티커들을 작업 원본 캔버스에 합성(flatten)하고 목록을 비운다.
+// 낙서(펜) 진입 시 호출 → 그때까지의 스티커가 사진 일부가 되어, 이후 펜이 그 위에 그려진다.
+function ieBakeStickers(){
+  if(!ie.stickers||ie.stickers.length===0)return;
+  const cur=ieGetCurrent();if(!cur)return;
+  const out=document.createElement("canvas");out.width=cur.width;out.height=cur.height;
+  const oc=out.getContext("2d");oc.drawImage(cur,0,0);
+  ie.stickers.forEach(st=>{
+    const cx=st.x+st.w/2,cy=st.y+st.h/2;
+    oc.save();oc.translate(cx,cy);oc.rotate(st.r||0);
+    oc.drawImage(st.img,-st.w/2,-st.h/2,st.w,st.h);
+    oc.restore();
+  });
+  iePushHistory(out);
+  ie.stickers=[];
+  ie.filterBase=null;_filtCache.sig=null;  // 스티커 합성으로 cur 내용이 바뀌었으므로 표시 레이어 무효화
+}
 function ieBakeFilter(){
   const f=ie.filter;
   const hasF=f.blur>0||f.mosaic>0||f.gray>0||f.brightness>0||f.contrast>0||f.sepia>0||f.saturate>0||f.grain>0;
-  if(!hasF)return;
-  const cur=ieGetCurrent();if(!cur)return;
-  const baked=applyFilters(cur,f);              // 고해상도 원본에 필터 적용 (공유버퍼 _fBuf1 반환)
+  // 스티커가 떠 있으면 먼저 사진에 합성 → 화면에 보이는 "스티커 포함 사진"이 필터/브러시의 바탕이 됨 (1번: 보이는 대로 확정)
+  if(!hasF&&(!ie.stickers||ie.stickers.length===0))return;
+  ieBakeStickers();                             // 스티커를 사진에 먼저 굽는다 (있으면)
+  if(!hasF){ie.filterBase=null;return;}         // 필터가 없으면 스티커 합성까지만 하고 종료
+  const cur=ieGetCurrent();if(!cur)return;       // 이제 cur 은 스티커가 포함된 사진
+  const baked=applyFilters(cur,f);              // 스티커 포함 사진 전체에 필터 적용
   const flat=document.createElement("canvas");
   flat.width=baked.width;flat.height=baked.height;
-  // 공유버퍼와 분리된 독립 복사본 (putImageData)
   flat.getContext("2d").putImageData(baked.getContext("2d").getImageData(0,0,baked.width,baked.height),0,0);
   iePushHistory(flat);                          // 구운 결과를 새 히스토리 단계로
   ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0,grain:0};
   ie.filterBase=null;
 }
+let _filtCache={sig:null};
 function applyFilters(srcCanvas,f){
   const w=srcCanvas.width,h=srcCanvas.height;
+  // 캐시: 같은 베이스(크기)·같은 필터값이면 재연산 생략. grain 은 매번 랜덤이라 캐시 제외.
+  const sig=f.grain>0?null:(w+"x"+h+"|"+f.blur+","+f.mosaic+","+f.gray+","+f.brightness+","+f.contrast+","+f.sepia+","+f.saturate);
+  if(sig&&_filtCache.sig===sig&&_fBuf1.width===w&&_fBuf1.height===h)return _fBuf1;
+  _filtCache.sig=sig;
   _fBuf1.width=w;_fBuf1.height=h;let ctx=_fBuf1.getContext("2d");
   if(f.mosaic>0){
     const bs=Math.max(2,Math.round(f.mosaic/100*40));
@@ -1818,7 +1910,7 @@ document.querySelector(".ie-modal").addEventListener("touchmove",e=>{if(e.target
     fBlur:v=>{ie.filter.blur=v;scheduleIERender()},
     fMosaic:v=>{ie.filter.mosaic=v;scheduleIERender()},
     fGray:v=>{ie.filter.gray=v;scheduleIERender()},fBright:v=>{ie.filter.brightness=v;scheduleIERender()},
-    fContrast:v=>{ie.filter.contrast=v;scheduleIERender()},fSepia:v=>{ie.filter.sepia=v;scheduleIERender()},fGrain:v=>{ie.filter.grain=v;scheduleIERender()},drawSize:v=>{ie.drawSize=v;const s=document.getElementById("ieDrawVal");if(s)s.textContent=v+"px"}};
+    fContrast:v=>{ie.filter.contrast=v;scheduleIERender()},fGrain:v=>{ie.filter.grain=v;scheduleIERender()},drawSize:v=>{ie.drawSize=v;const s=document.getElementById("ieDrawVal");if(s)s.textContent=v+"px"}};
   function handle(e){
     const t=e.target;if(!t||t.tagName!=="INPUT"||!t.dataset.ie)return;
     const fn=map[t.dataset.ie];if(fn)fn(+t.value);
@@ -1846,7 +1938,7 @@ function ieDown(e){
     ie.cropAction='draw';ie.cropDragStart={x:p.x,y:p.y};
     ie.crop={active:true,sx:p.x,sy:p.y,ex:p.x,ey:p.y};
   } else if(ie.tool==="brush"){
-    ieBakeFilter(); // 전체 블러/모자이크/색상 필터를 원본에 굽고 시작 → 개별 브러시 자국이 필터에 가려지지 않음
+    ieBakeFilter(); // 스티커+필터를 사진에 먼저 굽고 시작 → 개별 브러시가 스티커 위에, 필터에 안 가려지게
     ie._paintSnapshot=document.createElement("canvas");ie._paintSnapshot.width=ieGetCurrent().width;ie._paintSnapshot.height=ieGetCurrent().height;
     ie._paintSnapshot.getContext("2d").drawImage(ieGetCurrent(),0,0);
     const work=document.createElement("canvas");work.width=ie._paintSnapshot.width;work.height=ie._paintSnapshot.height;
@@ -1991,7 +2083,7 @@ function ieDrawAt(x,y){
   const l=ie._lastDraw;
   if(l){ctx.beginPath();ctx.moveTo(l.x,l.y);ctx.lineTo(x,y);ctx.stroke();}
   else {ctx.beginPath();ctx.arc(x,y,ie.drawSize/2,0,Math.PI*2);ctx.fill();}
-  ie._lastDraw={x,y};ie.filterBase=null;scheduleIERender();
+  ie._lastDraw={x,y};ie.filterBase=null;_filtCache.sig=null;scheduleIERender();
 }
 function iePaintAt(rx,ry){
   const src=ieGetCurrent();if(!src)return;const ctx=src.getContext("2d"),snap=ie._paintSnapshot;if(!snap)return;
@@ -2017,7 +2109,7 @@ function iePaintAt(rx,ry){
     ctx.save();ctx.beginPath();ctx.arc(rx,ry,r,0,Math.PI*2);ctx.clip();ctx.drawImage(_pMosaic,sx,sy);ctx.restore();
   }
   // 방금 칠한 원본을 반영하도록 표시 레이어 무효화 (다음 렌더에서 재생성)
-  ie.filterBase=null;
+  ie.filterBase=null;_filtCache.sig=null;
   scheduleIERender();
 }
 // 크롭 확정 — 선택 영역을 실제 이미지 좌표로 변환(scale 역산)하여 잘라낸 뒤 히스토리에 저장
@@ -2025,7 +2117,7 @@ function doCrop(){
   const c=ie.crop,sc=ie.scale,x=Math.round(Math.min(c.sx,c.ex)/sc),y=Math.round(Math.min(c.sy,c.ey)/sc),w=Math.round(Math.abs(c.ex-c.sx)/sc),h=Math.round(Math.abs(c.ey-c.sy)/sc);
   if(w<10||h<10)return;const src=ieGetCurrent(),cx=Math.max(0,Math.min(x,src.width)),cy=Math.max(0,Math.min(y,src.height)),cw=Math.min(w,src.width-cx),ch=Math.min(h,src.height-cy);
   const nc=document.createElement("canvas");nc.width=cw;nc.height=ch;nc.getContext("2d").drawImage(src,cx,cy,cw,ch,0,0,cw,ch);
-  iePushHistory(nc);ie.crop={active:false,sx:0,sy:0,ex:0,ey:0};ieRender();
+  iePushHistory(nc);ie.crop={active:false,sx:0,sy:0,ex:0,ey:0};ie.filterBase=null;_filtCache.sig=null;ieRender();
 }
 document.getElementById("stickerFileInput").addEventListener("change",e=>{
   const files=e.target.files;if(!files.length)return;
@@ -2201,7 +2293,6 @@ autoSave();
 // 웹폰트(Pretendard) 로드 완료 후 캔버스 재렌더 — 폴백 폰트로 그려진 첫 화면 교정
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderPreview());
 </script></body></html>
-
 
 
 
