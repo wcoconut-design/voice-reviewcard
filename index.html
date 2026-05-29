@@ -171,16 +171,20 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   .ie-toolbar::-webkit-scrollbar{display:none}
   .ie-tool-btn{padding:6px 9px;font-size:11px;flex-shrink:0}
   .ie-separator{margin:0 3px;flex-shrink:0}
-  .ie-canvas-wrap{padding:14px;min-height:0;flex:1;overflow:hidden}
+  .ie-canvas-wrap{padding:14px;padding-bottom:calc(74px + env(safe-area-inset-bottom));min-height:0;flex:1;overflow:hidden}
   .ie-canvas-wrap canvas{max-height:100%;box-shadow:0 4px 16px rgba(0,0,0,0.3),0 0 0 1px var(--border)}
-  .ie-footer{padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom));flex-shrink:0}
+  .ie-footer{position:fixed;left:0;right:0;bottom:0;z-index:10020;margin:0;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -4px 20px var(--shadow);padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom));flex-shrink:0}
   .ie-btn{padding:8px 18px;font-size:12px}
   .ie-filter-panel{padding:6px 14px 10px;gap:4px 10px;grid-template-columns:1fr}
   .ie-filter-cell label{min-width:30px;font-size:10px}
   .ie-filter-cell span{min-width:26px;font-size:10px}
   .ie-filter-cell input[type=range],.ie-opts input[type=range]{height:36px;padding:8px 0;cursor:pointer}
 }
-.ie-footer{display:flex;gap:8px;padding:12px 18px;justify-content:flex-end;flex-shrink:0}
+.ie-footer{display:flex;gap:8px;padding:12px 18px;justify-content:space-between;align-items:center;flex-shrink:0}
+.ie-foot-right{display:flex;gap:8px;align-items:center}
+.ie-btn{white-space:nowrap}
+.ie-btn-save{background:var(--input);color:var(--accent)}
+.ie-btn-save:hover{filter:brightness(1.06);box-shadow:0 4px 14px var(--shadow)}
 .ie-btn{padding:9px 22px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;border:none;transition:background .15s,opacity .15s,box-shadow .15s}
 .ie-btn-cancel{background:transparent;color:var(--sub)}.ie-btn-cancel:hover{background:var(--input);color:var(--text)}
 .ie-btn-apply{background:var(--accent);color:var(--bg)}.ie-btn-apply:hover{filter:brightness(1.08);box-shadow:0 4px 14px var(--shadow)}
@@ -216,7 +220,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 .ie-pillrow .ie-btn-sm:hover{background:var(--surface)}
 /* mobile bottom-sheet for tool options */
 @media(max-width:600px){
-  .ie-opts.has-content{position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;width:100%;display:flex;flex-direction:column;gap:10px;align-items:stretch;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;transition:transform .25s ease}
+  .ie-opts.has-content{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));margin:0;padding:14px 16px 14px;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;width:100%;display:flex;flex-direction:column;gap:10px;align-items:stretch;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;transition:transform .25s ease}
   .ie-opts.has-content::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-4px auto 8px;flex-shrink:0;cursor:pointer}
   /* 바텀시트 접기 상태 — 핸들바만 보임 */
   .ie-opts.has-content.collapsed{transform:translateY(calc(100% - 28px));overflow:hidden}
@@ -248,7 +252,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
   .ie-stk-thumbs::-webkit-scrollbar{display:none}
   .ie-stk-thumb{width:38px;height:38px;border-radius:7px;padding:2px;flex-shrink:0}
   /* filter panel as bottom sheet too */
-  .ie-filter-panel{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;padding:16px 16px calc(16px + env(safe-area-inset-bottom)) !important;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;transition:transform .25s ease}
+  .ie-filter-panel{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));margin:0;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);z-index:10010;padding:16px 16px 16px !important;max-height:42vh;max-height:42dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;transition:transform .25s ease}
   .ie-filter-panel::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:-6px auto 10px;grid-column:1/-1;cursor:pointer}
   .ie-filter-panel.collapsed{transform:translateY(calc(100% - 28px));overflow:hidden}
   /* 크롭 선택해제 버튼 */
@@ -336,7 +340,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
     </div>
     <div class="ie-opts" id="ieOpts"></div>
     <div class="ie-canvas-wrap" id="ieCanvasWrap"><canvas id="ieCanvas"></canvas></div>
-    <div class="ie-footer"><button class="ie-btn ie-btn-cancel" onclick="closeImageEditor()">취소</button><button class="ie-btn ie-btn-apply" onclick="ieApply()">✅ 적용</button></div>
+    <div class="ie-footer"><button class="ie-btn ie-btn-save" onclick="ieDownload()" title="편집한 이미지를 파일로 저장">💾 저장</button><span class="ie-foot-right"><button class="ie-btn ie-btn-cancel" onclick="closeImageEditor()">취소</button><button class="ie-btn ie-btn-apply" onclick="ieApply()">✅ 적용</button></span></div>
   </div>
 </div>
 <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
@@ -1899,6 +1903,36 @@ document.getElementById("stickerFileInput").addEventListener("change",e=>{
 });
 
 // [수정] 편집 완료 후 적용 함수 (기존 파일 메모리 완전 정리 최적화)
+// 편집본(필터+스티커 합성)을 평탄화한 캔버스 반환 — 히스토리/필터 상태를 건드리지 않음(비파괴)
+function ieFlatten(){
+  let src=ieGetCurrent();
+  const _f=ie.filter,_any=_f.blur>0||_f.mosaic>0||_f.gray>0||_f.brightness>0||_f.contrast>0||_f.sepia>0||_f.saturate>0;
+  if(_any)src=applyFilters(src,ie.filter);
+  const out=document.createElement("canvas");out.width=src.width;out.height=src.height;
+  const oc=out.getContext("2d");oc.drawImage(src,0,0);
+  ie.stickers.forEach(st=>{
+    const cx=st.x+st.w/2,cy=st.y+st.h/2;
+    oc.save();oc.translate(cx,cy);oc.rotate(st.r||0);
+    oc.drawImage(st.img,-st.w/2,-st.h/2,st.w,st.h);
+    oc.restore();
+  });
+  return out;
+}
+// 편집한 이미지만 따로 PNG로 저장 (카드에 적용하지 않음). 모바일은 공유 시트, 데스크톱은 다운로드.
+function ieDownload(){
+  ieFlatten().toBlob(blob=>{
+    if(!blob)return;
+    const fname="edited-image-"+Date.now()+".png";
+    const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/i.test(navigator.userAgent));
+    if(isMobile&&navigator.canShare){
+      const file=new File([blob],fname,{type:"image/png"});
+      if(navigator.canShare({files:[file]})){navigator.share({files:[file]}).catch(()=>{});return;}
+    }
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  },"image/png");
+}
 function ieApply() {
   const _af = ie.filter, _anyF = _af.blur > 0 || _af.mosaic > 0 || _af.gray > 0 || _af.brightness > 0 || _af.contrast > 0 || _af.sepia > 0 || _af.saturate > 0;
   if (_anyF) {
