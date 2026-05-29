@@ -486,11 +486,28 @@ TEXT_COLORS.forEach(c=>{const s=document.createElement("div");s.className="color
 
 // 파일 등록 이벤트 (메모리 누수 차단)
 // 썸네일 이미지 로딩 (파일 선택/드래그/붙여넣기 공통) — Blob URL 중복 정리 포함
+const THUMB_MAX=1200; // 업로드 이미지 긴 변 최대 px (메모리/성능 최적화)
 function loadThumb(f){
   if(!f||!f.type.startsWith("image/"))return;
   if(state.thumbUrl&&state.thumbUrl.startsWith('blob:'))URL.revokeObjectURL(state.thumbUrl);
   const u=URL.createObjectURL(f),img=new Image();
-  img.onload=()=>{state.originalImg=img;state.thumbImg=img;state.thumbUrl=u;updateAll();};
+  img.onload=()=>{
+    const long=Math.max(img.width,img.height);
+    let useImg=img;
+    if(long>THUMB_MAX){
+      const sc=THUMB_MAX/long;
+      const cv=document.createElement("canvas");
+      cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+      const cx=cv.getContext("2d");cx.imageSmoothingEnabled=true;cx.imageSmoothingQuality="high";
+      cx.drawImage(img,0,0,cv.width,cv.height);
+      useImg=cv;                       // 캔버스도 drawImage 소스로 사용 가능
+      // 라벨 미리보기(<img src>)용으로 축소본을 dataURL 로 교체 (원본 blob 은 해제)
+      URL.revokeObjectURL(u);
+      state.thumbUrl=cv.toDataURL("image/jpeg",0.85);
+    } else { state.thumbUrl=u; }
+    state.originalImg=useImg;state.thumbImg=useImg;updateAll();
+  };
+  img.onerror=()=>{URL.revokeObjectURL(u);};
   img.src=u;
 }
 document.getElementById("fileInput").addEventListener("change",e=>loadThumb(e.target.files?.[0]));
@@ -1450,6 +1467,7 @@ function ieTool(name){
       +'<div class="ie-slider-row"><label>'+d.fGrain+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.grain+'" data-ie="fGrain"><span>'+ie.filter.grain+'%</span></div>'
       +'</div>';
   } else if(name==="draw"){
+    ieBakeFilter(); // 펜 색이 흑백/그레인 필터에 덮이지 않도록, 진입 시 필터를 사진에 확정
     opts.innerHTML='<div class="ie-draw-palette">'
       +DRAW_COLORS.map(h=>'<button class="ie-draw-sw'+(h===ie.drawColor?' active':'')+'" data-dc="'+h+'" style="background:'+h+'" onclick="ieSetDrawColor(\''+h+'\')"></button>').join('')
       +'</div>'
@@ -1542,7 +1560,7 @@ function ieRender(){
   const cur=ieGetCurrent();if(!cur)return;
   let src=cur;
   const _hf=ie.filter,_hasF=_hf.blur>0||_hf.mosaic>0||_hf.gray>0||_hf.brightness>0||_hf.contrast>0||_hf.sepia>0||_hf.saturate>0||_hf.grain>0;
-  if(_hasF&&ie.filterBase){src=applyFilters(ie.filterBase,ie.filter);}
+  if(_hasF){ensureFilterBase();src=applyFilters(ie.filterBase,ie.filter);}
   const wrap=document.getElementById("ieCanvasWrap"),maxW=wrap.clientWidth-20,maxH=wrap.clientHeight-20;
   if(maxW<=0||maxH<=0)return;
   const sc=Math.min(maxW/cur.width,maxH/cur.height,2);ie.scale=sc;
@@ -1742,6 +1760,22 @@ function applyGrain(canvas,amount){
   }
   ctx.putImageData(id,0,0);
 }
+// 화면에 보이던 색상/그레인/전체블러·모자이크 필터를 작업 원본에 확정(flatten)하고 필터값을 0으로.
+// 낙서(펜) 진입 시 호출 → 이후 펜은 "필터가 구워진 사진" 위에 원래 색으로 칠해진다.
+function ieBakeFilter(){
+  const f=ie.filter;
+  const hasF=f.blur>0||f.mosaic>0||f.gray>0||f.brightness>0||f.contrast>0||f.sepia>0||f.saturate>0||f.grain>0;
+  if(!hasF)return;
+  const cur=ieGetCurrent();if(!cur)return;
+  const baked=applyFilters(cur,f);              // 고해상도 원본에 필터 적용 (공유버퍼 _fBuf1 반환)
+  const flat=document.createElement("canvas");
+  flat.width=baked.width;flat.height=baked.height;
+  // 공유버퍼와 분리된 독립 복사본 (putImageData)
+  flat.getContext("2d").putImageData(baked.getContext("2d").getImageData(0,0,baked.width,baked.height),0,0);
+  iePushHistory(flat);                          // 구운 결과를 새 히스토리 단계로
+  ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0,grain:0};
+  ie.filterBase=null;
+}
 function applyFilters(srcCanvas,f){
   const w=srcCanvas.width,h=srcCanvas.height;
   _fBuf1.width=w;_fBuf1.height=h;let ctx=_fBuf1.getContext("2d");
@@ -1812,6 +1846,7 @@ function ieDown(e){
     ie.cropAction='draw';ie.cropDragStart={x:p.x,y:p.y};
     ie.crop={active:true,sx:p.x,sy:p.y,ex:p.x,ey:p.y};
   } else if(ie.tool==="brush"){
+    ieBakeFilter(); // 전체 블러/모자이크/색상 필터를 원본에 굽고 시작 → 개별 브러시 자국이 필터에 가려지지 않음
     ie._paintSnapshot=document.createElement("canvas");ie._paintSnapshot.width=ieGetCurrent().width;ie._paintSnapshot.height=ieGetCurrent().height;
     ie._paintSnapshot.getContext("2d").drawImage(ieGetCurrent(),0,0);
     const work=document.createElement("canvas");work.width=ie._paintSnapshot.width;work.height=ie._paintSnapshot.height;
@@ -1981,7 +2016,8 @@ function iePaintAt(rx,ry){
     _pMosaic.width=sw;_pMosaic.height=sh;_pMosaic.getContext("2d").putImageData(out,0,0);
     ctx.save();ctx.beginPath();ctx.arc(rx,ry,r,0,Math.PI*2);ctx.clip();ctx.drawImage(_pMosaic,sx,sy);ctx.restore();
   }
-  ie.filterBase=null; // 색상/그레인 필터가 켜져 있으면 새 원본 기준으로 표시 레이어 갱신
+  // 방금 칠한 원본을 반영하도록 표시 레이어 무효화 (다음 렌더에서 재생성)
+  ie.filterBase=null;
   scheduleIERender();
 }
 // 크롭 확정 — 선택 영역을 실제 이미지 좌표로 변환(scale 역산)하여 잘라낸 뒤 히스토리에 저장
@@ -2061,6 +2097,7 @@ function ieApply() {
       }
       state.thumbImg = img;
       state.thumbUrl = du;
+      // originalImg 은 갱신하지 않음 → 재편집 시 항상 업로드 원본에서 새로 시작
       closeImageEditor();
       updateAll();
     };
