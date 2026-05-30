@@ -1602,6 +1602,11 @@ function cropHitTest(p){
   if(p.x>=x+w-hs&&p.x<=x+w+hs&&p.y>=y-hs&&p.y<=y+hs)return'ne';
   if(p.x>=x-hs&&p.x<=x+hs&&p.y>=y+h-hs&&p.y<=y+h+hs)return'sw';
   if(p.x>=x+w-hs&&p.x<=x+w+hs&&p.y>=y+h-hs&&p.y<=y+h+hs)return'se';
+  // 변(edge) 핸들 — 모서리에 안 걸렸을 때만. 자유 비율에서 한 방향만 늘이기
+  if(p.y>=y-hs&&p.y<=y+hs&&p.x>x+hs&&p.x<x+w-hs)return'n';
+  if(p.y>=y+h-hs&&p.y<=y+h+hs&&p.x>x+hs&&p.x<x+w-hs)return's';
+  if(p.x>=x-hs&&p.x<=x+hs&&p.y>y+hs&&p.y<y+h-hs)return'w';
+  if(p.x>=x+w-hs&&p.x<=x+w+hs&&p.y>y+hs&&p.y<y+h-hs)return'e';
   const cx=x+w/2,cy=y+h/2;
   if(p.x>cx-70&&p.x<cx+70&&p.y>cy-16&&p.y<cy+16&&w>60&&h>30)return'confirm';
   if(p.x>x&&p.x<x+w&&p.y>y&&p.y<y+h)return'move';
@@ -1676,7 +1681,10 @@ function ieRender(){
     if(w>60&&h>60){ieCtx.strokeStyle="rgba(168,200,232,0.25)";ieCtx.lineWidth=1;
       for(let i=1;i<=2;i++){ieCtx.beginPath();ieCtx.moveTo(x+w*i/3,y);ieCtx.lineTo(x+w*i/3,y+h);ieCtx.stroke();ieCtx.beginPath();ieCtx.moveTo(x,y+h*i/3);ieCtx.lineTo(x+w,y+h*i/3);ieCtx.stroke();}}
     if(w>20&&h>20){const hs=7;
-      [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([hx,hy])=>{
+      const _pts=[[x,y],[x+w,y],[x,y+h],[x+w,y+h]];
+      // 변 중앙 핸들 (자유 비율일 때만 표시 — 한 방향 늘이기)
+      if(!ie.cropRatio)_pts.push([x+w/2,y],[x+w/2,y+h],[x,y+h/2],[x+w,y+h/2]);
+      _pts.forEach(([hx,hy])=>{
         ieCtx.fillStyle="#a8c8e8";ieCtx.fillRect(hx-hs,hy-hs,hs*2,hs*2);
         ieCtx.strokeStyle="rgba(255,255,255,0.8)";ieCtx.lineWidth=1.5;ieCtx.strokeRect(hx-hs,hy-hs,hs*2,hs*2);
       });}
@@ -1925,7 +1933,7 @@ function ieDown(e){
       const hit=cropHitTest(p);
       if(hit==='confirm'){doCrop();return;}
       if(hit==='cancel'){cancelCrop();return;}
-      if(hit==='move'||hit==='nw'||hit==='ne'||hit==='sw'||hit==='se'){
+      if(hit==='move'||hit==='nw'||hit==='ne'||hit==='sw'||hit==='se'||hit==='n'||hit==='s'||hit==='e'||hit==='w'){
         const c=ie.crop,cx=Math.min(c.sx,c.ex),cy=Math.min(c.sy,c.ey),cw=Math.abs(c.ex-c.sx),ch=Math.abs(c.ey-c.sy);
         ie.cropAction=hit;ie.cropDragStart={x:p.x,y:p.y};ie.cropOrigRect={x:cx,y:cy,w:cw,h:ch};
         ie.crop.sx=cx;ie.crop.sy=cy;ie.crop.ex=cx+cw;ie.crop.ey=cy+ch;
@@ -2007,6 +2015,10 @@ function ieMove(e){
       else if(ie.cropAction==='sw'){nx=r.x+dx;nw=Math.max(20,r.w-dx);nh=Math.max(20,r.h+dy);}
       else if(ie.cropAction==='ne'){nw=Math.max(20,r.w+dx);ny=r.y+dy;nh=Math.max(20,r.h-dy);}
       else if(ie.cropAction==='nw'){nx=r.x+dx;ny=r.y+dy;nw=Math.max(20,r.w-dx);nh=Math.max(20,r.h-dy);}
+      else if(ie.cropAction==='e'){nw=Math.max(20,r.w+dx);}
+      else if(ie.cropAction==='w'){nx=r.x+dx;nw=Math.max(20,r.w-dx);}
+      else if(ie.cropAction==='s'){nh=Math.max(20,r.h+dy);}
+      else if(ie.cropAction==='n'){ny=r.y+dy;nh=Math.max(20,r.h-dy);}
       if(ie.cropRatio&&nw>20&&nh>20){const rat=ie.cropRatio;
         if(nw/rat>nh){nh=nw/rat;}else{nw=nh*rat;}
         if(ie.cropAction==='nw'){nx=r.x+r.w-nw;ny=r.y+r.h-nh;}
@@ -2017,7 +2029,7 @@ function ieMove(e){
     scheduleIERender();}
   else if(ie.tool==="crop"&&!ie.cropAction&&ie.crop.active){
     const hit=cropHitTest(p);
-    const cur={nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',move:'move',confirm:'pointer',cancel:'pointer'};
+    const cur={nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',n:'ns-resize',s:'ns-resize',e:'ew-resize',w:'ew-resize',move:'move',confirm:'pointer',cancel:'pointer'};
     ieCanvas.style.cursor=cur[hit]||'crosshair';}
   else if(ie.tool==="crop"&&!ie.crop.active){ieCanvas.style.cursor='crosshair';}
   else if(ie.tool==="brush"&&ie.painting){iePaintAt(rp.x,rp.y);}
@@ -2290,6 +2302,7 @@ autoSave();
 // 웹폰트(Pretendard) 로드 완료 후 캔버스 재렌더 — 폴백 폰트로 그려진 첫 화면 교정
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderPreview());
 </script></body></html>
+
 
 
 
