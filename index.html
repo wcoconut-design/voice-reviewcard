@@ -460,7 +460,7 @@ const I18N={
     genre:"ジャンル・キーワード",
     rating:"年齢制限",
     star:"作品の評価 (星)",
-    heart:"エロ度・刺激度 (ハート)",
+    heart:"エロ度",
     slider:"シークバー位置の調整",       
     headline:"ひとことコメント",
     review:"レビュー・感想",
@@ -482,7 +482,7 @@ const I18N={
     overflow:"⚠️ レビューが長すぎて一部が省略されます（最大4ページ）",
     resetConfirm:"すべての入力をリセットしますか？",
     multiSaveNotice:"複数ページが順番に保存されます。ブラウザが「複数ファイルのダウンロード許可」を尋ねたら許可してください。",
-    ratings:["非表示","全年齢","R-15","R-18"], // 
+    ratings:["指定なし","全年齢","R15","R18"], // 일본 서브컬처 표기 관례 반영
     stars:["非表示","1/5","2/5","3/5","4/5","5/5"],
     hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
     ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",save:"💾 保存",cancel:"キャンセル",apply:"✅ 適用",intensity:"強さ",brushSize:"ブラシサイズ",cropHint:"ドラッグして範囲を選択",cropBtn:"選択範囲を切り取り",cropCancel:"選択解除",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1 サムネイル",stkPaint:"スプラッシュ",stkCrayon:"クレヨン塗り",stkBrush:"筆跡",stkBokashi:"ぼかし",stkCustom:"画像を貼り付け",draw:"✏️ お絵描き",stkHeart:"落書きハート",fGrain:"グレイン",brush:"🖌️ ブラシ",bmBlur:"💧 ぼかし",bmMosaic:"🔲 モザイク"}}
@@ -543,7 +543,7 @@ document.getElementById("fontSizeSlider").addEventListener("input",e=>{
 function autoResizeTextarea(el){el.style.height="auto";el.style.height=Math.max(80,el.scrollHeight)+"px";}
 const reviewTA=document.getElementById("inReview");
 reviewTA.addEventListener("input",()=>autoResizeTextarea(reviewTA));
-new MutationObserver(()=>autoResizeTextarea(reviewTA)).observe(reviewTA,{attributes:true,attributeFilter:["placeholder"]});
+// (placeholder 변경 감지 MutationObserver 제거 — setLanguage 에서 autoResizeTextarea 를 직접 호출하므로 중복)
 
 // 드래그 앤 드롭 이미지 업로드
 const thumbBox=document.getElementById("thumbBox");
@@ -2292,7 +2292,7 @@ autoResizeTextarea(reviewTA);
 autoSave();
 // 웹폰트(Pretendard) 로드 완료 후 캔버스 재렌더 — 폴백 폰트로 그려진 첫 화면 교정
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderPreview());
-</script></body></html>
+</script></body></html>>
 
 
 
