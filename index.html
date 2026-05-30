@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Voice Drama Review Card v1.1.0 (2026.05.30)
+Voice Drama Review Card v1.1.1 (2026.05.30)
 Author: wcoconut
 Copyright 2026 wcoconut. All rights reserved.
 무단 도용, 변형, 상업적 재배포를 금지합니다.
@@ -341,7 +341,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
           <button class="reset-btn" id="resetBtn" onclick="resetAll()" title="초기화" aria-label="모두 초기화">🗑</button>
         </div>
       </div>
-      <div class="editor-credit">design by wcoconut · v1.1.0 (26.05.30)</div>
+      <div class="editor-credit">design by wcoconut · v1.1.1 (26.05.30)</div>
     </div>
     <div class="preview-wrap"><canvas id="preview" role="img" aria-label="카드 미리보기"></canvas><div class="pv-nav" id="pvNav"><button class="pv-nav-btn" onclick="prevPage()" aria-label="이전 페이지">◀</button><span class="pv-nav-ind" id="pvNavInd">1 / 2</span><button class="pv-nav-btn" onclick="nextPage()" aria-label="다음 페이지">▶</button></div></div>
   </div>
@@ -910,11 +910,8 @@ function drawPage1(ctx,W,H,layout,qrSize){
   
   // QR 코드 위치 고정 (42px). 고화질(2배) 저장 시 해상도가 올라가 사진앱에서도 또렷하게 읽힘
   // 기본 42px. 고화질 저장 모드(qrSize 전달)면 URL 길이에 따라 56~72px 자동 (긴 URL일수록 키워 스캔 보장)
-  let _qs=42;
-  if(qrSize){
-    const _qi=genQR(state.qrUrl),_m=_qi?(_qi._modules||33):33;
-    _qs=Math.min(72,Math.max(56,Math.round(_m*1.5)));
-  }
+  // QR 크기 48px 고정. 고화질 저장(해상도 2배) 기준 중간 길이 URL까지 사진앱 스캔되는 최소 크기 (작고 일정하게 유지)
+  const _qs=48;
   drawQR(ctx,t,isL,rX+rW-_qs-2,topH-_qs-30,_qs);
   
   // 리뷰 패널
@@ -1091,13 +1088,13 @@ function exportImage(scale){
   if(total===1){
     const c=document.createElement("canvas");c.width=CARD_W*scale;c.height=Math.round(layout.pages[0].h*scale);
     const cx=c.getContext("2d");cx.scale(scale,scale);
-    drawPage1(cx,CARD_W,layout.pages[0].h,layout,scale>=2?56:42);
+    drawPage1(cx,CARD_W,layout.pages[0].h,layout);
     c.toBlob(blob=>saveBlob(blob,"voice-drama-"+sfx+"-"+ts+".png"),"image/png");
   } else {
     const canvases=layout.pages.map((pg,i)=>{
       const c=document.createElement("canvas");c.width=CARD_W*scale;c.height=Math.round(pg.h*scale);
       const cx=c.getContext("2d");cx.scale(scale,scale);
-      if(i===0)drawPage1(cx,CARD_W,pg.h,layout,scale>=2?56:42);
+      if(i===0)drawPage1(cx,CARD_W,pg.h,layout);
       else drawContPage(cx,CARD_W,pg.h,layout,i);
       return c;
     });
@@ -2292,7 +2289,7 @@ autoResizeTextarea(reviewTA);
 autoSave();
 // 웹폰트(Pretendard) 로드 완료 후 캔버스 재렌더 — 폴백 폰트로 그려진 첫 화면 교정
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderPreview());
-</script></body></html>>
+</script></body></html>
 
 
 
