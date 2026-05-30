@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Voice Drama Review Card v1.1.1 (2026.05.30)
+Voice Drama Review Card v1.2.0 (2026.05.30)
 Author: wcoconut
 Copyright 2026 wcoconut. All rights reserved.
 무단 도용, 변형, 상업적 재배포를 금지합니다.
@@ -341,7 +341,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
           <button class="reset-btn" id="resetBtn" onclick="resetAll()" title="초기화" aria-label="모두 초기화">🗑</button>
         </div>
       </div>
-      <div class="editor-credit">design by wcoconut · v1.1.1 (26.05.30)</div>
+      <div class="editor-credit">design by wcoconut · v1.2.0 (26.05.30)</div>
     </div>
     <div class="preview-wrap"><canvas id="preview" role="img" aria-label="카드 미리보기"></canvas><div class="pv-nav" id="pvNav"><button class="pv-nav-btn" onclick="prevPage()" aria-label="이전 페이지">◀</button><span class="pv-nav-ind" id="pvNavInd">1 / 2</span><button class="pv-nav-btn" onclick="nextPage()" aria-label="다음 페이지">▶</button></div></div>
   </div>
@@ -1683,7 +1683,8 @@ function cropHitTest(p){
   if(p.x>=x-hs&&p.x<=x+hs&&p.y>y+hs&&p.y<y+h-hs)return'w';
   if(p.x>=x+w-hs&&p.x<=x+w+hs&&p.y>y+hs&&p.y<y+h-hs)return'e';
   const cx=x+w/2,cy=y+h/2;
-  if(p.x>cx-70&&p.x<cx+70&&p.y>cy-16&&p.y<cy+16&&w>60&&h>30)return'confirm';
+  const br=ie._cropBtnRect;
+  if(br&&w>60&&h>30&&p.x>=br.x&&p.x<=br.x+br.w&&p.y>=br.y&&p.y<=br.y+br.h)return'confirm';
   if(p.x>x&&p.x<x+w&&p.y>y&&p.y<y+h)return'move';
   return'outside';
 }
@@ -1771,7 +1772,13 @@ function ieRender(){
       if(bx<2)bx=2;if(bx+bW>dispW-2)bx=dispW-bW-2;
       ieCtx.fillStyle="rgba(0,0,0,0.7)";drawRR(ieCtx,bx,by,bW,bH,6);ieCtx.fill();
       ieCtx.fillStyle="#fff";ieCtx.textAlign="center";ieCtx.fillText(dt,bx+bW/2,by+15);ieCtx.textAlign="left";}
-    if(w>60&&h>30){const bw=140,bh=32,bx=x+w/2-bw/2,by=y+h/2-bh/2;ieCtx.fillStyle="rgba(168,200,232,0.9)";drawRR(ieCtx,bx,by,bw,bh,8);ieCtx.fill();ieCtx.fillStyle="#0c0c14";ieCtx.font="bold 12px 'Pretendard',sans-serif";ieCtx.textAlign="center";ieCtx.fillText(I18N[currentLang].ie.cropBtn,bx+bw/2,by+bh/2+4);ieCtx.textAlign="left";}
+    if(w>60&&h>30){const bw=140,bh=32,bx=x+w/2-bw/2;
+      // 버튼을 박스 상단 안쪽에 배치 (하단 바텀시트 가림 방지). 박스가 너무 위면 박스 안으로.
+      let by=y+10; if(by<8)by=8; if(by+bh>y+h-8)by=y+h/2-bh/2;
+      ie._cropBtnRect={x:bx,y:by,w:bw,h:bh};
+      ieCtx.fillStyle="rgba(168,200,232,0.95)";drawRR(ieCtx,bx,by,bw,bh,8);ieCtx.fill();
+      ieCtx.fillStyle="#0c0c14";ieCtx.font="bold 12px 'Pretendard',sans-serif";ieCtx.textAlign="center";ieCtx.textBaseline="middle";
+      ieCtx.fillText(I18N[currentLang].ie.cropBtn,bx+bw/2,by+bh/2);ieCtx.textAlign="left";ieCtx.textBaseline="alphabetic";}
     // X 취소 버튼 (좌상단 바깥)
     ieCtx.fillStyle="rgba(231,76,60,0.9)";ieCtx.beginPath();ieCtx.arc(x-14,y-14,12,0,Math.PI*2);ieCtx.fill();
     ieCtx.fillStyle="#fff";ieCtx.font="bold 13px sans-serif";ieCtx.textAlign="center";ieCtx.textBaseline="middle";ieCtx.fillText("✕",x-14,y-14);ieCtx.textAlign="left";ieCtx.textBaseline="alphabetic";}
@@ -1983,9 +1990,23 @@ ieCanvas.addEventListener("mousemove",ieMove);ieCanvas.addEventListener("touchmo
 window.addEventListener("mouseup",ieUp);window.addEventListener("touchend",e=>{ie._pinchBase=null;ieUp(e);});
 // fit 모드: 휠로 이미지 크기 조절 (데스크톱)
 ieCanvas.addEventListener("wheel",e=>{
-  if(ie.tool!=="crop"||!ie.fitMode)return;
-  e.preventDefault();
-  fitZoomBy(e.deltaY<0?1.08:1/1.08);
+  if(ie.tool!=="crop")return;
+  if(ie.fitMode){ e.preventDefault(); fitZoomBy(e.deltaY<0?1.08:1/1.08); return; }
+  // 자유 모드: 활성 박스 크기를 휠로 조절 (중심 고정, 영역 내)
+  if(ie.crop.active){
+    e.preventDefault();
+    const c=ie.crop,x=Math.min(c.sx,c.ex),y=Math.min(c.sy,c.ey),w=Math.abs(c.ex-c.sx),h=Math.abs(c.ey-c.sy);
+    const cx=x+w/2,cy=y+h/2,f=e.deltaY<0?1.06:1/1.06;
+    const W=ie._dispW||ieCanvas.width,H=ie._dispH||ieCanvas.height;
+    let nw=Math.max(20,w*f),nh=Math.max(20,h*f);
+    if(ie.cropRatio){const r=ie.cropRatio; if(nw/r>nh)nh=nw/r; else nw=nh*r;}
+    // 중심 고정 + 경계 클램프
+    let nx=cx-nw/2,ny=cy-nh/2;
+    nx=Math.max(0,Math.min(nx,W-nw));ny=Math.max(0,Math.min(ny,H-nh));
+    if(nw>W)nw=W; if(nh>H)nh=H;
+    ie.crop.sx=nx;ie.crop.sy=ny;ie.crop.ex=nx+nw;ie.crop.ey=ny+nh;
+    scheduleIERender();
+  }
 },{passive:false});
 // fit 모드: 핀치로 이미지 크기 조절 (모바일)
 ieCanvas.addEventListener("touchstart",e=>{
@@ -2108,7 +2129,8 @@ function ieMove(e){
   if(ie.tool==="crop"&&ie.cropAction&&(e.buttons===1||e.touches)){
     const dx=p.x-ie.cropDragStart.x,dy=p.y-ie.cropDragStart.y;
     if(ie.cropAction==='draw'){
-      ie.crop.ex=p.x;ie.crop.ey=p.y;
+      const W=ie._dispW||ieCanvas.width,H=ie._dispH||ieCanvas.height;
+      ie.crop.ex=Math.max(0,Math.min(W,p.x));ie.crop.ey=Math.max(0,Math.min(H,p.y));
       enforceCropRatio();
     } else if(ie.cropAction==='move'){
       const r=ie.cropOrigRect;
@@ -2131,6 +2153,11 @@ function ieMove(e){
         if(ie.cropAction==='nw'){nx=r.x+r.w-nw;ny=r.y+r.h-nh;}
         else if(ie.cropAction==='ne'){ny=r.y+r.h-nh;}
         else if(ie.cropAction==='sw'){nx=r.x+r.w-nw;}}
+      // 미리보기 영역 안으로 제한
+      const W=ie._dispW||ieCanvas.width,H=ie._dispH||ieCanvas.height;
+      if(nx<0){nw+=nx;nx=0;} if(ny<0){nh+=ny;ny=0;}
+      if(nx+nw>W)nw=W-nx; if(ny+nh>H)nh=H-ny;
+      nw=Math.max(20,nw);nh=Math.max(20,nh);
       ie.crop.sx=nx;ie.crop.sy=ny;ie.crop.ex=nx+nw;ie.crop.ey=ny+nh;
     }
     scheduleIERender();}
