@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Voice Drama Review Card v1.2.0 (2026.05.30)
+Voice Drama Review Card v1.2.1 (2026.05.30)
 Author: wcoconut
 Copyright 2026 wcoconut. All rights reserved.
 무단 도용, 변형, 상업적 재배포를 금지합니다.
@@ -341,7 +341,7 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
           <button class="reset-btn" id="resetBtn" onclick="resetAll()" title="초기화" aria-label="모두 초기화">🗑</button>
         </div>
       </div>
-      <div class="editor-credit">design by wcoconut · v1.2.0 (26.05.30)</div>
+      <div class="editor-credit">design by wcoconut · v1.2.1 (26.05.30)</div>
     </div>
     <div class="preview-wrap"><canvas id="preview" role="img" aria-label="카드 미리보기"></canvas><div class="pv-nav" id="pvNav"><button class="pv-nav-btn" onclick="prevPage()" aria-label="이전 페이지">◀</button><span class="pv-nav-ind" id="pvNavInd">1 / 2</span><button class="pv-nav-btn" onclick="nextPage()" aria-label="다음 페이지">▶</button></div></div>
   </div>
@@ -1529,7 +1529,8 @@ function ieTool(name){
       +'<div class="ie-slider-row"><label>'+d.fGrain+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.grain+'" data-ie="fGrain"><span>'+ie.filter.grain+'%</span></div>'
       +'</div>';
   } else if(name==="draw"){
-    ieBakeFilter();   // 스티커+필터를 사진에 확정 (펜이 그 위에 그려지고, 필터에 안 덮이게). 내부에서 스티커도 합성함
+    ieBakeStickers(); // 그때까지의 스티커를 사진에 구워 낙서가 그 위에 오게 (그린 순서 보존)
+    ieBakeFilter();   // 필터도 사진에 확정 (펜 색이 필터에 안 덮이게)
     opts.innerHTML='<div class="ie-draw-palette">'
       +DRAW_COLORS.map(h=>'<button class="ie-draw-sw'+(h===ie.drawColor?' active':'')+'" data-dc="'+h+'" style="background:'+h+'" onclick="ieSetDrawColor(\''+h+'\')"></button>').join('')
       +'</div>'
@@ -1584,18 +1585,20 @@ function drawFitMode(src,dispW,dispH){
   ieCtx.strokeStyle="#a8c8e8";ieCtx.lineWidth=2;ieCtx.strokeRect(fr.x,fr.y,fr.w,fr.h);
   ieCtx.strokeStyle="rgba(255,255,255,0.3)";ieCtx.lineWidth=1;
   for(let i=1;i<=2;i++){ieCtx.beginPath();ieCtx.moveTo(fr.x+fr.w*i/3,fr.y);ieCtx.lineTo(fr.x+fr.w*i/3,fr.y+fr.h);ieCtx.stroke();ieCtx.beginPath();ieCtx.moveTo(fr.x,fr.y+fr.h*i/3);ieCtx.lineTo(fr.x+fr.w,fr.y+fr.h*i/3);ieCtx.stroke();}
-  // 확정 버튼
-  const bw=140,bh=32,bx=fr.x+fr.w/2-bw/2,by=fr.y+fr.h-bh-10;
-  ieCtx.fillStyle="rgba(168,200,232,0.92)";drawRR(ieCtx,bx,by,bw,bh,8);ieCtx.fill();
+  // 확정 버튼 — 자유 모드와 동일하게 틀 상단 안쪽 (모바일 하단 가림 방지)
+  const bw=140,bh=32,bx=fr.x+fr.w/2-bw/2;
+  let by=fr.y+10; if(by<8)by=8; if(by+bh>fr.y+fr.h-8)by=fr.y+fr.h/2-bh/2;
+  ieCtx.fillStyle="rgba(168,200,232,0.95)";drawRR(ieCtx,bx,by,bw,bh,8);ieCtx.fill();
   ieCtx.fillStyle="#0c0c14";ieCtx.font="bold 12px 'Pretendard',sans-serif";ieCtx.textAlign="center";ieCtx.textBaseline="middle";
   ieCtx.fillText(I18N[currentLang].ie.cropBtn,bx+bw/2,by+bh/2);ieCtx.textAlign="left";ieCtx.textBaseline="alphabetic";
-  // 줌 힌트
+  // 줌 힌트 — 틀 아래로 (버튼이 위로 갔으므로)
   ieCtx.fillStyle="rgba(255,255,255,0.85)";ieCtx.font="11px 'Pretendard',sans-serif";ieCtx.textAlign="center";
-  ieCtx.fillText(I18N[currentLang].ie.fitHint,fr.x+fr.w/2,fr.y-8);ieCtx.textAlign="left";
+  ieCtx.fillText(I18N[currentLang].ie.fitHint,fr.x+fr.w/2,fr.y+fr.h+16);ieCtx.textAlign="left";
 }
 function fitConfirmHit(p){
   const fr=ie.fitFrame;if(!fr)return false;
-  const bw=140,bh=32,bx=fr.x+fr.w/2-bw/2,by=fr.y+fr.h-bh-10;
+  const bw=140,bh=32,bx=fr.x+fr.w/2-bw/2;
+  let by=fr.y+10; if(by<8)by=8; if(by+bh>fr.y+fr.h-8)by=fr.y+fr.h/2-bh/2;
   return p.x>=bx&&p.x<=bx+bw&&p.y>=by&&p.y<=by+bh;
 }
 function doCropFit(){
@@ -1938,16 +1941,14 @@ function ieBakeStickers(){
 function ieBakeFilter(){
   const f=ie.filter;
   const hasF=f.blur>0||f.mosaic>0||f.gray>0||f.brightness>0||f.contrast>0||f.sepia>0||f.saturate>0||f.grain>0;
-  // 스티커가 떠 있으면 먼저 사진에 합성 → 화면에 보이는 "스티커 포함 사진"이 필터/브러시의 바탕이 됨 (1번: 보이는 대로 확정)
-  if(!hasF&&(!ie.stickers||ie.stickers.length===0))return;
-  ieBakeStickers();                             // 스티커를 사진에 먼저 굽는다 (있으면)
-  if(!hasF){ie.filterBase=null;return;}         // 필터가 없으면 스티커 합성까지만 하고 종료
-  const cur=ieGetCurrent();if(!cur)return;       // 이제 cur 은 스티커가 포함된 사진
-  const baked=applyFilters(cur,f);              // 스티커 포함 사진 전체에 필터 적용
+  if(!hasF)return;                              // 필터 없으면 할 일 없음 (스티커는 건드리지 않음)
+  // 필터는 사진(픽셀)에만 적용. 스티커는 별도 레이어로 그대로 둬 필터 영향을 안 받게 한다.
+  const cur=ieGetCurrent();if(!cur)return;
+  const baked=applyFilters(cur,f);
   const flat=document.createElement("canvas");
   flat.width=baked.width;flat.height=baked.height;
   flat.getContext("2d").putImageData(baked.getContext("2d").getImageData(0,0,baked.width,baked.height),0,0);
-  iePushHistory(flat);                          // 구운 결과를 새 히스토리 단계로
+  iePushHistory(flat);
   ie.filter={blur:0,mosaic:0,gray:0,brightness:0,contrast:0,sepia:0,saturate:0,grain:0};
   ie.filterBase=null;
 }
@@ -2066,7 +2067,8 @@ function ieDown(e){
     ie.cropAction='draw';ie.cropDragStart={x:p.x,y:p.y};
     ie.crop={active:true,sx:p.x,sy:p.y,ex:p.x,ey:p.y};
   } else if(ie.tool==="brush"){
-    ieBakeFilter(); // 스티커+필터를 사진에 먼저 굽고 시작 → 개별 브러시가 스티커 위에, 필터에 안 가려지게
+    ieBakeStickers(); // 그때까지의 스티커를 사진에 구워 브러시가 그 위에 오게
+    ieBakeFilter();   // 필터도 사진에 확정
     ie._paintSnapshot=document.createElement("canvas");ie._paintSnapshot.width=ieGetCurrent().width;ie._paintSnapshot.height=ieGetCurrent().height;
     ie._paintSnapshot.getContext("2d").drawImage(ieGetCurrent(),0,0);
     const work=document.createElement("canvas");work.width=ie._paintSnapshot.width;work.height=ie._paintSnapshot.height;
