@@ -1529,8 +1529,8 @@ function ieTool(name){
       +'<div class="ie-slider-row"><label>'+d.fGrain+'</label><input type="range" min="0" max="100" step="1" value="'+ie.filter.grain+'" data-ie="fGrain"><span>'+ie.filter.grain+'%</span></div>'
       +'</div>';
   } else if(name==="draw"){
-    ieBakeStickers(); // 그때까지의 스티커를 사진에 구워 낙서가 그 위에 오게 (그린 순서 보존)
-    ieBakeFilter();   // 필터도 사진에 확정 (펜 색이 필터에 안 덮이게)
+    ieBakeFilter();   // 먼저 전체 블러/모자이크를 사진에만 확정 (스티커가 필터 영향 안 받게)
+    ieBakeStickers(); // 그다음 (필터 적용된) 사진에 스티커를 구워 낙서가 그 위에 오게 (그린 순서 보존)
     opts.innerHTML='<div class="ie-draw-palette">'
       +DRAW_COLORS.map(h=>'<button class="ie-draw-sw'+(h===ie.drawColor?' active':'')+'" data-dc="'+h+'" style="background:'+h+'" onclick="ieSetDrawColor(\''+h+'\')"></button>').join('')
       +'</div>'
@@ -2067,8 +2067,8 @@ function ieDown(e){
     ie.cropAction='draw';ie.cropDragStart={x:p.x,y:p.y};
     ie.crop={active:true,sx:p.x,sy:p.y,ex:p.x,ey:p.y};
   } else if(ie.tool==="brush"){
-    ieBakeStickers(); // 그때까지의 스티커를 사진에 구워 브러시가 그 위에 오게
-    ieBakeFilter();   // 필터도 사진에 확정
+    ieBakeFilter();   // 먼저 전체 블러/모자이크를 사진에만 확정 (스티커가 필터 영향 안 받게)
+    ieBakeStickers(); // 그다음 (필터 적용된) 사진에 스티커를 구워 브러시가 그 위에 오게
     ie._paintSnapshot=document.createElement("canvas");ie._paintSnapshot.width=ieGetCurrent().width;ie._paintSnapshot.height=ieGetCurrent().height;
     ie._paintSnapshot.getContext("2d").drawImage(ieGetCurrent(),0,0);
     const work=document.createElement("canvas");work.width=ie._paintSnapshot.width;work.height=ie._paintSnapshot.height;
@@ -2438,6 +2438,8 @@ autoSave();
 // 웹폰트(Pretendard) 로드 완료 후 캔버스 재렌더 — 폴백 폰트로 그려진 첫 화면 교정
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderPreview());
 </script></body></html>
+
+
 
 
 
