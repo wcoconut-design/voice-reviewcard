@@ -3,7 +3,7 @@
 Voice Drama Review Card v1.3.0 (2026.06.02)
 Author: wcoconut
 Copyright 2026 wcoconut. All rights reserved.
-무단 도용, 변형, 상업적 재배포를 금지합니다.
+무단 도용, 변형, 상업적 재배포를 금지합니다. 
 無断転載、改変、商用目的での再配布を禁じます。
 -->
 <html lang="ko" data-theme="dark">
@@ -1961,8 +1961,14 @@ function ieRender(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
   const dispW=Math.round(cur.width*sc),dispH=Math.round(cur.height*sc);
   ie._dispW=dispW;ie._dispH=dispH;
-  ieCanvas.width=Math.round(dispW*dpr);ieCanvas.height=Math.round(dispH*dpr);
-  ieCanvas.style.width=dispW+"px";ieCanvas.style.height=dispH+"px";
+  const cw=Math.round(dispW*dpr),ch=Math.round(dispH*dpr);
+  // 캔버스 크기 재할당은 비싼 작업 — 실제 크기가 바뀔 때만 (페인팅 중 매 프레임 재할당 방지)
+  if(ieCanvas.width!==cw||ieCanvas.height!==ch){
+    ieCanvas.width=cw;ieCanvas.height=ch;
+    ieCanvas.style.width=dispW+"px";ieCanvas.style.height=dispH+"px";
+  }else{
+    ieCtx.setTransform(1,0,0,1,0,0);ieCtx.clearRect(0,0,cw,ch);
+  }
   ieCtx.setTransform(dpr,0,0,dpr,0,0);
   ieCtx.imageSmoothingEnabled=true;ieCtx.imageSmoothingQuality="high";
   ieCtx.drawImage(src,0,0,dispW,dispH);
@@ -2224,7 +2230,7 @@ function applyFilters(srcCanvas,f){
 
 // 마우스/터치 좌표 → 캔버스 픽셀 좌표 변환 (CSS 크기 ≠ 캔버스 해상도 보정)
 function iePos(e){
-  const r=ieCanvas.getBoundingClientRect();
+  const r=ie._dragRect||ieCanvas.getBoundingClientRect();
   const t=e.touches&&e.touches.length?e.touches[0]:(e.changedTouches&&e.changedTouches.length?e.changedTouches[0]:e);
   const sx=r.width>0?(ie._dispW||ieCanvas.width)/r.width:1;
   const sy=r.height>0?(ie._dispH||ieCanvas.height)/r.height:1;
@@ -2291,6 +2297,7 @@ document.querySelector(".ie-modal").addEventListener("touchmove",e=>{if(e.target
 
 // 캔버스 포인터 다운 이벤트 — 도구별 분기: 크롭(영역생성/핸들), 블러·모자이크(페인팅 시작), 스티커(선택/드래그/리사이즈/회전/삭제)
 function ieDown(e){
+  ie._dragRect=ieCanvas.getBoundingClientRect();
   const p=iePos(e),rp=ieRealPos(e);
   if(ie.tool==="crop"){
     if(ie.fitMode){
@@ -2456,6 +2463,7 @@ function ieMove(e){
 }
 // 캔버스 포인터 업 이벤트 — 모든 드래그 상태 해제, 블러·모자이크 페인팅 종료 후 필터 베이스 갱신
 function ieUp(){
+  ie._dragRect=null;
   ie.cropAction=null;ie.fitDrag=null;
   if(ie.tool==="brush"&&ie.painting){ie.painting=false;ie.filterBase=null;}
   if(ie.tool==="draw")ie.painting=false;
@@ -2491,10 +2499,13 @@ function iePaintAt(rx,ry){
     ctx.drawImage(_pBuf1,ex,ey);ctx.restore();
   } else if(ie.brushMode==="mosaic"){
     const bs=Math.max(2,Math.round(2+strength*20)),imgD=snap.getContext("2d").getImageData(sx,sy,sw,sh),out=ctx.createImageData(sw,sh);
-    for(let by=0;by<sh;by+=bs){for(let bx=0;bx<sw;bx+=bs){let rr=0,gg=0,bb=0,aa=0,cnt=0;
-      for(let yy=by;yy<Math.min(by+bs,sh);yy++){for(let xx=bx;xx<Math.min(bx+bs,sw);xx++){const idx=(yy*sw+xx)*4;rr+=imgD.data[idx];gg+=imgD.data[idx+1];bb+=imgD.data[idx+2];aa+=imgD.data[idx+3];cnt++;}}
-      rr=Math.round(rr/cnt);gg=Math.round(gg/cnt);bb=Math.round(bb/cnt);aa=Math.round(aa/cnt);
-      for(let yy=by;yy<Math.min(by+bs,sh);yy++){for(let xx=bx;xx<Math.min(bx+bs,sw);xx++){const idx=(yy*sw+xx)*4;out.data[idx]=rr;out.data[idx+1]=gg;out.data[idx+2]=bb;out.data[idx+3]=aa;}}}}
+    const sd=imgD.data,od=out.data;
+    for(let by=0;by<sh;by+=bs){for(let bx=0;bx<sw;bx+=bs){
+      // 블록 중앙 1픽셀만 샘플링 (전체 평균 대비 수배 빠름, 시각적 차이 미미)
+      const cyy=Math.min(by+(bs>>1),sh-1),cxx=Math.min(bx+(bs>>1),sw-1),ci=(cyy*sw+cxx)*4;
+      const rr=sd[ci],gg=sd[ci+1],bb=sd[ci+2],aa=sd[ci+3];
+      const yEnd=Math.min(by+bs,sh),xEnd=Math.min(bx+bs,sw);
+      for(let yy=by;yy<yEnd;yy++){let idx=(yy*sw+bx)*4;for(let xx=bx;xx<xEnd;xx++){od[idx]=rr;od[idx+1]=gg;od[idx+2]=bb;od[idx+3]=aa;idx+=4;}}}}
     _pMosaic.width=sw;_pMosaic.height=sh;_pMosaic.getContext("2d").putImageData(out,0,0);
     ctx.save();ctx.beginPath();ctx.arc(rx,ry,r,0,Math.PI*2);ctx.clip();ctx.drawImage(_pMosaic,sx,sy);ctx.restore();
   }
@@ -2684,6 +2695,7 @@ autoSave();
 // 웹폰트(Pretendard) 로드 완료 후 캔버스 재렌더 — 폴백 폰트로 그려진 첫 화면 교정
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>renderPreview());
 </script></body></html>
+
 
 
 
