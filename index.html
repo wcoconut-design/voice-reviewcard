@@ -107,6 +107,13 @@ label{display:block;font-size:10px;font-weight:600;color:var(--sub);margin-botto
 .thumb-act-del{color:#e74c3c;border-color:rgba(231,76,60,0.25)}.thumb-act-del:hover{background:rgba(231,76,60,0.08)}
 .rating-row{display:flex;gap:3px}
 .rating-btn{flex:1;padding:4px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;background:var(--input);color:var(--sub);border:1px solid var(--border);text-align:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.layout-btn{display:flex;align-items:center;justify-content:center;gap:7px;line-height:1;overflow:visible;text-overflow:clip}
+.layout-btn .layout-ico{flex:none;opacity:.85;display:block;width:15px;height:15px}
+.layout-btn span{display:flex;align-items:center;height:15px;line-height:15px;overflow:visible;text-overflow:clip}
+.ico-svg{display:inline-block;vertical-align:middle;flex:none}
+.ico-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.ie-tool-btn,.ie-btn,.ie-btn-sm{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.thumb-act-btn .ic .ico-svg{display:block}
 .rating-btn.active-none{border:1.5px solid #718093;background:rgba(113,128,147,0.15);color:var(--active-text)}
 .rating-btn.active-all{border:1.5px solid #2ecc71;background:rgba(46,204,113,0.15);color:var(--active-text)}
 .rating-btn.active-r15{border:1.5px solid #e67e22;background:rgba(230,126,34,0.15);color:var(--active-text)}
@@ -295,32 +302,32 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
     <div class="brand"><h1 id="headerTitle">🎧 Voice Drama Review Card</h1><p id="headerSub">플레이어 스타일 메이커</p></div>
     <div class="tb-group">
       <div class="pv-mode-switch" role="group" aria-label="미리보기 위치">
-        <button class="t-btn active" id="pvStickyBtn" onclick="setPvMode('sticky')" title="상단 고정" aria-label="미리보기 상단 고정">📌</button>
-        <button class="t-btn" id="pvFloatBtn" onclick="setPvMode('float')" title="플로팅 미니" aria-label="미리보기 플로팅">🪟</button>
+        <button class="t-btn active ico-btn" id="pvStickyBtn" onclick="setPvMode('sticky')" title="상단 고정" aria-label="미리보기 상단 고정" data-ico="pin" data-ico-size="16"></button>
+        <button class="t-btn ico-btn" id="pvFloatBtn" onclick="setPvMode('float')" title="플로팅 미니" aria-label="미리보기 플로팅" data-ico="window" data-ico-size="16"></button>
         <div class="tb-sep"></div>
       </div>
       <button class="t-btn active" id="btnKo" onclick="setLanguage('ko')">한국어</button>
       <button class="t-btn" id="btnJa" onclick="setLanguage('ja')">日本語</button>
       <div class="tb-sep"></div>
-      <button class="t-btn t-btn-sm" id="tmDark" onclick="setThemeMode('dark')" title="다크 모드" aria-label="다크 모드">🌙</button>
-      <button class="t-btn t-btn-sm" id="tmLight" onclick="setThemeMode('light')" title="라이트 모드" aria-label="라이트 모드">☀️</button>
+      <button class="t-btn t-btn-sm ico-btn" id="tmDark" onclick="setThemeMode('dark')" title="다크 모드" aria-label="다크 모드" data-ico="moon" data-ico-size="15"></button>
+      <button class="t-btn t-btn-sm ico-btn" id="tmLight" onclick="setThemeMode('light')" title="라이트 모드" aria-label="라이트 모드" data-ico="sun" data-ico-size="15"></button>
     </div>
   </div>
   <div class="layout">
     <div class="editor">
       <div class="editor-grid">
         <div class="field full"><label id="lblLayout">카드 형태</label><div class="rating-row" id="layoutRow">
-          <button class="rating-btn" id="layoutPlayer" onclick="setCardLayout('player')">🎧 플레이어형</button>
-          <button class="rating-btn" id="layoutClassic" onclick="setCardLayout('classic')">🖼️ 클래식형</button>
+          <button class="rating-btn layout-btn" id="layoutPlayer" onclick="setCardLayout('player')"><svg class="layout-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2"/><line x1="6" y1="9" x2="18" y2="9"/></svg><span id="layoutPlayerTxt">세로형 카드</span></button>
+          <button class="rating-btn layout-btn" id="layoutClassic" onclick="setCardLayout('classic')"><svg class="layout-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><line x1="9" y1="6" x2="9" y2="18"/></svg><span id="layoutClassicTxt">가로형 카드</span></button>
         </div></div>
         <div class="field full"><label for="themeSelect" id="lblTheme">테마</label><select id="themeSelect"></select></div>
         <div class="field full"><label id="lblThumb">썸네일</label>
           <div class="thumb-row">
             <div class="thumb-box" id="thumbBox" onclick="document.getElementById('fileInput').click()"><input type="file" id="fileInput" accept="image/*" style="display:none"><span id="thumbLabel">클릭하여 업로드</span><span class="thumb-hint" id="thumbHint">드래그 · 붙여넣기(Ctrl+V) 가능</span></div>
             <div class="thumb-actions" id="thumbActions">
-              <button class="thumb-act-btn" onclick="openImageEditor()"><span class="ic">✂️</span><span class="tx">편집</span></button>
-              <button class="thumb-act-btn" onclick="document.getElementById('fileInput').click()"><span class="ic">🔄</span><span class="tx">변경</span></button>
-              <button class="thumb-act-btn thumb-act-del" onclick="removeThumb()"><span class="ic">🗑</span><span class="tx">제거</span></button>
+              <button class="thumb-act-btn" onclick="openImageEditor()"><span class="ic" data-ico="scissors" data-ico-size="16"></span><span class="tx">편집</span></button>
+              <button class="thumb-act-btn" onclick="document.getElementById('fileInput').click()"><span class="ic" data-ico="refresh" data-ico-size="16"></span><span class="tx">변경</span></button>
+              <button class="thumb-act-btn thumb-act-del" onclick="removeThumb()"><span class="ic" data-ico="trash" data-ico-size="16"></span><span class="tx">제거</span></button>
             </div>
           </div>
         </div>
@@ -356,20 +363,20 @@ input[type=range]:hover::-moz-range-thumb,input[type=range]:active::-moz-range-t
 <canvas id="exportCanvas" style="display:none"></canvas>
 <div class="ie-overlay" id="ieOverlay">
   <div class="ie-modal">
-    <div class="ie-header"><h2 id="ieTitle">🖼️ 이미지 편집</h2><button class="ie-close" onclick="closeImageEditor()" aria-label="닫기">✕</button></div>
+    <div class="ie-header"><h2 id="ieTitle" class="ico-btn" data-ico="image" data-ico-size="18"><span class="ico-tx">이미지 편집</span></h2><button class="ie-close ico-btn" onclick="closeImageEditor()" aria-label="닫기" data-ico="close" data-ico-size="18"></button></div>
     <div class="ie-toolbar" id="ieToolbar">
-      <button class="ie-tool-btn active" data-tool="crop" onclick="ieTool('crop')">✂️ 크롭</button>
-      <button class="ie-tool-btn" data-tool="brush" onclick="ieTool('brush')">🖌️ 브러시</button>
-      <button class="ie-tool-btn" data-tool="sticker" onclick="ieTool('sticker')">🩹 스티커</button>
-      <button class="ie-tool-btn" data-tool="draw" onclick="ieTool('draw')">✏️ 낙서</button>
-      <button class="ie-tool-btn" data-tool="filter" onclick="ieTool('filter')">🎛️ 필터</button>
+      <button class="ie-tool-btn active" data-tool="crop" onclick="ieTool('crop')" data-ico="crop"><span class="ico-tx">크롭</span></button>
+      <button class="ie-tool-btn" data-tool="brush" onclick="ieTool('brush')" data-ico="brush"><span class="ico-tx">브러시</span></button>
+      <button class="ie-tool-btn" data-tool="sticker" onclick="ieTool('sticker')" data-ico="bandage"><span class="ico-tx">스티커</span></button>
+      <button class="ie-tool-btn" data-tool="draw" onclick="ieTool('draw')" data-ico="pencil"><span class="ico-tx">낙서</span></button>
+      <button class="ie-tool-btn" data-tool="filter" onclick="ieTool('filter')" data-ico="sliders"><span class="ico-tx">필터</span></button>
       <div class="ie-separator"></div>
-      <button class="ie-btn-sm" onclick="ieUndo()" title="되돌리기">↩</button>
-      <button class="ie-btn-sm danger" id="ieResetBtn" onclick="ieReset()">🗑 초기화</button>
+      <button class="ie-btn-sm ico-btn" onclick="ieUndo()" title="되돌리기" data-ico="undo"></button>
+      <button class="ie-btn-sm danger" id="ieResetBtn" onclick="ieReset()" data-ico="trash"><span class="ico-tx">초기화</span></button>
     </div>
     <div class="ie-opts" id="ieOpts"></div>
     <div class="ie-canvas-wrap" id="ieCanvasWrap"><canvas id="ieCanvas"></canvas></div>
-    <div class="ie-footer"><button class="ie-btn ie-btn-save" id="ieSaveBtn" onclick="ieDownload()" title="편집한 이미지를 파일로 저장">💾 저장</button><span class="ie-foot-right"><button class="ie-btn ie-btn-cancel" id="ieCancelBtn" onclick="closeImageEditor()">취소</button><button class="ie-btn ie-btn-apply" id="ieApplyBtn" onclick="ieApply()">✅ 적용</button></span></div>
+    <div class="ie-footer"><button class="ie-btn ie-btn-save" id="ieSaveBtn" onclick="ieDownload()" title="편집한 이미지를 파일로 저장" data-ico="save"><span class="ico-tx">저장</span></button><span class="ie-foot-right"><button class="ie-btn ie-btn-cancel" id="ieCancelBtn" onclick="closeImageEditor()"><span class="ico-tx">취소</span></button><button class="ie-btn ie-btn-apply" id="ieApplyBtn" onclick="ieApply()"><span class="ico-tx">적용</span></button></span></div>
   </div>
 </div>
 <input type="file" id="stickerFileInput" accept="image/*" multiple style="display:none">
@@ -408,11 +415,41 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =
 });
 /* ===== CARD MAKER ===== */
 const CARD_W=1080;let currentLang="ko";  // 저장 해상도: 기본 1080px / 고화질 2160px(2배) — 레이아웃 동일, 픽셀만 촘촘
+/* ===== SVG 아이콘 라이브러리 (이모지 대체) ===== */
+const ICONS={
+  pin:'<path d="M9 4h6M10 4l1 7-3 2v2h8v-2l-3-2 1-7"/><line x1="12" y1="15" x2="12" y2="21"/>',
+  window:'<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>',
+  moon:'<path d="M21 12.8A8 8 0 1 1 11.2 3a6 6 0 0 0 9.8 9.8z"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.8" y2="6.8"/><line x1="17.2" y1="17.2" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.8" y2="17.2"/><line x1="17.2" y1="6.8" x2="19.1" y2="4.9"/>',
+  crop:'<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M2 6h14a2 2 0 0 1 2 2v14"/>',
+  brush:'<path d="M14 4l6 6-9 9-4 1 1-4z"/><line x1="13" y1="5" x2="19" y2="11"/>',
+  bandage:'<rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-45 12 12)"/><circle cx="10" cy="10" r="0.6" fill="currentColor"/><circle cx="14" cy="14" r="0.6" fill="currentColor"/><circle cx="10" cy="14" r="0.6" fill="currentColor"/><circle cx="14" cy="10" r="0.6" fill="currentColor"/>',
+  pencil:'<path d="M16 3l5 5L8 21H3v-5z"/><line x1="14" y1="5" x2="19" y2="10"/>',
+  sliders:'<line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="9" cy="8" r="2.4" fill="var(--surface,#fff)"/><circle cx="15" cy="16" r="2.4" fill="var(--surface,#fff)"/>',
+  scissors:'<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.1" y2="15.9"/><line x1="14.5" y1="14.5" x2="20" y2="20"/><line x1="8.1" y1="8.1" x2="12" y2="12"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-2.6-6.4"/><polyline points="21 3 21 8 16 8"/>',
+  trash:'<polyline points="3 6 21 6"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/><line x1="10" y1="10" x2="10" y2="17"/><line x1="14" y1="10" x2="14" y2="17"/>',
+  download:'<path d="M12 3v12"/><polyline points="7 11 12 16 17 11"/><path d="M5 20h14"/>',
+  save:'<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3"/><rect x="8" y="13" width="8" height="5"/>',
+  undo:'<path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-1"/>',
+  close:'<line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/>',
+  rotateL:'<path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/>',
+  rotateR:'<path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/>',
+  flipH:'<line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="3 3"/><polygon points="9 7 4 12 9 17"/><polygon points="15 7 20 12 15 17"/>',
+  flipV:'<line x1="3" y1="12" x2="21" y2="12" stroke-dasharray="3 3"/><polygon points="7 9 12 4 17 9"/><polygon points="7 15 12 20 17 15"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>'
+};
+function svgIco(name,size){const s=size||15;return '<svg class="ico-svg" viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[name]||'')+'</svg>';}
+// data-ico 속성이 있는 요소에 SVG 주입 (텍스트는 .ico-tx span 또는 뒤 텍스트 유지)
+function injectIcons(root){(root||document).querySelectorAll('[data-ico]').forEach(el=>{
+  if(el._icoDone)return;const name=el.getAttribute('data-ico'),sz=el.getAttribute('data-ico-size');
+  el.insertAdjacentHTML('afterbegin',svgIco(name,sz?parseInt(sz):undefined));el._icoDone=true;
+});}
 const I18N={
   ko:{
     title:"🎧 Voice Drama Review Card",
     sub:"플레이어 스타일 리뷰 카드 메이커",
-    layout:"카드 형태",layoutPlayer:"🎧 가로 플레이어",layoutClassic:"🖼️ 세로 플레이어",
+    layout:"카드 형태",layoutPlayer:"세로형 카드",layoutClassic:"가로형 카드",
     classicTitleLbl:"작품명",classicCircleLbl:"서클명",classicCvLbl:"CV.",
     theme:"테마",
     thumb:"썸네일",
@@ -451,11 +488,11 @@ const I18N={
     ratings:["선택안함","전연령","R15","R18"],
     stars:["선택안함","1/5","2/5","3/5","4/5","5/5"],
     hearts:["선택안함","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
-    ie:{title:"🖼️ 이미지 편집",crop:"✂️ 크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"🩹 스티커",filter:"🎛️ 필터",undo:"↩ 되돌리기",reset:"🗑 초기화",save:"💾 저장",cancel:"취소",apply:"✅ 적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",fitHint:"드래그로 이동 · 휠·핀치로 확대",cropBtn:"선택 영역 자르기",cropCancel:"선택 해제",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1",stkPaint:"물감 튀김",stkCrayon:"색연필 칠",stkBrush:"붓 자국",stkBokashi:"보카시 그라데",stkCustom:"이미지 붙이기",draw:"✏️ 낙서",stkHeart:"낙서 하트",fGrain:"그레인",brush:"🖌️ 브러시",bmBlur:"💧 블러",bmMosaic:"🔲 모자이크"}},
+    ie:{title:"이미지 편집",crop:"크롭",blur:"💧 블러",mosaic:"🔲 모자이크",sticker:"스티커",filter:"필터",undo:"되돌리기",reset:"초기화",save:"저장",cancel:"취소",apply:"적용",intensity:"농도",brushSize:"브러시",cropHint:"드래그하여 영역을 선택하세요",fitHint:"드래그로 이동 · 휠·핀치로 확대",cropBtn:"선택 영역 자르기",cropCancel:"선택 해제",addSticker:"+ 스티커 추가",editBtn:"✂️ 이미지 편집",changeBtn:"🔄 변경",removeBtn:"🗑 제거",fBlur:"전체 블러",fMosaic:"전체 모자이크",fGray:"흑백",fBright:"밝기",fContrast:"대비",fSepia:"세피아",fSaturate:"채도",cropFree:"자유",crop11:"1:1",stkPaint:"물감 튀김",stkCrayon:"색연필 칠",stkBrush:"붓 자국",stkBokashi:"보카시 그라데",stkCustom:"이미지 붙이기",draw:"낙서",stkHeart:"낙서 하트",fGrain:"그레인",brush:"브러시",bmBlur:"💧 블러",bmMosaic:"🔲 모자이크"}},
   ja:{
     title:"🎧 Voice Drama Review Card",
     sub:"プレイヤー風レビューカードメーカー",
-    layout:"カードの形",layoutPlayer:"🎧 横型プレイヤー",layoutClassic:"🖼️ 縦型プレイヤー",
+    layout:"カードの形",layoutPlayer:"縦型カード",layoutClassic:"横型カード",
     classicTitleLbl:"作品名",classicCircleLbl:"サークル名",classicCvLbl:"CV.",
     theme:"テーマ",
     thumb:"サムネイル",
@@ -494,7 +531,7 @@ const I18N={
     ratings:["指定なし","全年齢","R15","R18"], // 일본 서브컬처 표기 관례 반영
     stars:["非表示","1/5","2/5","3/5","4/5","5/5"],
     hearts:["非表示","❤ 1","❤ 2","❤ 3","❤ 4","❤ 5"],
-    ie:{title:"🖼️ 画像編集",crop:"✂️ クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"🩹 ステッカー",filter:"🎛️ フィルター",undo:"↩ 元に戻す",reset:"🗑 リセット",save:"💾 保存",cancel:"キャンセル",apply:"✅ 適用",intensity:"強さ",brushSize:"ブラシサイズ",cropHint:"ドラッグして範囲を選択",fitHint:"ドラッグで移動・ホイール/ピンチで拡大",cropBtn:"選択範囲を切り取り",cropCancel:"選択解除",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1",stkPaint:"スプラッシュ",stkCrayon:"クレヨン塗り",stkBrush:"筆跡",stkBokashi:"ぼかし",stkCustom:"画像を貼り付け",draw:"✏️ お絵描き",stkHeart:"落書きハート",fGrain:"グレイン",brush:"🖌️ ブラシ",bmBlur:"💧 ぼかし",bmMosaic:"🔲 モザイク"}}
+    ie:{title:"画像編集",crop:"クロップ",blur:"💧 ぼかし",mosaic:"🔲 モザイク",sticker:"ステッカー",filter:"フィルター",undo:"元に戻す",reset:"リセット",save:"保存",cancel:"キャンセル",apply:"適用",intensity:"強さ",brushSize:"ブラシサイズ",cropHint:"ドラッグして範囲を選択",fitHint:"ドラッグで移動・ホイール/ピンチで拡大",cropBtn:"選択範囲を切り取り",cropCancel:"選択解除",addSticker:"+ ステッカー追加",editBtn:"✂️ 画像編集",changeBtn:"🔄 変更",removeBtn:"🗑 削除",fBlur:"全体ぼかし",fMosaic:"全体モザイク",fGray:"白黒",fBright:"明るさ",fContrast:"コントラスト",fSepia:"セピア",fSaturate:"彩度",cropFree:"自由",crop11:"1:1",stkPaint:"スプラッシュ",stkCrayon:"クレヨン塗り",stkBrush:"筆跡",stkBokashi:"ぼかし",stkCustom:"画像を貼り付け",draw:"お絵描き",stkHeart:"落書きハート",fGrain:"グレイン",brush:"ブラシ",bmBlur:"💧 ぼかし",bmMosaic:"🔲 モザイク"}}
 };
 
 const THEMES=[["frost",{name:"Frost",bg1:"#6b7b8d",bg2:"#3d4d5e",glass:"rgba(200,215,230,0.18)",glassBorder:"rgba(255,255,255,0.25)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#a8c8e8",progressBg:"rgba(255,255,255,0.2)",progressFill:"rgba(255,255,255,0.85)",ctrl:"#fff"}],["mono",{name:"Mono",bg1:"#4a4a4a",bg2:"#2a2a2a",glass:"rgba(120,120,120,0.28)",glassBorder:"rgba(255,255,255,0.15)",text:"#f0f0f0",sub:"rgba(255,255,255,0.6)",accent:"#b0b0b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#d0d0d0",ctrl:"#e0e0e0"}],["white",{name:"White",light:true,bg1:"#e8e8ec",bg2:"#d0d0d8",glass:"rgba(255,255,255,0.55)",glassBorder:"rgba(0,0,0,0.1)",text:"#1a1a2a",sub:"rgba(0,0,0,0.55)",accent:"#555568",progressBg:"rgba(0,0,0,0.1)",progressFill:"#1a1a2a",ctrl:"#1a1a2a"}],["ocean",{name:"Ocean",bg1:"#3d6b7e",bg2:"#1c3a4a",glass:"rgba(120,180,210,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#8ddae8",progressBg:"rgba(255,255,255,0.18)",progressFill:"#8ddae8",ctrl:"#fff"}],["sage",{name:"Sage",bg1:"#6b8576",bg2:"#3d5247",glass:"rgba(160,200,170,0.25)",glassBorder:"rgba(255,255,255,0.18)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#c8e0c5",progressBg:"rgba(255,255,255,0.2)",progressFill:"#c8e0c5",ctrl:"#fff"}],["midnight",{name:"Midnight",bg1:"#1e2a4a",bg2:"#0c1428",glass:"rgba(50,70,120,0.4)",glassBorder:"rgba(255,255,255,0.15)",text:"#fff",sub:"rgba(255,255,255,0.6)",accent:"#74b9ff",progressBg:"rgba(255,255,255,0.18)",progressFill:"#74b9ff",ctrl:"#fff"}],["noir",{name:"Noir",bg1:"#1a1a22",bg2:"#0e0e14",glass:"rgba(40,40,55,0.55)",glassBorder:"rgba(255,255,255,0.12)",text:"#fff",sub:"rgba(255,255,255,0.55)",accent:"#a29bfe",progressBg:"rgba(255,255,255,0.15)",progressFill:"#a29bfe",ctrl:"#fff"}],["rose",{name:"Rose",bg1:"#8b5a6a",bg2:"#5a3040",glass:"rgba(200,140,160,0.3)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#ffb3c6",progressBg:"rgba(255,255,255,0.2)",progressFill:"#ffb3c6",ctrl:"#fff"}],["wine",{name:"Wine",bg1:"#6b2a36",bg2:"#3a1218",glass:"rgba(160,80,90,0.28)",glassBorder:"rgba(255,255,255,0.16)",text:"#fff",sub:"rgba(255,255,255,0.65)",accent:"#f0b8b0",progressBg:"rgba(255,255,255,0.18)",progressFill:"#f0b8b0",ctrl:"#fff"}],["cream",{name:"Cream",light:true,bg1:"#fbf0d9",bg2:"#f3e0bd",glass:"rgba(255,255,255,0.32)",glassBorder:"rgba(120,90,40,0.16)",text:"#4a3a20",sub:"rgba(74,58,32,0.62)",accent:"#c08a3e",progressBg:"rgba(74,58,32,0.14)",progressFill:"#c08a3e",ctrl:"#4a3a20"}],["sky",{name:"Sky",light:true,bg1:"#dcecf6",bg2:"#bfdcec",glass:"rgba(255,255,255,0.30)",glassBorder:"rgba(30,70,100,0.14)",text:"#1e3a4a",sub:"rgba(30,58,74,0.60)",accent:"#3d86a8",progressBg:"rgba(30,58,74,0.13)",progressFill:"#3d86a8",ctrl:"#1e3a4a"}],["lavender",{name:"Lavender",light:true,bg1:"#ece4f6",bg2:"#d8c8ec",glass:"rgba(255,255,255,0.32)",glassBorder:"rgba(70,50,110,0.14)",text:"#3a2c50",sub:"rgba(58,44,80,0.60)",accent:"#8a6abf",progressBg:"rgba(58,44,80,0.13)",progressFill:"#8a6abf",ctrl:"#3a2c50"}]];
@@ -644,8 +681,8 @@ function setLanguage(lang){
   const d=I18N[lang],ie=d.ie;
   document.getElementById("headerTitle").textContent=d.title;document.getElementById("headerSub").textContent=d.sub;
   document.getElementById("lblLayout").textContent=d.layout;
-  document.getElementById("layoutPlayer").textContent=d.layoutPlayer;
-  document.getElementById("layoutClassic").textContent=d.layoutClassic;
+  document.getElementById("layoutPlayerTxt").textContent=d.layoutPlayer;
+  document.getElementById("layoutClassicTxt").textContent=d.layoutClassic;
   document.getElementById("lblTheme").textContent=d.theme;document.getElementById("lblThumb").textContent=d.thumb;
   document.getElementById("lblTitle").textContent=d.workTitle;document.getElementById("lblCircle").textContent=d.circle;
   document.getElementById("lblArtist").textContent=d.artist;document.getElementById("lblGenre").textContent=d.genre;
@@ -664,10 +701,10 @@ function setLanguage(lang){
   document.getElementById("inTitle").placeholder=d.phTitle;document.getElementById("inCircle").placeholder=d.phCircle;
   document.getElementById("inArtist").placeholder=d.phArtist;document.getElementById("inGenre").placeholder=d.phGenre;
   document.getElementById("inReview").placeholder=d.phReview;
-  document.getElementById("ieTitle").textContent=ie.title;
-  document.querySelectorAll('.ie-tool-btn').forEach(b=>{if(b.dataset.tool&&ie[b.dataset.tool])b.textContent=ie[b.dataset.tool];});
+  {const _t=document.getElementById("ieTitle").querySelector('.ico-tx');if(_t)_t.textContent=ie.title;}
+  document.querySelectorAll('.ie-tool-btn').forEach(b=>{if(b.dataset.tool&&ie[b.dataset.tool]){const tx=b.querySelector('.ico-tx');if(tx)tx.textContent=ie[b.dataset.tool];else b.textContent=ie[b.dataset.tool];}});
   {const _b={ieResetBtn:ie.reset,ieSaveBtn:ie.save,ieCancelBtn:ie.cancel,ieApplyBtn:ie.apply};
-   for(const id in _b){const el=document.getElementById(id);if(el&&_b[id])el.textContent=_b[id];}}
+   for(const id in _b){const el=document.getElementById(id);if(el&&_b[id]){const tx=el.querySelector('.ico-tx');if(tx)tx.textContent=_b[id];else el.textContent=_b[id];}}}
   const ab=document.querySelectorAll('.thumb-act-btn');
   [ie.editBtn,ie.changeBtn,ie.removeBtn].forEach((label,i)=>{
     if(!ab[i])return;
@@ -1239,8 +1276,8 @@ function nextPage(){if(pvLayout&&pvPage<pvLayout.pages.length-1){pvPage++;render
  */
 function updateAll(){
   themeSelect.value=state.themeKey;
-  document.getElementById("layoutPlayer").className="rating-btn"+(state.cardLayout==="player"?" active-none":"");
-  document.getElementById("layoutClassic").className="rating-btn"+(state.cardLayout==="classic"?" active-none":"");
+  document.getElementById("layoutPlayer").className="rating-btn layout-btn"+(state.cardLayout==="player"?" active-none":"");
+  document.getElementById("layoutClassic").className="rating-btn layout-btn"+(state.cardLayout==="classic"?" active-none":"");
   document.getElementById("ratingRow").querySelectorAll(".rating-btn").forEach((b,i)=>{const v=I18N.ko.ratings[i];let c="rating-btn";if(v===state.ageRating){if(v==="\uc120\ud0dd\uc548\ud568")c+=" active-none";else if(v==="\uc804\uc5f0\ub839")c+=" active-all";else if(v==="R15")c+=" active-r15";else if(v==="R18")c+=" active-r18";}b.className=c;});
   document.getElementById("starSelectRow").querySelectorAll(".rating-btn").forEach((b,i)=>b.className="rating-btn"+(I18N.ko.stars[i]===state.starRating?" active-none":""));
   document.getElementById("heartSelectRow").querySelectorAll(".rating-btn").forEach((b,i)=>b.className="rating-btn"+(I18N.ko.hearts[i]===state.eroRating?" active-none":""));
@@ -1732,7 +1769,7 @@ function ieTool(name){
   opts.classList.remove("collapsed");
   if(name==="crop"){
     ie.cropRatio=null;ie.cropAction=null;
-    opts.innerHTML='<div class="ie-pillrow"><button class="ie-btn-sm" onclick="ieRotate(-90)" title="-90°">↺</button><button class="ie-btn-sm" onclick="ieRotate(90)" title="+90°">↻</button><button class="ie-btn-sm" onclick="ieFlip(\'h\')" title="flip H">⇆</button><button class="ie-btn-sm" onclick="ieFlip(\'v\')" title="flip V">⇅</button></div>'
+    opts.innerHTML='<div class="ie-pillrow"><button class="ie-btn-sm ico-btn" onclick="ieRotate(-90)" title="-90°">'+svgIco('rotateL',16)+'</button><button class="ie-btn-sm ico-btn" onclick="ieRotate(90)" title="+90°">'+svgIco('rotateR',16)+'</button><button class="ie-btn-sm ico-btn" onclick="ieFlip(\'h\')" title="flip H">'+svgIco('flipH',16)+'</button><button class="ie-btn-sm ico-btn" onclick="ieFlip(\'v\')" title="flip V">'+svgIco('flipV',16)+'</button></div>'
       +'<div class="ie-ratio-grid">'
       +'<button class="ie-btn-sm active" data-ratio="free" onclick="setCropRatio(null)">'+d.cropFree+'</button>'
       +'<button class="ie-btn-sm" data-ratio="1" onclick="setCropRatio(1)">'+d.crop11+'</button>'
@@ -2688,6 +2725,7 @@ function resetAll(){
 autoLoad();
 
 // 인터페이스 및 화면 초기화 구동 (빈 상태로 깔끔하게 렌더링)
+injectIcons();
 rebuildSelectors();
 setLanguage(currentLang);
 autoResizeTextarea(reviewTA);
