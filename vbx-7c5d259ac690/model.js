@@ -6,6 +6,7 @@ export const SYNC_FIELDS = [
   'title', 'titleKo', 'actor', 'circle', 'tags', 'date', 'code', 'url',
   'review', 'status', 'rating', 'lastPlayed', 'favorite', 'folder',
   'organize', 'promo', 'translation',
+  'purchaseDate', 'store', 'listPrice', 'paidPrice', 'currency',
 ];
 
 export const FIELD_LABELS = {
@@ -26,6 +27,11 @@ export const FIELD_LABELS = {
   organize: '정리 상태 → 정리 상태',
   promo: '홍보 원문 → 본문 [원문] 토글',
   translation: '번역 → 본문 번역본 토글',
+  purchaseDate: '구매일 → 구매일',
+  store: '구매처 → 구매처',
+  listPrice: '정가 → 정가',
+  paidPrice: '구매가 → 구매가',
+  currency: '통화 → 통화',
 };
 
 // 청취 상태: 로컬 값 ↔ 노션 Status 값
@@ -85,12 +91,12 @@ export function normalizeWork(w = {}) {
     review: String(w.review || '').trim(),
     promo: String(w.promo || '').trim(),
     translation: String(w.translation || '').trim(),
-    // 구매 정보 (이 기기에만 저장, 노션에는 아직 보내지 않아요)
+    // 구매 정보 (노션: 구매일·구매처·정가·구매가·통화. 통화가 비어 있으면 엔화로 봐요)
     purchaseDate: normalizeDate(w.purchaseDate),
     store: str(w.store),
     listPrice: money(w.listPrice),
     paidPrice: money(w.paidPrice),
-    currency: CURRENCIES.includes(str(w.currency)) ? str(w.currency) : 'JPY',
+    currency: CURRENCIES.includes(str(w.currency).toUpperCase()) ? str(w.currency).toUpperCase() : '',
     createdAt: str(w.createdAt),
     updatedAt: str(w.updatedAt),
     notionEditedAt: str(w.notionEditedAt),

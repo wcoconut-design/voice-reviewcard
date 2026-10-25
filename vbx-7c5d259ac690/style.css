@@ -619,7 +619,8 @@ a.ghost-btn { text-decoration: none; color: var(--text); }
 .sg-recent svg { color: var(--muted); flex: none; }
 .sg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .folder-sheet { display: flex; flex-direction: column; gap: 2px; }
-.palette-pick button { display: inline-flex; align-items: center; gap: 6px; }
+.palette-pick { flex-wrap: wrap; height: auto; }
+.palette-pick button { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .pal-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px rgba(127,127,127,.35); }
 
 /* 구매 정보 · 지출 */

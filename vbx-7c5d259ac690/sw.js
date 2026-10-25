@@ -1,8 +1,8 @@
 // VOICE BOX 폰 앱: 인터넷이 없어도 열리게 앱 파일을 저장해 두고, 직접 첨부한 이미지를 보여줍니다.
-const VERSION = '0c9833db15';
+const VERSION = 'cd964c6708';
 const SHELL = `vb-shell-${VERSION}`;
 const IMAGE_CACHE = 'vb-images';
-const FILES = ["index.html","app.js","style.css","mobile.css","markdown.js","export-core.js","model.js","local-api.js","mobile.js","reviewcard.html","reviewcard-bridge.js","manifest.webmanifest","icons/icon-180.png","icons/icon-192.png","icons/icon.svg"];
+const FILES = ["index.html","app.js","i18n.js","style.css","mobile.css","markdown.js","export-core.js","model.js","local-api.js","mobile.js","reviewcard.html","reviewcard-bridge.js","manifest.webmanifest","icons/icon-180.png","icons/icon-192.png","icons/icon.svg"];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -30,7 +30,8 @@ self.addEventListener('fetch', (e) => {
     const cache = await caches.open(SHELL);
     const key = rel === '' || rel === 'index.html' ? 'index.html' : rel;
     const cached = () => cache.match(new URL(key, scope).href, { ignoreSearch: true });
-    const net = fetch(req, { cache: 'no-cache' }).then((r) => { if (r.ok && FILES.includes(key)) cache.put(new URL(key, scope).href, r.clone()); return r; }).catch(() => null);
+    // 주소가 없어져도(404 등) 저장해 둔 앱으로 열리게, 정상 응답일 때만 새 버전을 써요.
+    const net = fetch(req, { cache: 'no-cache' }).then((r) => { if (!r.ok) return null; if (FILES.includes(key)) cache.put(new URL(key, scope).href, r.clone()); return r; }).catch(() => null);
     const timeout = new Promise((res) => setTimeout(() => res(null), 3000));
     const first = await Promise.race([net, timeout]);
     return first || (await cached()) || (await net) || new Response('오프라인이에요. Offline.', { status: 503 });
