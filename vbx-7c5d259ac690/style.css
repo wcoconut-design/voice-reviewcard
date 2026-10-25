@@ -658,3 +658,16 @@ a.ghost-btn { text-decoration: none; color: var(--text); }
   .sr-store { display: none; }
   .spend-stores .leg-row { grid-template-columns: 22px 10px minmax(0, 1fr) 40px 80px; }
 }
+
+.leg-more { color: var(--muted); font-size: 12.5px; text-align: center; padding: 10px 0; min-height: 1px; }
+@media (max-width: 760px) {
+  html, body { overflow-x: hidden; }
+  .main { overflow-x: hidden; }
+}
+/* 폰: 통계 종류 버튼은 줄 안에서만 옆으로 넘겨요 (화면 전체가 밀리지 않게) */
+.stat-tools { flex-wrap: wrap; min-width: 0; }
+@media (max-width: 760px) {
+  .stat-kind { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; }
+  .stat-kind::-webkit-scrollbar { display: none; }
+  .stat-kind button { flex: none; }
+}

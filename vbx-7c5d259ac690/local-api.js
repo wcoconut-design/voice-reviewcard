@@ -3,6 +3,7 @@
 // 기록은 이 기기 안에만 있어요. 다른 기기로 옮길 때는 '복원용 백업(JSON)'을 쓰세요.
 import { normalizeWork } from './model.js';
 import { toCsv, toXlsx, reviewsHtml } from './export-core.js';
+import { syncOnce, decide } from './sync-core.js';
 
 const BASE = new URL('./', import.meta.url);
 const API = new URL('api/', BASE).pathname;
@@ -103,6 +104,66 @@ async function saveUpload(workId, blob) {
   return rel;
 }
 
+/* ---------- 동기화 상자 (아이맥과 주고받기) ---------- */
+// 정보 채우기 서버(같은 Cloudflare Worker)에 동기화 보관함을 붙여서 써요. 설정에서 켜고 꺼요.
+const syncOn = () => { try { return !!JSON.parse(localStorage.getItem('voicebox.sync') || '{}').on; } catch { return false; } };
+const sync = { running: false, error: '', last: null };
+let syncTimer;
+function syncSoon(ms = 5000) { if (!syncOn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => runSync().catch(() => {}), ms); }
+function noteDeleted(id) { settings.tombstones = [...(settings.tombstones || []), { id, at: new Date().toISOString() }]; saveSettings(); }
+async function syncStatus() { const st = (await kvGet('syncState')) || {}; return { ...sync, on: syncOn(), configured: !!relayConfig()?.url, lastSync: st.lastSync || null }; }
+async function runSync(manual = false) {
+  await ready;
+  const cfg = relayConfig();
+  if (!cfg?.url || !cfg?.key) throw new ApiError(msg('먼저 정보 채우기 서버를 연결해 주세요.', 'Connect the info server first.', '先に情報取得サーバーを接続してください。'));
+  if (!manual && !syncOn()) return syncStatus();
+  if (sync.promise) return sync.promise;
+  sync.running = true;
+  sync.promise = (async () => {
+  try {
+    const cache = await caches.open(IMAGE_CACHE);
+    const r = await syncOnce({
+      url: cfg.url, key: cfg.key, device: 'phone', fetch: realFetch,
+      getState: async () => (await kvGet('syncState')) || {},
+      setState: (st) => kvSet('syncState', st),
+      applyIncoming: (items) => {
+        let changed = 0;
+        for (const it of items) {
+          const i = works.findIndex((w) => w.id === it.id);
+          const cur = i >= 0 ? works[i] : null;
+          const what = decide(cur, it);
+          if (what === 'keep') continue;
+          if (what === 'delete') { addHistory(it.id, '아이맥에서 삭제', { ...cur }); works.splice(i, 1); changed++; continue; }
+          const w = normalizeWork({ ...it.work, images: (it.work.images || []).map((p) => p.replace(/^\/images\//, 'images/')), reviewCard: (it.work.reviewCard || []).map((p) => p.replace(/^\/images\//, 'images/')) });
+          if (what === 'add') { works.unshift(w); changed++; continue; }
+          addHistory(w.id, '아이맥에서 동기화', { ...cur });
+          Object.assign(cur, w, { notionPageId: cur.notionPageId || w.notionPageId });
+          changed++;
+        }
+        if (changed) saveWorks();
+        return changed;
+      },
+      changedSince: (at) => works.filter((w) => (w.updatedAt || '') > at),
+      takeTombstones: () => [...(settings.tombstones || [])],
+      doneTombstones: (list) => { const done = new Set(list.map((t) => t.id)); settings.tombstones = (settings.tombstones || []).filter((t) => !done.has(t.id)); saveSettings(); },
+      hasFile: async (p) => !!(await cache.match(new URL(p, BASE).href)),
+      readFile: async (p) => { const r = await cache.match(new URL(p, BASE).href); return r ? { body: await r.blob(), type: r.headers.get('Content-Type') } : null; },
+      writeFile: (p, blob) => cache.put(new URL(p, BASE).href, new Response(blob, { headers: { 'Content-Type': blob.type || 'image/png' } })),
+    });
+    sync.error = ''; sync.last = r;
+    if (r.changed) { await new Promise((ok) => setTimeout(ok, 300)); window.dispatchEvent(new CustomEvent('vb:reload')); }
+    return { ...r, ...(await syncStatus()) };
+  } catch (e) {
+    sync.error = e.message;
+    throw e instanceof ApiError ? e : new ApiError(e.message, 502);
+  } finally { sync.running = false; sync.promise = null; }
+  })();
+  return sync.promise;
+}
+ready.then(() => syncSoon(1500));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncSoon(800); });
+window.addEventListener('online', () => syncSoon(800));
+
 /* ---------- 요청 처리 ---------- */
 class ApiError extends Error { constructor(msg, status = 400) { super(msg); this.status = status; } }
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -148,7 +209,7 @@ async function handle(method, path, url, body) {
     if (!w) throw new ApiError('작품을 찾지 못했어요.', 404);
     if (method === 'GET') return fullItem(w);
     if (method === 'PATCH') { const p = JSON.parse(body || '{}'); delete p.id; delete p.sourceImages; return fullItem(update(id, p)); }
-    if (method === 'DELETE') { addHistory(id, '작품 삭제', { ...w }); works = works.filter((x) => x.id !== id); saveWorks(); return { ok: true }; }
+    if (method === 'DELETE') { addHistory(id, '작품 삭제', { ...w }); works = works.filter((x) => x.id !== id); saveWorks(); noteDeleted(id); return { ok: true }; }
   }
   if ((m = path.match(/^works\/([^/]+)\/history$/))) return (await historyOf(decodeURIComponent(m[1]))).slice(0, 100);
   if ((m = path.match(/^works\/([^/]+)\/restore$/))) {
@@ -160,6 +221,9 @@ async function handle(method, path, url, body) {
     return fullItem(update(id, Object.fromEntries(keys.map((k) => [k, h.data[k]])), '이력에서 되돌림'));
   }
   if (method === 'POST' && path === 'upload') return { src: await saveUpload(url.searchParams.get('work'), body) };
+  if (method === 'GET' && path === 'sync/status') return syncStatus();
+  if (method === 'POST' && path === 'sync/config') { const b = JSON.parse(body || '{}'); localStorage.setItem('voicebox.sync', JSON.stringify({ on: !!b.on })); return syncStatus(); }
+  if (method === 'POST' && path === 'sync/run') return await runSync(true);
   if (method === 'POST' && path === 'info') return relayInfo(typeof body === 'string' ? JSON.parse(body || '{}') : body || {});
   if (method === 'POST' && path === 'folders') {
     const n = String(JSON.parse(body || '{}').name || '').trim();
@@ -212,6 +276,7 @@ window.fetch = async (input, init = {}) => {
   const method = (init.method || 'GET').toUpperCase();
   try {
     const out = await handle(method, path, url, init.body);
+    if (method !== 'GET' && /^(works|upload|restore|folders)/.test(path)) syncSoon();
     return out && out.__raw ? out.__raw : json(out);
   } catch (e) {
     return json({ error: e.message || '처리하지 못했어요.' }, e.status || 500);

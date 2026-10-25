@@ -282,7 +282,8 @@ function renderChips(pending) {
     pending && !window.VB_MOBILE ? chip('pending', tr('chipPending'), ` <span class="badge">${pending}</span>`) : '',
   ].join('');
   const on = $('navChips').querySelector('.on');
-  if (on && on.scrollIntoView && isPhone()) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  // 고른 칩이 보이게 칩 줄 안에서만 옆으로 움직여요 (화면 전체가 옆으로 밀리지 않게).
+  if (on && isPhone()) { const row = $('navChips'); const l = on.offsetLeft - 16, r = on.offsetLeft + on.offsetWidth + 16; if (l < row.scrollLeft) row.scrollLeft = l; else if (r > row.scrollLeft + row.clientWidth) row.scrollLeft = r - row.clientWidth; }
 }
 document.addEventListener('click', (e) => {
   if (!e.target.closest('[data-folder-sheet]')) return;
@@ -1257,6 +1258,38 @@ function relayBlockHtml() {
     <div class="set-row"><button type="button" class="ghost-btn" id="relaySave">${L('저장하고 연결 확인')}</button>${r.url ? `<button type="button" class="link-btn" id="relayClear">${L('연결 해제')}</button>` : ''}</div>
     <div class="note" id="relayState">${r.url ? L('연결돼 있어요.') : L('아직 연결하지 않았어요.')}</div></div>`;
 }
+// 폰 ↔ 아이맥 동기화 상자
+function boxSyncText(st) {
+  if (st.running) return L('동기화하는 중…');
+  if (st.error) return L('동기화 오류: ') + st.error;
+  if (st.lastSync) return L('마지막 동기화: ') + new Date(st.lastSync).toLocaleString(LOCALE());
+  return L('아직 동기화한 적 없어요.');
+}
+function syncBlockHtml(st) {
+  if (window.VB_MOBILE) {
+    if (!st.configured) return '';
+    return `<div class="set-block"><h3>${L('아이맥과 동기화')}</h3>
+      <div class="note">${L('정보 채우기 서버의 동기화 보관함으로, 이 폰과 아이맥 VOICE BOX의 기록을 주고받아요. 같은 작품은 최근에 고친 쪽을 남겨요.')}</div>
+      <label class="check"><input type="checkbox" id="syncOn"${st.on ? ' checked' : ''}>${L('자동으로 동기화')}</label>
+      <div class="set-row"><button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button></div>
+      <div class="note" id="syncState">${esc(boxSyncText(st))}</div></div>`;
+  }
+  return `<div class="set-block"><h3>${L('폰과 동기화')}</h3>
+    <div class="note">${L('폰 앱과 같은 중계 서버(Cloudflare Worker) 주소와 열쇠를 넣으면, 3분마다 폰의 기록을 받아오고 이 컴퓨터에서 고친 것을 보내요.')}</div>
+    <input class="input" id="syncUrl" placeholder="https://vb-info.○○.workers.dev" value="${esc(st.url || '')}" autocomplete="off" spellcheck="false">
+    <input class="input" id="syncKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" autocomplete="off" style="margin-top:6px">
+    <div class="set-row"><button type="button" class="ghost-btn" id="syncSave">${L('저장하고 동기화')}</button>${st.configured ? `<button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button><button type="button" class="link-btn" id="syncOff">${L('연결 해제')}</button>` : ''}</div>
+    <div class="note" id="syncState">${st.configured ? esc(boxSyncText(st)) : L('아직 연결하지 않았어요.')}</div></div>`;
+}
+async function runSyncNow() {
+  const el = $('syncState');
+  if (el) el.textContent = L('동기화하는 중…');
+  try {
+    const r = await api('api/sync/run', { body: {} });
+    if (el) el.textContent = '✓ ' + L('받은 작품 {a}개 · 바뀐 작품 {b}개 · 보낸 작품 {c}개', { a: r.pulled ?? 0, b: r.changed ?? 0, c: r.pushed ?? 0 });
+    if (r.changed) await load();
+  } catch (e) { if (el) el.textContent = L('동기화 오류: ') + e.message; }
+}
 async function testRelay() {
   const url = $('relayUrl').value.trim().replace(/\/+$/, '');
   const key = $('relayKey').value.trim();
@@ -1286,11 +1319,12 @@ async function openSettings() {
   S.notion = n;
   const img = await api('api/images/status').catch(() => ({}));
   const total = S.works.reduce((a, w) => a + w.images.length, 0);
+  const syncSt = await api('api/sync/status').catch(() => ({}));
   dlg.innerHTML = `<div class="m-body-wrap">
     <div class="m-head"><h2>${L("설정")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
     <div class="m-body">
       ${n.unsupported ? `<div class="set-block"><h3>${L("이 기기의 기록")}</h3>
-        <div class="note">${L("모든 기록은 이 기기 안에만 저장되고 서버로 보내지 않아요. 기기를 바꾸거나 다른 기기와 옮길 때는 아래 '복원용 백업 받기'로 파일을 받아 두고, 새 기기에서 '백업에서 복원'을 고르세요. 같은 작품은 최근에 고친 쪽을 남기고 합칠 수 있어요.")}</div>${offlineStatusHtml()}</div>${relayBlockHtml()}` : `<div class="set-block">
+        <div class="note">${L("모든 기록은 이 기기 안에 저장돼요. 아래 '아이맥과 동기화'를 켜면 내 Cloudflare 보관함을 거쳐 다른 기기와 주고받아요. 기기를 바꿀 때는 '복원용 백업 받기'로 파일을 받아 두고, 새 기기에서 '백업에서 복원'을 고르세요.")}</div>${offlineStatusHtml()}</div>${relayBlockHtml()}` : `<div class="set-block">
         <h3>${L("노션 연결")}</h3>
         ${n.connected ? `<div class="banner ok">${L("CD LIST에 연결돼 있어요.")}</div>
           <div class="note" id="syncState">${syncText(n)}</div>
@@ -1301,6 +1335,7 @@ async function openSettings() {
             ${L("키 만들기:")} <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">notion.so/profile/integrations ↗</a> ${L("→ CD LIST와 성우·서클·태그 DB에 연결 허용(읽기·업데이트·삽입)")}</div>
           <div class="set-row"><input class="input" id="tokenInput" type="password" placeholder="${L("ntn_… 또는 secret_…")}" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="primary-btn" id="connect">${L("연결")}</button></div>`}
       </div>`}
+      ${syncBlockHtml(syncSt)}
       <div class="set-block"${img.unsupported ? ' hidden' : ''}>
         <h3>${L("이미지 내려받기")}</h3>
         <div class="note">${L("판매 사이트·노션에 있는 표지와 이미지를 이 컴퓨터의 images 폴더에 저장해요. 판매 페이지가 내려가도 계속 볼 수 있어요.")}</div>
@@ -1380,6 +1415,15 @@ async function openSettings() {
   $('imgCovers').onclick = () => startImages(true);
   $('imgAll').onclick = () => startImages(false);
   $('relaySave') && ($('relaySave').onclick = testRelay);
+  $('syncNowBtn') && ($('syncNowBtn').onclick = runSyncNow);
+  $('syncOn') && ($('syncOn').onchange = async (e) => { await api('api/sync/config', { body: { on: e.target.checked } }).catch(fail); if (e.target.checked) runSyncNow(); });
+  $('syncSave') && ($('syncSave').onclick = async () => {
+    const url = $('syncUrl').value.trim(), key = $('syncKey').value.trim();
+    if (!/^https:\/\//.test(url) || !key) { $('syncState').textContent = L('https로 시작하는 주소와 열쇠를 모두 넣어 주세요.'); return; }
+    await api('api/sync/config', { body: { url, key } }).catch(fail);
+    await runSyncNow(); openSettings();
+  });
+  $('syncOff') && ($('syncOff').onclick = async () => { await api('api/sync/config', { body: { url: '', key: '' } }).catch(fail); openSettings(); });
   $('relayClear') && ($('relayClear').onclick = () => { try { localStorage.removeItem('voicebox.relay'); } catch {} openSettings(); });
   $('restoreFile').onchange = async (e) => {
     const f = e.target.files[0];
@@ -1605,6 +1649,7 @@ const STAT_COLORS = ['#B48AD8', '#E2C26E', '#DE7A6B', '#86BE94', '#6FB3CF', '#D8
 S.statKind = 'actor';
 S.statScope = 'all';
 S.statMore = false;
+let statObserver = null;
 try { const p = JSON.parse(localStorage.getItem('voicebox.stats') || '{}'); if (p.kind) S.statKind = p.kind; if (p.scope) S.statScope = p.scope; } catch {}
 
 function statData() {
@@ -1664,7 +1709,30 @@ function renderStats() {
   const { svg, parts } = donutSvg(rows, total);
   const colorOf = new Map(parts.map((p) => [p.key, p.color]));
   const max = rows[0]?.n || 1;
-  const limit = S.statMore ? rows.length : 30;
+  const limit = 40;
+  // 순위 줄은 스크롤하면 이어서 더 그려요 (화면이 위로 튀지 않게).
+  const rowHtml = (x, i) => `<button type="button" class="leg-row" data-stat-key="${esc(x.key)}" title="${L("이 조건의 작품 보기")}">
+          <span class="leg-rank">${i + 1}</span>
+          <span class="leg-dot" style="background:${colorOf.get(x.key) || 'var(--line)'}"></span>
+          <span class="leg-name">${nameCell(x.key)}</span>
+          <span class="leg-bar"><span style="width:${Math.max(2, Math.round(x.n / max * 100))}%;background:${colorOf.get(x.key) || 'var(--muted)'}"></span></span>
+          <span class="leg-n">${x.n}</span>
+          <span class="leg-p">${(x.n / (total || 1) * 100).toFixed(1)}%</span>
+        </button>`;
+  setTimeout(() => {
+    let shown = 0;
+    const box = $('legRows'), more = $('statMore');
+    if (!box) return;
+    const add = () => {
+      box.insertAdjacentHTML('beforeend', rows.slice(shown, shown + limit).map((x, i) => rowHtml(x, shown + i)).join(''));
+      shown = Math.min(rows.length, shown + limit);
+      more.textContent = shown < rows.length ? L('아래로 내리면 더 보여요') + ` (${shown}/${rows.length})` : '';
+      if (shown >= rows.length) statObserver?.disconnect();
+    };
+    statObserver?.disconnect();
+    add();
+    if (shown < rows.length) { statObserver = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) add(); }, { root: $('main'), rootMargin: '400px' }); statObserver.observe(more); }
+  });
   const nameCell = (key) => (S.statKind === 'actor' ? nameHtml(key) : `<span class="nm-ja">${esc(key)}</span>`);
   $('stats').innerHTML = `
     <div class="stat-cards">
@@ -1681,15 +1749,8 @@ function renderStats() {
       <div class="donut-wrap">${svg}</div>
       <div class="stat-legend">
         <div class="note">${kindLabel} ${rows.length.toLocaleString()}${L("개")}${none ? ` ${L("· 정보 없는 작품")} ${none}${L("개")}` : ''}${['actor', 'tag'].includes(S.statKind) ? L(' · 여러 명(개)이 들어간 작품은 각각에 모두 셌어요') : ''}</div>
-        ${rows.slice(0, limit).map((x, i) => `<button type="button" class="leg-row" data-stat-key="${esc(x.key)}" title="${L("이 조건의 작품 보기")}">
-          <span class="leg-rank">${i + 1}</span>
-          <span class="leg-dot" style="background:${colorOf.get(x.key) || 'var(--line)'}"></span>
-          <span class="leg-name">${nameCell(x.key)}</span>
-          <span class="leg-bar"><span style="width:${Math.max(2, Math.round(x.n / max * 100))}%;background:${colorOf.get(x.key) || 'var(--muted)'}"></span></span>
-          <span class="leg-n">${x.n}</span>
-          <span class="leg-p">${(x.n / (total || 1) * 100).toFixed(1)}%</span>
-        </button>`).join('')}
-        ${rows.length > 30 ? `<button type="button" class="link-btn" id="statMore">${S.statMore ? L('접기') : `${L("전체")} ${rows.length}${L("개 보기")}`}</button>` : ''}
+        <div id="legRows"></div>
+        <div class="leg-more" id="statMore"></div>
       </div>
     </div>`;
 }
@@ -1764,7 +1825,6 @@ const rememberStats = () => { try { localStorage.setItem('voicebox.stats', JSON.
 $('stats').addEventListener('click', (e) => {
   const kind = e.target.closest('[data-stat-kind]');
   if (kind) { S.statKind = kind.dataset.statKind; S.statMore = false; rememberStats(); return renderStats(); }
-  if (e.target.id === 'statMore') { S.statMore = !S.statMore; return renderStats(); }
   const keyEl = e.target.closest('[data-stat-key]');
   if (!keyEl) return;
   // 그 조건으로 목록 보기
@@ -1783,6 +1843,23 @@ $('stats').addEventListener('click', (e) => {
 });
 $('stats').addEventListener('change', (e) => { if (e.target.id === 'statScope') { S.statScope = e.target.value; rememberStats(); renderStats(); } });
 
+// 동기화로 다른 기기의 기록을 받으면 목록을 다시 그려요.
+async function reloadAfterSync() {
+  const typing = document.activeElement?.id === 'reviewBox' || $('editor').open;
+  await load();
+  if (S.selected && !typing) select(S.selected, { push: false }).catch(() => {});
+}
+window.addEventListener('vb:reload', reloadAfterSync);
+if (!window.VB_MOBILE) {
+  let seen = null;
+  setInterval(async () => {
+    if (document.visibilityState !== 'visible') return;
+    const st = await api('api/sync/status').catch(() => null);
+    if (!st?.changedAt) return;
+    if (seen && st.changedAt !== seen) reloadAfterSync();
+    seen = st.changedAt;
+  }, 30000);
+}
 // 새 창으로 연 경우: 그 작품의 상세만 크게 보여줍니다.
 if (S.solo) document.body.classList.add('solo');
 load().then(() => {
