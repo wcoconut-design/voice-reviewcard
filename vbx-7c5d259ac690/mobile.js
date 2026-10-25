@@ -106,7 +106,7 @@ function welcome() {
     box.innerHTML = `
     <div class="vb-welcome-card" role="dialog" aria-label="VOICE BOX">
       <div class="vb-top">
-        <div class="vb-logo"><span></span>VOICE BOX</div>
+        <div class="vb-logo"><svg class="vb-mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="24" fill="var(--accent)"/><rect x="28" y="18" width="50" height="64" rx="8" fill="var(--surface)"/><path d="M28 29h-6M28 41h-6M28 53h-6M28 65h-6" stroke="var(--surface)" stroke-width="4" stroke-linecap="round"/><rect x="45" y="30" width="16" height="24" rx="8" fill="var(--accent)"/><path d="M53 35.5l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z" fill="var(--surface)"/><path d="M40 48a13 13 0 0 0 26 0M53 61v8M47 69h12" fill="none" stroke="var(--accent)" stroke-width="3.6" stroke-linecap="round"/></svg>VOICE BOX</div>
         <div class="vb-lang" role="group" aria-label="Language">${[['ko', '한'], ['en', 'EN'], ['ja', '日']].map(([v, l]) => `<button type="button" data-lang="${v}" class="${v === lang ? 'on' : ''}">${l}</button>`).join('')}</div>
       </div>
       <h1>${t.head}</h1>
