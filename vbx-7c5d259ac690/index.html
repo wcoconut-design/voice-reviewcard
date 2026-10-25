@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko" class="vb-mobile">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4F5F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15161C" media="(prefers-color-scheme: dark)">
+<title>VOICE BOX</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="VOICE BOX">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="app" id="app">
+
+ <!-- 왼쪽 메뉴 -->
+ <nav class="sidebar" id="sidebar" aria-label="정리함">
+  <a class="brand" href="#" id="homeLink"><span class="brand-mark" aria-hidden="true"></span>VOICE BOX</a>
+  <div class="nav-group">
+   <div class="nav-title" data-menu="g-library">정리함</div>
+   <div id="navMain"></div>
+  </div>
+  <div class="nav-group">
+   <div class="nav-title" data-menu="g-notion">노션</div>
+   <div id="navNotion"></div>
+  </div>
+  <div class="nav-group">
+   <div class="nav-title nav-title-row"><span data-menu="g-folders">내 폴더</span> <button class="link-btn" id="newFolder" type="button" data-menu="new-folder">+ 새 폴더</button></div>
+   <div id="navFolders"></div>
+  </div>
+  <div class="sidebar-foot">
+   <button class="ghost-btn" id="openSettings" type="button">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+    <span data-menu="settings">설정 · 노션 · 백업</span>
+   </button>
+   <div class="sync-line" id="syncLine"></div>
+  </div>
+ </nav>
+
+ <!-- 가운데 목록 -->
+ <main class="main" id="main">
+  <header class="main-head">
+   <div class="title-row">
+    <h1 id="viewTitle">전체 작품</h1><span class="count" id="viewCount"></span>
+    <button class="primary-btn" id="addWork" type="button" data-menu="add">+ 작품 추가</button>
+   </div>
+   <label class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+    <input id="search" type="search" placeholder="작품명, 성우, 서클, 태그, 코드, 감상" autocomplete="off">
+   </label>
+   <div class="filters">
+    <select id="fActor" aria-label="성우"><option value="">성우 · 전체</option></select>
+    <select id="fCircle" aria-label="서클"><option value="">서클 · 전체</option></select>
+    <select id="fTag" aria-label="장르"><option value="">장르 · 전체</option></select>
+    <select id="fRating" aria-label="별점">
+     <option value="">별점 · 전체</option><option value="5">★5</option><option value="4">★4 이상</option><option value="3">★3 이상</option><option value="0">별점 없음</option>
+    </select>
+    <button class="tool-btn filter-btn" id="filterBtn" type="button">필터</button>
+    <select id="fSort" aria-label="정렬">
+     <option value="updated">최근 수정순</option>
+     <option value="created">등록순</option>
+     <option value="date">발매일 최신순</option>
+     <option value="dateOld">발매일 오래된순</option>
+     <option value="rating">별점 높은순</option>
+     <option value="played">최근 들은순</option>
+     <option value="title">제목순</option>
+    </select>
+    <button class="link-btn" id="resetFilters" type="button" hidden>필터 초기화</button>
+    <button class="tool-btn icon-only" id="toggleHidden" type="button" aria-pressed="false" title="숨긴 작품도 목록에 보기" aria-label="숨긴 작품 보기">
+     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+    </button>
+    <div class="view-switch" role="group" aria-label="보기 형식">
+     <button type="button" data-view="list" aria-label="목록 보기" title="목록 보기"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg></button>
+     <button type="button" data-view="grid" aria-label="표지 보기" title="표지 보기"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg></button>
+    </div>
+   </div>
+  </header>
+  <section class="stats" id="stats" hidden></section>
+  <div class="list" id="list" role="list"></div>
+  <div class="list-more" id="listMore"></div>
+ </main>
+
+ <!-- 칸막이: 끌어서 상세 폭 조절 -->
+ <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="목록과 상세 사이 칸막이 (끌어서 폭 조절, 두 번 누르면 기본 폭)" tabindex="0" title="끌어서 폭 조절 · 두 번 누르면 기본 폭" hidden></div>
+ <!-- 오른쪽 상세 -->
+ <aside class="detail" id="detail" aria-label="작품 상세" hidden></aside>
+</div>
+
+<!-- 폰 하단 탭 -->
+<nav class="tabbar" id="tabbar" aria-label="메뉴">
+ <button type="button" data-tab="list" class="on" data-menu="tab-list">목록</button>
+ <button type="button" data-tab="search" data-menu="tab-search">검색</button>
+ <button type="button" data-tab="menu" data-menu="tab-menu">정리함</button>
+ <button type="button" data-tab="settings" data-menu="tab-settings">설정</button>
+</nav>
+<div class="scrim" id="scrim" hidden></div>
+
+<!-- 편집 -->
+<dialog class="modal modal-wide" id="editor"></dialog>
+<!-- 노션 반영 -->
+<dialog class="modal" id="pushDialog"></dialog>
+<!-- 설정 -->
+<dialog class="modal" id="settings"></dialog>
+<!-- 수정 이력 -->
+<dialog class="modal" id="historyDialog"></dialog>
+<!-- 이미지 크게 보기 -->
+<dialog class="lightbox" id="lightbox"></dialog>
+<!-- 좁은 창 필터 -->
+<dialog class="modal modal-small" id="filterSheet"></dialog>
+<!-- 간단 입력 -->
+<dialog class="modal modal-small" id="promptDialog"></dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>window.VB_MOBILE = true; window.VB_CARD_URL = 'reviewcard.html';</script>
+<script type="module" src="local-api.js"></script>
+<script defer src="markdown.js"></script>
+<script defer src="app.js"></script>
+<script type="module" src="mobile.js"></script>
+</body>
+</html>

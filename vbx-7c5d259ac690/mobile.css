@@ -1,0 +1,15 @@
+/* 폰 앱 전용 */
+.vb-mobile #navNotion, .vb-mobile #navNotion + *, .vb-mobile .nav-group:has(#navNotion) { display: none; }
+.vb-mobile .d-pop { display: none !important; }
+.vb-welcome { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); overflow-y: auto; }
+.vb-welcome-card { width: 100%; max-width: 440px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 28px 24px; display: flex; flex-direction: column; gap: 14px; }
+.vb-logo { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: .08em; }
+.vb-logo span { width: 14px; height: 14px; border-radius: 50%; border: 3px solid currentColor; }
+.vb-welcome h1 { margin: 6px 0 0; font-size: 22px; line-height: 1.4; }
+.vb-welcome p { margin: 0; color: var(--text-2); line-height: 1.7; }
+.vb-welcome ul { margin: 0; padding-left: 18px; color: var(--text-2); line-height: 1.8; font-size: 14px; }
+.vb-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.vb-btn { height: 46px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font: inherit; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text); }
+.vb-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.vb-small { font-size: 12.5px !important; color: var(--muted) !important; }
+.vb-msg { font-size: 14px; color: var(--accent) !important; min-height: 1em; }
