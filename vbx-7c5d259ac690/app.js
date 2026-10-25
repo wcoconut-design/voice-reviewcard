@@ -192,6 +192,8 @@ const MENU_KO = {
   'pending-title': '노션 반영 대기', 'stats-title': '통계', 'add': '+ 작품 추가',
   'tab-home': '홈', 'tab-stats': '차트',
 };
+// 폰 앱(노션 연동 없음)은 설정 메뉴 이름에서 '노션'을 뺍니다.
+if (window.VB_MOBILE) { MENU_KO.settings = '설정 · 백업'; MENU_EN.settings = 'Settings'; MENU_JA.settings = '設定'; }
 const menuText = (key) => (S.menuLang === 'en' ? MENU_EN[key] : S.menuLang === 'ja' ? MENU_JA[key] : MENU_KO[key] ?? (NAV.find((n) => n[0] === key) || [])[1]) || key;
 // 메뉴 언어를 따르는 화면 글자 (검색 화면, 칩, 설정의 보기 항목 등)
 const UI = {
@@ -1241,6 +1243,32 @@ function renderPush() {
 
 /* ================= 설정 ================= */
 let settingsTimer;
+// 폰 앱: 판매 링크로 정보 채우기에 쓰는 중계 서버 주소와 열쇠 (이 기기에만 저장)
+const getRelay = () => { try { return JSON.parse(localStorage.getItem('voicebox.relay') || 'null') || {}; } catch { return {}; } };
+function relayBlockHtml() {
+  const r = getRelay();
+  return `<div class="set-block"><h3>${L('정보 채우기 서버')}</h3>
+    <div class="note">${L('판매 링크로 작품 정보를 채울 때 쓰는 중계 서버(Cloudflare Worker)예요. 주소와 열쇠는 이 기기에만 저장돼요.')}</div>
+    <input class="input" id="relayUrl" placeholder="https://vb-info.○○.workers.dev" value="${esc(r.url || '')}" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <input class="input" id="relayKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" value="${esc(r.key || '')}" autocomplete="off" style="margin-top:6px">
+    <div class="set-row"><button type="button" class="ghost-btn" id="relaySave">${L('저장하고 연결 확인')}</button>${r.url ? `<button type="button" class="link-btn" id="relayClear">${L('연결 해제')}</button>` : ''}</div>
+    <div class="note" id="relayState">${r.url ? L('연결돼 있어요.') : L('아직 연결하지 않았어요.')}</div></div>`;
+}
+async function testRelay() {
+  const url = $('relayUrl').value.trim().replace(/\/+$/, '');
+  const key = $('relayKey').value.trim();
+  const st = $('relayState');
+  if (!/^(https:\/\/|http:\/\/(127\.0\.0\.1|localhost)[:/])/.test(url + '/') || !key) { st.textContent = L('https로 시작하는 주소와 열쇠를 모두 넣어 주세요.'); return; }
+  st.textContent = L('확인 중…');
+  try {
+    const r = await fetch(url + '/info', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VB-Key': key }, body: '{}' });
+    if (r.status === 401) { st.textContent = L('열쇠가 맞지 않아요. Cloudflare의 VB_KEY와 같은지 확인해 주세요.'); return; }
+    const j = await r.json().catch(() => null);
+    if (!j || (r.status !== 502 && r.status !== 200)) { st.textContent = L('응답이 이상해요. 주소를 확인해 주세요.') + (j?.error ? ' (' + j.error + ')' : ''); return; }
+    try { localStorage.setItem('voicebox.relay', JSON.stringify({ url, key })); } catch {}
+    st.textContent = '✓ ' + L('연결했어요. 이제 작품 추가에서 판매 링크를 넣고 정보 채우기를 누르면 돼요.');
+  } catch { st.textContent = L('서버에 연결하지 못했어요. 주소를 확인해 주세요.'); }
+}
 // 폰 앱: 앱으로 실행 중인지, 인터넷 없이 열 준비가 됐는지
 function offlineStatusHtml() {
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -1259,7 +1287,7 @@ async function openSettings() {
     <div class="m-head"><h2>${L("설정")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
     <div class="m-body">
       ${n.unsupported ? `<div class="set-block"><h3>${L("이 기기의 기록")}</h3>
-        <div class="note">${L("모든 기록은 이 기기 안에만 저장되고 서버로 보내지 않아요. 기기를 바꾸거나 다른 기기와 옮길 때는 아래 '복원용 백업 받기'로 파일을 받아 두고, 새 기기에서 '백업에서 복원'을 고르세요. 같은 작품은 최근에 고친 쪽을 남기고 합칠 수 있어요.")}</div>${offlineStatusHtml()}</div>` : `<div class="set-block">
+        <div class="note">${L("모든 기록은 이 기기 안에만 저장되고 서버로 보내지 않아요. 기기를 바꾸거나 다른 기기와 옮길 때는 아래 '복원용 백업 받기'로 파일을 받아 두고, 새 기기에서 '백업에서 복원'을 고르세요. 같은 작품은 최근에 고친 쪽을 남기고 합칠 수 있어요.")}</div>${offlineStatusHtml()}</div>${relayBlockHtml()}` : `<div class="set-block">
         <h3>${L("노션 연결")}</h3>
         ${n.connected ? `<div class="banner ok">${L("CD LIST에 연결돼 있어요.")}</div>
           <div class="note" id="syncState">${syncText(n)}</div>
@@ -1348,6 +1376,8 @@ async function openSettings() {
   }));
   $('imgCovers').onclick = () => startImages(true);
   $('imgAll').onclick = () => startImages(false);
+  $('relaySave') && ($('relaySave').onclick = testRelay);
+  $('relayClear') && ($('relayClear').onclick = () => { try { localStorage.removeItem('voicebox.relay'); } catch {} openSettings(); });
   $('restoreFile').onchange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;

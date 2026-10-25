@@ -108,6 +108,26 @@ class ApiError extends Error { constructor(msg, status = 400) { super(msg); this
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const MOBILE_ONLY = '이 앱에서는 노션 연동을 지원하지 않아요. 기록은 복원용 백업(JSON)으로 옮겨 주세요.';
 
+// 정보 채우기: 설정에 넣은 중계 서버(Cloudflare Worker)로 판매 페이지를 읽어 와요.
+const lang = () => { try { return JSON.parse(localStorage.getItem('voicebox.view') || '{}').menuLang || 'ko'; } catch { return 'ko'; } };
+const msg = (ko, en, ja) => ({ en, ja }[lang()] || ko);
+export function relayConfig() { try { return JSON.parse(localStorage.getItem('voicebox.relay') || 'null'); } catch { return null; } }
+async function relayInfo(body) {
+  const cfg = relayConfig();
+  const paste = msg('판매 페이지 글을 원문 칸에 붙여넣고 "원문에서 작품명·성우·발매일 찾기"를 눌러도 돼요.', 'You can also paste the store page text into the original tab and use "Find title, actors and date".', '販売ページの文章を原文欄に貼り付けて「原文から作品名・声優・発売日を探す」も使えます。');
+  if (!cfg?.url || !cfg?.key) throw new ApiError(msg('설정 → 정보 채우기 서버를 먼저 연결해 주세요. ', 'Connect the info server in Settings first. ', '先に設定で情報取得サーバーを接続してください。') + paste);
+  let r;
+  try {
+    r = await realFetch(cfg.url.replace(/\/+$/, '') + '/info', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VB-Key': cfg.key }, body: JSON.stringify({ url: body.url || '' }), signal: AbortSignal.timeout(25000) });
+  } catch {
+    throw new ApiError(msg('정보 채우기 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요. ', 'Could not reach the info server. Check your connection. ', '情報取得サーバーに接続できませんでした。インターネット接続を確認してください。') + paste, 502);
+  }
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new ApiError(msg('정보 채우기 서버의 열쇠가 맞지 않아요. 설정에서 확인해 주세요.', 'The info server key does not match. Check Settings.', '情報取得サーバーのキーが一致しません。設定を確認してください。'), 401);
+  if (!r.ok) throw new ApiError((j.error || msg('정보를 가져오지 못했어요.', 'Could not fetch the info.', '情報を取得できませんでした。')) + ' ' + paste, 502);
+  return j;
+}
+
 async function handle(method, path, url, body) {
   await ready;
   let m;
@@ -140,7 +160,7 @@ async function handle(method, path, url, body) {
     return fullItem(update(id, Object.fromEntries(keys.map((k) => [k, h.data[k]])), '이력에서 되돌림'));
   }
   if (method === 'POST' && path === 'upload') return { src: await saveUpload(url.searchParams.get('work'), body) };
-  if (method === 'POST' && path === 'info') throw new ApiError('폰 버전에서는 링크로 정보 채우기를 쓸 수 없어요. 판매 페이지 글을 원문 칸에 붙여넣고 "원문에서 작품명·성우·발매일 찾기"를 눌러 주세요.');
+  if (method === 'POST' && path === 'info') return relayInfo(typeof body === 'string' ? JSON.parse(body || '{}') : body || {});
   if (method === 'POST' && path === 'folders') {
     const n = String(JSON.parse(body || '{}').name || '').trim();
     if (!n) throw new ApiError('폴더 이름을 입력해 주세요.');

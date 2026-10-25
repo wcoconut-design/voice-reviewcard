@@ -1,6 +1,8 @@
 /* 폰 앱 전용 */
 .vb-mobile #navNotion, .vb-mobile #navNotion + *, .vb-mobile .nav-group:has(#navNotion) { display: none; }
 .vb-mobile .d-pop { display: none !important; }
+/* 폰 앱에는 노션 연동이 없어요 */
+.vb-mobile .sync-line, .vb-mobile .notion-bar, .vb-mobile .notion-ok, .vb-mobile .d-links a[href*="notion.so"], .vb-mobile [data-act="push"] { display: none !important; }
 .vb-welcome { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: flex-start; justify-content: center; padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom)); overflow-y: auto; }
 .vb-welcome-card { width: 100%; max-width: 440px; margin: auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px 20px; display: flex; flex-direction: column; gap: 14px; }
 .vb-top { display: flex; align-items: center; justify-content: space-between; }
