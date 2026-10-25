@@ -31,3 +31,11 @@
 .vb-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
 .vb-small { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
 .vb-msg { margin: 0; font-size: 14px; color: var(--accent); min-height: 1em; }
+
+.vb-banner { position: fixed; left: 10px; right: 10px; bottom: calc(78px + env(safe-area-inset-bottom)); z-index: 90; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.55; color: var(--text-2); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.vb-banner.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.vb-banner-acts { display: flex; gap: 8px; justify-content: flex-end; }
+.vb-banner button { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; }
+.vb-banner.warn button { border-color: transparent; }
+.vb-offline { display: flex; align-items: center; gap: 8px; font-size: 13.5px; padding: 8px 10px; border-radius: 8px; background: var(--ok-bg); color: var(--ok); margin-top: 8px; }
+.vb-offline.no { background: var(--warn-bg); color: var(--warn); }

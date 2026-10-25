@@ -1,4 +1,4 @@
-// VOICE BOX 폰 앱: 아이맥 서버 대신 이 기기 안에서 데이터를 저장하고 처리합니다.
+// VOICE BOX 폰 앱: 서버 없이 이 기기 안에서 데이터를 저장하고 처리합니다.
 // 화면 코드(app.js)가 'api/...'로 요청하면 여기서 가로채서 IndexedDB(기기 안 저장소)로 답해요.
 // 기록은 이 기기 안에만 있어요. 다른 기기로 옮길 때는 '복원용 백업(JSON)'을 쓰세요.
 import { normalizeWork } from './model.js';
@@ -106,7 +106,7 @@ async function saveUpload(workId, blob) {
 /* ---------- 요청 처리 ---------- */
 class ApiError extends Error { constructor(msg, status = 400) { super(msg); this.status = status; } }
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
-const MOBILE_ONLY = '폰 버전에서는 아직 노션 연동이 없어요. 아이맥에서 받은 복원용 백업(JSON)으로 옮겨 주세요.';
+const MOBILE_ONLY = '이 앱에서는 노션 연동을 지원하지 않아요. 기록은 복원용 백업(JSON)으로 옮겨 주세요.';
 
 async function handle(method, path, url, body) {
   await ready;

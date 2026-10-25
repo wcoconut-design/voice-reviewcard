@@ -1,7 +1,7 @@
 {
  "name": "VOICE BOX",
  "short_name": "VOICE BOX",
- "description": "보이스 드라마 감상 기록장",
+ "description": "VOICE BOX · 보이스 작품 감상 기록장",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",

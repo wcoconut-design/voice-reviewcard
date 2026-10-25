@@ -1241,6 +1241,14 @@ function renderPush() {
 
 /* ================= 설정 ================= */
 let settingsTimer;
+// 폰 앱: 앱으로 실행 중인지, 인터넷 없이 열 준비가 됐는지
+function offlineStatusHtml() {
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const ready = !!navigator.serviceWorker?.controller;
+  if (standalone && ready) return `<div class="vb-offline">✓ ${L('앱으로 실행 중 · 인터넷 없이도 열려요')}</div>`;
+  if (!standalone) return `<div class="vb-offline no">${L('브라우저에서 열려 있어요. 홈 화면에 설치한 아이콘으로 열어야 인터넷 없이 열리고, 기록도 앱 안에 따로 저장돼요.')}</div>`;
+  return `<div class="vb-offline no">${L('아직 오프라인 준비 중이에요. 인터넷이 연결된 상태에서 한 번 더 열어 주세요.')}</div>`;
+}
 async function openSettings() {
   const dlg = $('settings');
   const n = await api('api/notion/status').catch(() => S.notion);
@@ -1251,7 +1259,7 @@ async function openSettings() {
     <div class="m-head"><h2>${L("설정")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
     <div class="m-body">
       ${n.unsupported ? `<div class="set-block"><h3>${L("이 기기의 기록")}</h3>
-        <div class="note">${L("폰 버전은 모든 기록을 이 기기 안에 저장해요. 다른 기기와 옮길 때는 아래 '복원용 백업'을 내보내고, 받는 쪽에서 '백업에서 복원 → 합치기'를 고르세요. 노션 연동은 다음 버전에서 추가할 예정이에요.")}</div></div>` : `<div class="set-block">
+        <div class="note">${L("모든 기록은 이 기기 안에만 저장되고 서버로 보내지 않아요. 기기를 바꾸거나 다른 기기와 옮길 때는 아래 '복원용 백업 받기'로 파일을 받아 두고, 새 기기에서 '백업에서 복원'을 고르세요. 같은 작품은 최근에 고친 쪽을 남기고 합칠 수 있어요.")}</div>${offlineStatusHtml()}</div>` : `<div class="set-block">
         <h3>${L("노션 연결")}</h3>
         ${n.connected ? `<div class="banner ok">${L("CD LIST에 연결돼 있어요.")}</div>
           <div class="note" id="syncState">${syncText(n)}</div>

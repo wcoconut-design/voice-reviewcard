@@ -307,6 +307,10 @@ window.VB_I18N = {
   '이상인 작품이에요.': ['and up.', '以上の作品です。'],
   '데이터를 불러오지 못했어요': ['Could not load the data', 'データを読み込めませんでした'],
   '목록에서 숨기기': ['Hide from list', 'リストで非表示'],
+  "모든 기록은 이 기기 안에만 저장되고 서버로 보내지 않아요. 기기를 바꾸거나 다른 기기와 옮길 때는 아래 '복원용 백업 받기'로 파일을 받아 두고, 새 기기에서 '백업에서 복원'을 고르세요. 같은 작품은 최근에 고친 쪽을 남기고 합칠 수 있어요.": ["All data stays on this device and is never sent to a server. To switch or share devices, use 'Save restore backup' below, then choose 'Restore from backup' on the new device. Works edited on both are merged, keeping the most recent edit.", 'すべての記録はこの端末の中だけに保存され、サーバーには送りません。機種変更や他の端末に移すときは下の「復元用バックアップを保存」でファイルを保存し、新しい端末で「バックアップから復元」を選んでください。同じ作品は最近編集した方を残して統合できます。'],
+  '앱으로 실행 중 · 인터넷 없이도 열려요': ['Running as an app · opens without internet', 'アプリとして実行中 · オフラインでも開けます'],
+  '브라우저에서 열려 있어요. 홈 화면에 설치한 아이콘으로 열어야 인터넷 없이 열리고, 기록도 앱 안에 따로 저장돼요.': ['Open in a browser. Open it from the installed Home Screen icon to use it offline; the app keeps its own separate data.', 'ブラウザで開いています。ホーム画面にインストールしたアイコンから開くとオフラインでも使え、記録もアプリ内に別に保存されます。'],
+  '아직 오프라인 준비 중이에요. 인터넷이 연결된 상태에서 한 번 더 열어 주세요.': ['Still getting ready for offline use. Open it once more while online.', 'まだオフラインの準備中です。インターネットに接続した状態でもう一度開いてください。'],
   // index.html
   '정리함': ['Library', 'ライブラリ'],
   '노션': ['Notion', 'Notion'],

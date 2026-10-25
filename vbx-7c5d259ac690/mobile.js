@@ -17,6 +17,7 @@ if ('serviceWorker' in navigator) {
 
 const isStandalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+const isIOSOther = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(navigator.userAgent);
 
 const ICON = {
   lock: '<path d="M7 11V8a5 5 0 0 1 10 0v3"/><rect x="5" y="11" width="14" height="10" rx="2"/>',
@@ -31,41 +32,56 @@ const T = {
   ko: {
     head: '목소리로 남는 이야기,<br>내 기록장',
     lead: '들은 보이스 작품의 별점과 감상을 모아두는 개인 기록 앱이에요.',
-    f1: '기록은 <b>이 폰 안에만</b> 저장돼요', f2: '인터넷이 없어도 열려요',
+    f1: '기록은 <b>이 기기 안에만</b> 저장돼요 · 서버로 보내지 않아요', f2: '설치하면 <b>인터넷 없이도</b> 열려요',
     install: '앱으로 설치하기', ios: '아이폰', android: '안드로이드',
-    iosSteps: [`Safari 아래쪽 공유 버튼 ${svg(ICON.share, 14)}<br><small>Chrome은 주소창 오른쪽 공유 버튼</small>`, '<b>홈 화면에 추가</b> → 추가', '홈 화면의 <b>VOICE BOX 아이콘</b>으로 열기', '거기서 <b>백업 파일 불러오기</b>'],
-    iosNote: '아이폰은 브라우저와 홈 화면 앱의 저장 공간이 따로예요. 꼭 설치한 아이콘에서 불러오세요.',
-    andSteps: [`Chrome 오른쪽 위 ${svg(ICON.dots, 14)} 메뉴`, '<b>앱 설치</b> 또는 <b>홈 화면에 추가</b>', '설치된 <b>VOICE BOX</b> 아이콘으로 열기', '<b>백업 파일 불러오기</b>'],
-    installed: '앱으로 설치되어 있어요.',
-    load: '백업 파일 불러오기', blank: '빈 상태로 시작',
-    small: '아이맥 VOICE BOX 등에서 받은 <b>복원용 백업(JSON)</b>을 불러오면 이어서 쓸 수 있어요. 기록은 가끔 설정 → 복원용 백업 받기로 보관해 두세요.',
+    iosSteps: [`<b>Safari</b>로 이 주소 열기`, `아래쪽 공유 버튼 ${svg(ICON.share, 14)} → <b>홈 화면에 추가</b>`, '<b>웹 앱으로 열기</b>가 켜져 있는지 확인 → 추가', '홈 화면의 <b>VOICE BOX 아이콘</b>으로 열고 시작하기'],
+    iosNote: 'Chrome 등 다른 브라우저로 추가하면 즐겨찾기처럼 브라우저로 열리고 인터넷 없이는 열리지 않아요. 기록도 브라우저와 앱이 따로 저장돼요.',
+    andSteps: [`Chrome 오른쪽 위 ${svg(ICON.dots, 14)} 메뉴`, '<b>앱 설치</b> (없으면 <b>홈 화면에 추가</b> → 설치)', '앱 목록의 <b>VOICE BOX</b>로 열고 시작하기'],
+    andNote: '설치한 앱과 브라우저의 기록은 따로 저장돼요. 설치한 앱에서 시작하세요.',
+    installed: '앱으로 실행 중이에요. 인터넷 없이도 열려요.',
+    load: '백업 파일 불러오기', blank: '처음부터 시작',
+    small: '전에 받아 둔 <b>복원용 백업(JSON)</b>이 있으면 불러와서 이어서 쓸 수 있어요. 기록은 이 기기에만 있으니 가끔 <b>설정 → 복원용 백업 받기</b>로 보관해 두세요.',
     loading: '불러오는 중…', done: (n) => `작품 ${n}개를 불러왔어요.`, fail: '불러오지 못했어요: ',
+    bIosOther: '지금은 브라우저 안에서 열려 있어요. 아이폰은 <b>Safari</b>로 홈 화면에 추가해야 인터넷 없이 열리고 기록도 안전하게 남아요.',
+    bIosSafari: '브라우저 탭에서 열려 있어요. <b>공유 → 홈 화면에 추가</b>로 설치하면 인터넷 없이도 열려요.',
+    bAndroid: '브라우저 탭에서 열려 있어요. Chrome <b>⋮ → 앱 설치</b>로 설치하면 인터넷 없이도 열려요.',
+    copy: '주소 복사', copied: '복사했어요', later: '닫기',
   },
   en: {
     head: 'Stories that stay as voices,<br>your own log',
     lead: 'A personal app for keeping ratings and reviews of the voice works you listen to.',
-    f1: 'Everything stays <b>on this phone</b>', f2: 'Works without internet',
+    f1: 'Everything stays <b>on this device</b> · nothing is sent to a server', f2: 'Once installed, it opens <b>without internet</b>',
     install: 'Install as an app', ios: 'iPhone', android: 'Android',
-    iosSteps: [`Tap Share ${svg(ICON.share, 14)} at the bottom of Safari<br><small>In Chrome, Share is at the right of the address bar</small>`, '<b>Add to Home Screen</b> → Add', 'Open from the <b>VOICE BOX icon</b>', 'Then <b>Import backup</b> there'],
-    iosNote: 'On iPhone, the browser and the home screen app keep separate data. Import from the installed icon.',
-    andSteps: [`Chrome menu ${svg(ICON.dots, 14)} at the top right`, '<b>Install app</b> or <b>Add to Home screen</b>', 'Open the <b>VOICE BOX</b> icon', '<b>Import backup</b>'],
-    installed: 'Installed as an app.',
-    load: 'Import backup file', blank: 'Start empty',
-    small: 'Import a <b>restore backup (JSON)</b> from VOICE BOX on your Mac to continue where you left off. Save a backup now and then from Settings.',
+    iosSteps: [`Open this address in <b>Safari</b>`, `Share ${svg(ICON.share, 14)} → <b>Add to Home Screen</b>`, 'Make sure <b>Open as Web App</b> is on → Add', 'Open the <b>VOICE BOX icon</b> and start there'],
+    iosNote: 'Added from Chrome or another browser, the icon works like a bookmark and will not open offline. The browser and the app also keep separate data.',
+    andSteps: [`Chrome menu ${svg(ICON.dots, 14)} at the top right`, '<b>Install app</b> (or <b>Add to Home screen</b> → Install)', 'Open <b>VOICE BOX</b> from your apps and start there'],
+    andNote: 'The installed app and the browser keep separate data. Start in the installed app.',
+    installed: 'Running as an app. It opens without internet.',
+    load: 'Import backup file', blank: 'Start fresh',
+    small: 'Have a <b>restore backup (JSON)</b>? Import it to continue where you left off. Your data lives only on this device, so save a backup now and then in <b>Settings</b>.',
     loading: 'Importing…', done: (n) => `Imported ${n} works.`, fail: 'Could not import: ',
+    bIosOther: 'This is open inside a browser. On iPhone, add it to the Home Screen from <b>Safari</b> to open it offline and keep your data safe.',
+    bIosSafari: 'Open in a browser tab. Install with <b>Share → Add to Home Screen</b> to open it without internet.',
+    bAndroid: 'Open in a browser tab. Install with Chrome <b>⋮ → Install app</b> to open it without internet.',
+    copy: 'Copy link', copied: 'Copied', later: 'Close',
   },
   ja: {
     head: '声で残る物語、<br>わたしの記録帳',
     lead: '聴いたボイス作品の評価と感想をまとめておく、個人用の記録アプリです。',
-    f1: '記録は<b>このスマホの中だけ</b>に保存', f2: 'オフラインでも開けます',
+    f1: '記録は<b>この端末の中だけ</b>に保存 · サーバーには送りません', f2: 'インストールすると<b>オフラインでも</b>開けます',
     install: 'アプリとしてインストール', ios: 'iPhone', android: 'Android',
-    iosSteps: [`Safari 下部の共有ボタン ${svg(ICON.share, 14)}<br><small>Chrome はアドレスバー右の共有ボタン</small>`, '<b>ホーム画面に追加</b> → 追加', 'ホーム画面の <b>VOICE BOX アイコン</b>から開く', 'そこで<b>バックアップを読み込む</b>'],
-    iosNote: 'iPhone ではブラウザとホーム画面アプリの保存領域が別です。必ずインストールしたアイコンから読み込んでください。',
-    andSteps: [`Chrome 右上の ${svg(ICON.dots, 14)} メニュー`, '<b>アプリをインストール</b> または <b>ホーム画面に追加</b>', 'インストールした <b>VOICE BOX</b> を開く', '<b>バックアップを読み込む</b>'],
-    installed: 'アプリとしてインストール済みです。',
-    load: 'バックアップを読み込む', blank: '空の状態で始める',
-    small: 'Mac 版 VOICE BOX などで保存した<b>復元用バックアップ(JSON)</b>を読み込むと、続きから使えます。設定からときどきバックアップしておきましょう。',
+    iosSteps: [`<b>Safari</b>でこのアドレスを開く`, `下部の共有ボタン ${svg(ICON.share, 14)} → <b>ホーム画面に追加</b>`, '<b>Webアプリとして開く</b>がオンか確認 → 追加', 'ホーム画面の <b>VOICE BOX アイコン</b>から開いて始める'],
+    iosNote: 'Chrome など他のブラウザで追加するとブックマークのようにブラウザで開き、オフラインでは開けません。記録もブラウザとアプリで別々に保存されます。',
+    andSteps: [`Chrome 右上の ${svg(ICON.dots, 14)} メニュー`, '<b>アプリをインストール</b>(ない場合は<b>ホーム画面に追加</b> → インストール)', 'アプリ一覧の <b>VOICE BOX</b> から開いて始める'],
+    andNote: 'インストールしたアプリとブラウザの記録は別々に保存されます。インストールしたアプリで始めてください。',
+    installed: 'アプリとして実行中です。オフラインでも開けます。',
+    load: 'バックアップを読み込む', blank: '最初から始める',
+    small: '以前保存した<b>復元用バックアップ(JSON)</b>があれば、読み込んで続きから使えます。記録はこの端末にだけあるので、ときどき<b>設定 → 復元用バックアップを保存</b>で保管しましょう。',
     loading: '読み込み中…', done: (n) => `${n}作品を読み込みました。`, fail: '読み込めませんでした: ',
+    bIosOther: 'いまブラウザの中で開いています。iPhone では <b>Safari</b> からホーム画面に追加すると、オフラインでも開けて記録も安全に残ります。',
+    bIosSafari: 'ブラウザのタブで開いています。<b>共有 → ホーム画面に追加</b>でインストールするとオフラインでも開けます。',
+    bAndroid: 'ブラウザのタブで開いています。Chrome の <b>⋮ → アプリをインストール</b>でインストールするとオフラインでも開けます。',
+    copy: 'リンクをコピー', copied: 'コピーしました', later: '閉じる',
   },
 };
 
@@ -98,9 +114,10 @@ function welcome() {
       <div class="vb-feats"><span>${svg(ICON.lock)}<span>${t.f1}</span></span><span>${svg(ICON.offline)}<span>${t.f2}</span></span></div>
       ${isStandalone ? `<p class="vb-ok">✓ ${t.installed}</p>` : `
       <div class="vb-install">
+        ${isIOSOther ? `<p class="vb-note">${t.bIosOther}</p>` : ''}
         <div class="vb-sec">${t.install}</div>
         <div class="vb-os" role="tablist">${[['ios', t.ios], ['android', t.android]].map(([v, l]) => `<button type="button" role="tab" data-os="${v}" class="${v === os ? 'on' : ''}">${l}</button>`).join('')}</div>
-        ${os === 'ios' ? steps(t.iosSteps) + `<p class="vb-note">${t.iosNote}</p>` : steps(t.andSteps)}
+        ${os === 'ios' ? steps(t.iosSteps) + `<p class="vb-note">${t.iosNote}</p>` : steps(t.andSteps) + `<p class="vb-note">${t.andNote}</p>`}
       </div>`}
       <div class="vb-actions">
         <label class="vb-btn vb-primary">${svg(ICON.file, 18)}${t.load}<input type="file" accept=".json,application/json" hidden></label>
@@ -133,5 +150,23 @@ function welcome() {
   draw();
 }
 
+// 설치하지 않고 브라우저 탭에서 열었을 때 안내 줄
+function browserBanner() {
+  if (isStandalone) return;
+  try { if (Number(localStorage.getItem('voicebox.bannerHidden') || 0) > Date.now()) return; } catch {}
+  const t = T[getLang()];
+  const msg = isIOS ? (isIOSOther ? t.bIosOther : t.bIosSafari) : t.bAndroid;
+  const bar = document.createElement('div');
+  bar.className = 'vb-banner' + (isIOSOther ? ' warn' : '');
+  bar.innerHTML = `<span>${msg}</span><div class="vb-banner-acts">${isIOSOther ? `<button type="button" data-copy>${t.copy}</button>` : ''}<button type="button" data-hide>${t.later}</button></div>`;
+  document.body.appendChild(bar);
+  document.body.classList.add('has-banner');
+  bar.querySelector('[data-hide]').onclick = () => {
+    bar.remove(); document.body.classList.remove('has-banner');
+    try { localStorage.setItem('voicebox.bannerHidden', String(Date.now() + (isIOSOther ? 864e5 : 7 * 864e5))); } catch {}
+  };
+  const c = bar.querySelector('[data-copy]');
+  if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(location.href.split('?')[0]); c.textContent = t.copied; } catch {} };
+}
 const started = () => { try { return localStorage.getItem('voicebox.started') === '1'; } catch { return false; } };
-hasData().then((has) => { if (!has && !started()) welcome(); });
+hasData().then((has) => { if (!has && !started()) welcome(); else browserBanner(); });
