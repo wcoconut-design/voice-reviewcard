@@ -824,7 +824,10 @@ $('detail').addEventListener('click', async (e) => {
       // 감상을 쓰는 중이었다면 먼저 저장하고 엽니다.
       const box = $('reviewBox');
       if (box && box.value !== (w.review || '')) await save(w.id, { review: box.value });
-      const win = window.open((window.VB_CARD_URL || 'reviewcard') + '?work=' + encodeURIComponent(w.id), 'voicebox-card-' + w.id);
+      const cardUrl = (window.VB_CARD_URL || 'reviewcard') + '?work=' + encodeURIComponent(w.id);
+      // 폰 앱은 같은 화면에서 넘어가고, 카드 화면의 '‹ 돌아가기'로 이 작품으로 돌아와요.
+      if (window.VB_MOBILE) { location.href = cardUrl; return; }
+      const win = window.open(cardUrl, 'voicebox-card-' + w.id);
       if (!win) toast(L('새 탭이 막혔어요. 주소창 오른쪽의 팝업 허용을 눌러 주세요.'), true);
       return;
     }
@@ -1783,6 +1786,9 @@ $('stats').addEventListener('change', (e) => { if (e.target.id === 'statScope') 
 // 새 창으로 연 경우: 그 작품의 상세만 크게 보여줍니다.
 if (S.solo) document.body.classList.add('solo');
 load().then(() => {
+  // 리뷰카드 화면에서 돌아왔을 때(#open=작품) 그 작품을 다시 열어요.
+  const back = location.hash.match(/^#open=(.+)$/);
+  if (back) { history.replaceState(null, '', location.pathname + location.search); select(decodeURIComponent(back[1]), { push: false }); }
   if (S.solo) {
     select(S.solo, { push: false }).then(() => { if (S.detail) document.title = displayTitle(S.detail) + ' · VOICE BOX'; });
   }

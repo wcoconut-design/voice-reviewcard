@@ -184,7 +184,14 @@ async function handle(method, path, url, body) {
   if (path.startsWith('notion/') || path.startsWith('notion-image/')) throw new ApiError(MOBILE_ONLY, 409);
   if (path === 'images/status') return { running: false, done: 0, total: 0, saved: 0, failed: 0, failures: [], cached: 0, unsupported: true };
   if (path === 'images/download') throw new ApiError('폰 버전은 표지를 판매 사이트에서 바로 불러와요.');
-  if (path === 'image-proxy') throw new ApiError('폰에서는 표지를 자동으로 넣을 수 없어요.', 404);
+  if (path === 'image-proxy') {
+    // 정보 채우기 서버가 연결돼 있으면 그 서버를 거쳐 표지를 받아요 (리뷰카드 표지 자동 넣기).
+    const cfg = relayConfig();
+    if (!cfg?.url) throw new ApiError(msg('설정에서 정보 채우기 서버를 연결하면 표지가 자동으로 들어가요.', 'Connect the info server in Settings to add covers automatically.', '設定で情報取得サーバーを接続すると表紙が自動で入ります。'), 404);
+    const r = await realFetch(cfg.url.replace(/\/+$/, '') + '/image?key=' + encodeURIComponent(cfg.key) + '&src=' + encodeURIComponent(url.searchParams.get('src') || ''));
+    if (!r.ok) throw new ApiError(msg('표지를 가져오지 못했어요.', 'Could not fetch the cover.', '表紙を取得できませんでした。'), 502);
+    return { __raw: r };
+  }
   if (method === 'POST' && path === 'restore') {
     const b = JSON.parse(body || '{}');
     if (b.format !== 'voicebox-local' || !Array.isArray(b.works)) throw new ApiError('VOICE BOX 백업 파일이 아니에요.');
@@ -204,7 +211,8 @@ window.fetch = async (input, init = {}) => {
   const path = url.pathname.slice(API.length);
   const method = (init.method || 'GET').toUpperCase();
   try {
-    return json(await handle(method, path, url, init.body));
+    const out = await handle(method, path, url, init.body);
+    return out && out.__raw ? out.__raw : json(out);
   } catch (e) {
     return json({ error: e.message || '처리하지 못했어요.' }, e.status || 500);
   }

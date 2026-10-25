@@ -25,6 +25,14 @@
   };
 
   // ---------- 위쪽 VOICE BOX 막대 ----------
+  const LANG = (() => { try { return JSON.parse(localStorage.getItem('voicebox.view') || '{}').menuLang || 'ko'; } catch { return 'ko'; } })();
+  const BACK = { en: 'Back', ja: '戻る' }[LANG] || '돌아가기';
+  const isPhoneApp = /reviewcard\.html$/.test(location.pathname);
+  // 원래 화면으로: 새 탭으로 열렸으면 탭을 닫고, 폰 앱처럼 같은 화면에서 넘어왔으면 그 작품 상세로 돌아가요.
+  function goBack() {
+    if (window.opener && !window.opener.closed) { window.close(); return; }
+    location.href = (isPhoneApp ? './' : '/') + '#open=' + encodeURIComponent(workId);
+  }
   const bar = document.createElement('div');
   bar.id = 'vbBar';
   bar.innerHTML = `
@@ -37,13 +45,20 @@
       #vbBar button.p{background:#3443C4;border-color:#3443C4;font-weight:600}
       #vbBar button:disabled{opacity:.6;cursor:default}
       #vbBar img{height:34px;border-radius:4px}
+      #vbBar button.bk{border-color:transparent;padding:0 8px;font-weight:600}
+      #vbBar button{white-space:nowrap}
+      @media (max-width:600px){#vbBar{gap:8px;padding:max(10px,env(safe-area-inset-top)) 10px 10px}#vbBar .t,#vbBar #vbCurrent{display:none}#vbBar .w{max-width:none;flex:1;min-width:0}#vbBar .sp{flex-basis:100%;height:0;margin:0}#vbBar #vbRefill{flex:0 0 auto}#vbBar #vbSave{flex:1}}
     </style>
+    <button type="button" id="vbBack" class="bk">‹ ${BACK}</button>
     <span class="t">VOICE BOX</span><span class="w" id="vbWork">불러오는 중…</span>
     <span class="sp"></span>
     <span id="vbCurrent"></span>
     <button type="button" id="vbRefill" title="작품 정보·감상·표지를 다시 채워요">다시 채우기</button>
     <button type="button" class="p" id="vbSave">VOICE BOX에 대표 카드로 저장</button>`;
   document.body.prepend(bar);
+  document.getElementById('vbBack').onclick = goBack;
+  const saveLabel = matchMedia('(max-width:600px)').matches ? ({ en: 'Save as card', ja: 'カードを保存' }[LANG] || '대표 카드로 저장') : 'VOICE BOX에 대표 카드로 저장';
+  document.getElementById('vbSave').textContent = saveLabel;
 
   // ---------- 채우기 ----------
   async function coverFile(src) {
@@ -136,10 +151,11 @@
       channel?.postMessage({ type: 'work', id: workId });
       showCurrent();
       say(paths.length > 1 ? `대표 카드(${paths.length}장)를 저장했어요.` : '대표 카드를 저장했어요.');
+      if (isPhoneApp) setTimeout(goBack, 1200); // 폰 앱은 저장하면 작품 화면으로 돌아가요
     } catch (e) {
       say(e.message);
     } finally {
-      btn.disabled = false; btn.textContent = 'VOICE BOX에 대표 카드로 저장';
+      btn.disabled = false; btn.textContent = saveLabel;
     }
   };
   $('vbRefill').onclick = () => { if (confirm('제목·성우·서클·장르·감상·별점·표지를 VOICE BOX 내용으로 다시 채울까요?')) fill().catch((e) => say(e.message)); };
