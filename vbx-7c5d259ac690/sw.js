@@ -1,5 +1,5 @@
 // VOICE BOX 폰 앱: 인터넷이 없어도 열리게 앱 파일을 저장해 두고, 직접 첨부한 이미지를 보여줍니다.
-const VERSION = '3a774db020';
+const VERSION = '0c9833db15';
 const SHELL = `vb-shell-${VERSION}`;
 const IMAGE_CACHE = 'vb-images';
 const FILES = ["index.html","app.js","style.css","mobile.css","markdown.js","export-core.js","model.js","local-api.js","mobile.js","reviewcard.html","reviewcard-bridge.js","manifest.webmanifest","icons/icon-180.png","icons/icon-192.png","icons/icon.svg"];
@@ -25,12 +25,14 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(caches.open(IMAGE_CACHE).then((c) => c.match(url.href)).then((r) => r || new Response('', { status: 404 })));
     return;
   }
-  // 앱 파일: 저장해 둔 것을 먼저 보여주고, 뒤에서 새 버전을 받아둬요.
+  // 앱 파일: 인터넷이 되면 새 버전을 먼저 받고(3초 넘으면 저장본), 안 되면 저장해 둔 것을 보여줘요.
   e.respondWith((async () => {
     const cache = await caches.open(SHELL);
     const key = rel === '' || rel === 'index.html' ? 'index.html' : rel;
-    const hit = await cache.match(new URL(key, scope).href, { ignoreSearch: true });
-    const net = fetch(req).then((r) => { if (r.ok && FILES.includes(key)) cache.put(new URL(key, scope).href, r.clone()); return r; }).catch(() => null);
-    return hit || (await net) || new Response('오프라인이에요.', { status: 503 });
+    const cached = () => cache.match(new URL(key, scope).href, { ignoreSearch: true });
+    const net = fetch(req, { cache: 'no-cache' }).then((r) => { if (r.ok && FILES.includes(key)) cache.put(new URL(key, scope).href, r.clone()); return r; }).catch(() => null);
+    const timeout = new Promise((res) => setTimeout(() => res(null), 3000));
+    const first = await Promise.race([net, timeout]);
+    return first || (await cached()) || (await net) || new Response('오프라인이에요. Offline.', { status: 503 });
   })());
 });

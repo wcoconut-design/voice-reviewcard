@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="VOICE BOX">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<script>/* 저장한 화면 모드를 바로 적용 (깜빡임 방지) */try{var t=JSON.parse(localStorage.getItem('voicebox.view')||'{}').theme;if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>/* 저장한 화면 모드를 바로 적용 (깜빡임 방지) */try{var v=JSON.parse(localStorage.getItem('voicebox.view')||'{}'),d=document.documentElement;if(v.theme==='light'||v.theme==='dark')d.dataset.theme=v.theme;if(v.palette==='green'||v.palette==='mono')d.dataset.palette=v.palette;d.lang=v.menuLang==='ja'?'ja':v.menuLang==='en'?'en':'ko'}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="style.css">
@@ -54,10 +54,12 @@
     <h1 id="viewTitle">전체 작품</h1><span class="count" id="viewCount"></span>
     <button class="primary-btn" id="addWork" type="button" data-menu="add">+ 작품 추가</button>
    </div>
-   <label class="search">
+   <div class="nav-chips" id="navChips" role="tablist" aria-label="정리함"></div>
+   <div class="search-row"><label class="search">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-    <input id="search" type="search" placeholder="작품명, 성우, 서클, 태그, 코드, 감상" autocomplete="off">
+    <input id="search" type="search" placeholder="작품명, 성우, 서클, 태그, 코드, 감상" autocomplete="off" enterkeyhint="search">
    </label>
+   <button type="button" class="search-cancel" id="searchCancel" data-ui="cancel">취소</button></div>
    <div class="filters">
     <select id="fActor" aria-label="성우"><option value="">성우 · 전체</option></select>
     <select id="fCircle" aria-label="서클"><option value="">서클 · 전체</option></select>
@@ -85,6 +87,7 @@
     </div>
    </div>
   </header>
+  <section class="search-suggest" id="searchSuggest" hidden></section>
   <section class="stats" id="stats" hidden></section>
   <div class="list" id="list" role="list"></div>
   <div class="list-more" id="listMore"></div>
@@ -98,10 +101,11 @@
 
 <!-- 폰 하단 탭 -->
 <nav class="tabbar" id="tabbar" aria-label="메뉴">
- <button type="button" data-tab="list" class="on" data-menu="tab-list">목록</button>
- <button type="button" data-tab="search" data-menu="tab-search">검색</button>
- <button type="button" data-tab="menu" data-menu="tab-menu">정리함</button>
- <button type="button" data-tab="settings" data-menu="tab-settings">설정</button>
+ <button type="button" data-tab="list" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h4.5v-6h4v6h4.5V9"/></svg><span data-menu="tab-home">홈</span></button>
+ <button type="button" data-tab="search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span data-menu="tab-search">검색</span></button>
+ <button type="button" data-tab="add" class="tab-add" aria-label="작품 추가"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+ <button type="button" data-tab="stats"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13A8.5 8.5 0 1 1 11 3.5V13z"/><path d="M14.5 3.7a8.5 8.5 0 0 1 5.8 5.8h-5.8z"/></svg><span data-menu="tab-stats">차트</span></button>
+ <button type="button" data-tab="settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span data-menu="tab-settings">설정</span></button>
 </nav>
 <div class="scrim" id="scrim" hidden></div>
 

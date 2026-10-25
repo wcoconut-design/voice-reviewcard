@@ -1,15 +1,33 @@
 /* 폰 앱 전용 */
 .vb-mobile #navNotion, .vb-mobile #navNotion + *, .vb-mobile .nav-group:has(#navNotion) { display: none; }
 .vb-mobile .d-pop { display: none !important; }
-.vb-welcome { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); overflow-y: auto; }
-.vb-welcome-card { width: 100%; max-width: 440px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 28px 24px; display: flex; flex-direction: column; gap: 14px; }
+.vb-welcome { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: flex-start; justify-content: center; padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom)); overflow-y: auto; }
+.vb-welcome-card { width: 100%; max-width: 440px; margin: auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px 20px; display: flex; flex-direction: column; gap: 14px; }
+.vb-top { display: flex; align-items: center; justify-content: space-between; }
 .vb-logo { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: .08em; }
-.vb-logo span { width: 14px; height: 14px; border-radius: 50%; border: 3px solid currentColor; }
-.vb-welcome h1 { margin: 6px 0 0; font-size: 22px; line-height: 1.4; }
-.vb-welcome p { margin: 0; color: var(--text-2); line-height: 1.7; }
-.vb-welcome ul { margin: 0; padding-left: 18px; color: var(--text-2); line-height: 1.8; font-size: 14px; }
-.vb-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
-.vb-btn { height: 46px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font: inherit; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text); }
+.vb-logo span { width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--accent); }
+.vb-lang { display: flex; background: var(--chip); border-radius: 9px; padding: 2px; }
+.vb-lang button { border: none; background: none; font: inherit; font-size: 12px; color: var(--muted); padding: 4px 9px; border-radius: 7px; }
+.vb-lang button.on { background: var(--surface); color: var(--accent); font-weight: 600; }
+.vb-welcome h1 { margin: 4px 0 0; font-size: 23px; line-height: 1.35; }
+.vb-lead { margin: 0; color: var(--text-2); line-height: 1.65; font-size: 14.5px; }
+.vb-feats { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--text-2); }
+.vb-feats > span { display: flex; align-items: center; gap: 8px; }
+.vb-feats svg { color: var(--accent); flex: none; }
+.vb-install { background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.vb-sec { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.vb-os { display: flex; background: var(--chip); border-radius: 10px; padding: 3px; }
+.vb-os button { flex: 1; border: none; background: none; font: inherit; font-size: 13.5px; color: var(--muted); padding: 7px; border-radius: 8px; }
+.vb-os button.on { background: var(--surface); color: var(--accent); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.vb-steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 9px; }
+.vb-steps li { counter-increment: s; display: grid; grid-template-columns: 24px 1fr; gap: 8px; align-items: start; font-size: 14px; line-height: 1.5; color: var(--text); }
+.vb-steps li::before { content: counter(s); width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.vb-steps svg { vertical-align: -2px; }
+.vb-steps small { color: var(--muted); font-size: 12px; }
+.vb-note { margin: 0; font-size: 12.5px; color: var(--warn); background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; line-height: 1.55; }
+.vb-ok { margin: 0; color: var(--ok); font-size: 14px; }
+.vb-actions { display: flex; flex-direction: column; gap: 8px; }
+.vb-btn { height: 48px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font: inherit; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: var(--text); }
 .vb-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
-.vb-small { font-size: 12.5px !important; color: var(--muted) !important; }
-.vb-msg { font-size: 14px; color: var(--accent) !important; min-height: 1em; }
+.vb-small { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+.vb-msg { margin: 0; font-size: 14px; color: var(--accent); min-height: 1em; }

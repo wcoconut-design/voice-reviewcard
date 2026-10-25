@@ -51,6 +51,15 @@ export function normalizeDate(v) {
   return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
 }
 
+const money = (v) => {
+  if (v === '' || v == null) return null;
+  const n = Number(String(v).replace(/[^\d.\-]/g, ''));
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+};
+export const CURRENCIES = ['JPY', 'KRW', 'USD'];
+// 구매처 기본 목록 (직접 입력도 돼요)
+export const STORES = ['DLsite', '포케도라', '스텔라워스', '애니메이트'];
+
 export function normalizeWork(w = {}) {
   const rating = Math.round(Number(w.rating) || 0);
   return {
@@ -76,6 +85,12 @@ export function normalizeWork(w = {}) {
     review: String(w.review || '').trim(),
     promo: String(w.promo || '').trim(),
     translation: String(w.translation || '').trim(),
+    // 구매 정보 (이 기기에만 저장, 노션에는 아직 보내지 않아요)
+    purchaseDate: normalizeDate(w.purchaseDate),
+    store: str(w.store),
+    listPrice: money(w.listPrice),
+    paidPrice: money(w.paidPrice),
+    currency: CURRENCIES.includes(str(w.currency)) ? str(w.currency) : 'JPY',
     createdAt: str(w.createdAt),
     updatedAt: str(w.updatedAt),
     notionEditedAt: str(w.notionEditedAt),

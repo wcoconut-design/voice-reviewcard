@@ -23,6 +23,11 @@ const COLUMNS = [
   ['숨김', (w) => (w.hidden ? '숨김' : ''), 6],
   ['폴더', (w) => w.folder, 12],
   ['감상', (w) => w.review, 60],
+  ['구매일', (w) => w.purchaseDate || '', 11],
+  ['구매처', (w) => w.store || '', 12],
+  ['통화', (w) => (w.listPrice != null || w.paidPrice != null ? w.currency || 'JPY' : ''), 6],
+  ['정가', (w) => w.listPrice ?? '', 9, 'number'],
+  ['구매가', (w) => w.paidPrice ?? '', 9, 'number'],
   ['판매 링크', (w) => w.url, 30],
   ['노션 링크', notionLink, 30],
 ];
@@ -106,10 +111,24 @@ export function toXlsx(works, compress) {
     ['즐겨찾기', visible.filter((w) => w.favorite).length],
   ];
 
+  // 지출: 월별 · 통화별 합계 (구매가가 없으면 정가로 셈)
+  const spendMap = new Map();
+  for (const w of visible) {
+    const paid = w.paidPrice ?? w.listPrice;
+    if (!w.purchaseDate || paid == null) continue;
+    const key = w.purchaseDate.slice(0, 7) + '|' + (w.currency || 'JPY');
+    const r = spendMap.get(key) || { n: 0, paid: 0, list: 0 };
+    r.n++; r.paid += paid; r.list += w.listPrice ?? paid;
+    spendMap.set(key, r);
+  }
+  const spendRows = [['월', '통화', '작품 수', '지출', '정가 합계', '아낀 금액'],
+    ...[...spendMap].sort((a, b) => b[0].localeCompare(a[0])).map(([k, r]) => { const [m, c] = k.split('|'); return [m, c, r.n, Math.round(r.paid * 100) / 100, Math.round(r.list * 100) / 100, Math.round((r.list - r.paid) * 100) / 100]; })];
+
   const sheets = [
     ['작품 목록', sheetXml(allRows, COLUMNS.map((c) => c[2]), { types, wrapCols: wrap })],
     ['감상', sheetXml(revRows, [40, 30, 24, 16, 10, 12, 80], { wrapCols: [6] })],
     ['통계', sheetXml(statRows, statWidths, { types: statTypes })],
+    ['지출', sheetXml(spendRows, [10, 7, 9, 12, 12, 12], { types: ['', '', 'number', 'number', 'number', 'number'] })],
     ['요약', sheetXml(summary, [16, 24], { types: ['', 'number'] })],
   ];
 
