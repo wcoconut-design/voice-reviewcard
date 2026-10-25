@@ -25,8 +25,9 @@
   --font: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   color-scheme: light;
 }
+/* 다크 모드: 설정 '화면 모드'에서 시스템 / 라이트 / 다크를 골라요 */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #15161C;
     --surface: #1B1C23;
     --surface-2: #1F2028;
@@ -50,6 +51,30 @@
     --ok: #8FE0B5;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #15161C;
+  --surface: #1B1C23;
+  --surface-2: #1F2028;
+  --chip: #262833;
+  --line: #2A2C36;
+  --line-soft: #23252E;
+  --text: #ECEDF3;
+  --text-2: #CDD0DC;
+  --muted: #A3A6B4;
+  --accent: #A9B3FF;
+  --accent-hover: #C7CDFF;
+  --accent-soft: #272B4A;
+  --on-accent: #151A4A;
+  --star: #F2B84B;
+  --star-off: #3A3C48;
+  --warn-bg: #3A2E14;
+  --warn: #F5D48A;
+  --danger: #FF8A80;
+  --danger-soft: #3C1D1B;
+  --ok-bg: #16332A;
+  --ok: #8FE0B5;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }

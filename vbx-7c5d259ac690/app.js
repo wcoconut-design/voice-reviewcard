@@ -16,7 +16,8 @@ const S = {
   view: 'list',       // list | grid (표지 보기)
   showHidden: false,  // 숨긴 작품도 목록에 보기
   nameMode: 'both',   // 성우 이름: both | ja | ko
-  menuLang: 'ko',     // 메뉴 이름: ko | en
+  menuLang: 'ko',     // 메뉴 이름: ko | en | ja
+  theme: 'system',    // 화면 모드: system | light | dark
   detailWidth: 460,   // 상세 패널 폭 (칸막이로 조절)
   listMode: 'table',  // 목록 칸 폭에 따라: table(칸 나눔) | two(2줄) | compact
   solo: new URLSearchParams(location.search).get('work'), // 새 창으로 연 작품
@@ -27,10 +28,11 @@ try {
   if (p.view) S.view = p.view;
   S.showHidden = !!p.showHidden;
   if (['both', 'ja', 'ko'].includes(p.nameMode)) S.nameMode = p.nameMode;
-  if (p.menuLang === 'en') S.menuLang = 'en';
+  if (['en', 'ja'].includes(p.menuLang)) S.menuLang = p.menuLang;
+  if (['light', 'dark'].includes(p.theme)) S.theme = p.theme;
   if (p.detailWidth > 300) S.detailWidth = p.detailWidth;
 } catch {}
-const rememberView = () => { try { localStorage.setItem('voicebox.view', JSON.stringify({ view: S.view, showHidden: S.showHidden, nameMode: S.nameMode, menuLang: S.menuLang, detailWidth: S.detailWidth })); } catch {} };
+const rememberView = () => { try { localStorage.setItem('voicebox.view', JSON.stringify({ view: S.view, showHidden: S.showHidden, nameMode: S.nameMode, menuLang: S.menuLang, theme: S.theme, detailWidth: S.detailWidth })); } catch {} };
 const visible = (w) => S.showHidden || !w.hidden;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -144,16 +146,30 @@ const MENU_EN = {
   settings: 'Settings', 'tab-list': 'List', 'tab-search': 'Search', 'tab-menu': 'Library', 'tab-settings': 'Settings',
   'pending-title': 'Pending Sync', 'stats-title': 'Voice Chart', 'add': '+ Add',
 };
+const MENU_JA = {
+  all: 'すべての作品', played: '聴いた作品', unplayed: '未聴の作品', fav: 'お気に入り', reviewed: '感想あり',
+  unreviewed: '感想なし', hidden: '非表示', stats: 'ボイスチャート', pending: '反映待ち',
+  'g-library': 'ライブラリ', 'g-notion': 'Notion', 'g-folders': 'フォルダ', 'new-folder': '+ 新規',
+  settings: '設定', 'tab-list': 'リスト', 'tab-search': '検索', 'tab-menu': 'ライブラリ', 'tab-settings': '設定',
+  'pending-title': 'Notion反映待ち', 'stats-title': 'ボイスチャート', 'add': '+ 作品を追加',
+};
 const MENU_KO = {
   stats: '통계', pending: '반영 대기', 'g-library': '정리함', 'g-notion': '노션', 'g-folders': '내 폴더', 'new-folder': '+ 새 폴더',
   settings: '설정 · 노션 · 백업', 'tab-list': '목록', 'tab-search': '검색', 'tab-menu': '정리함', 'tab-settings': '설정',
   'pending-title': '노션 반영 대기', 'stats-title': '통계', 'add': '+ 작품 추가',
 };
-const menuText = (key) => (S.menuLang === 'en' ? MENU_EN[key] : MENU_KO[key] ?? (NAV.find((n) => n[0] === key) || [])[1]) || key;
+const menuText = (key) => (S.menuLang === 'en' ? MENU_EN[key] : S.menuLang === 'ja' ? MENU_JA[key] : MENU_KO[key] ?? (NAV.find((n) => n[0] === key) || [])[1]) || key;
 function applyMenuLang() {
   document.querySelectorAll('[data-menu]').forEach((el) => { el.textContent = menuText(el.dataset.menu); });
   document.documentElement.classList.toggle('menu-en', S.menuLang === 'en');
+  document.documentElement.lang = S.menuLang === 'ja' ? 'ja' : 'ko';
 }
+// 화면 모드: 시스템을 따르거나 라이트/다크로 고정
+function applyTheme() {
+  if (S.theme === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = S.theme;
+}
+applyTheme();
 const inView = (nav, w) => (nav === 'hidden' || nav === 'pending' || visible(w)) && navTest(nav)(w);
 const pendingTest = (w) => w.pending && w.pending.length > 0;
 function navTest(nav) {
@@ -1131,7 +1147,11 @@ async function openSettings() {
         </div>
         <div class="note" style="margin-top:6px">메뉴 이름</div>
         <div class="tabs" role="radiogroup" aria-label="메뉴 이름 언어">
-          ${[['ko', '한국어'], ['en', 'English']].map(([v, l]) => `<button type="button" data-menu-lang="${v}" class="${S.menuLang === v ? 'on' : ''}">${l}</button>`).join('')}
+          ${[['ko', '한국어'], ['en', 'English'], ['ja', '日本語']].map(([v, l]) => `<button type="button" data-menu-lang="${v}" class="${S.menuLang === v ? 'on' : ''}">${l}</button>`).join('')}
+        </div>
+        <div class="note" style="margin-top:6px">화면 모드</div>
+        <div class="tabs" role="radiogroup" aria-label="화면 모드">
+          ${[['system', '시스템 설정 따르기'], ['light', '라이트'], ['dark', '다크']].map(([v, l]) => `<button type="button" data-theme-mode="${v}" class="${S.theme === v ? 'on' : ''}">${l}</button>`).join('')}
         </div>
       </div>
       <div class="set-block">
@@ -1165,6 +1185,12 @@ async function openSettings() {
     rememberView();
     dlg.querySelectorAll('[data-name-mode]').forEach((x) => x.classList.toggle('on', x === b));
     fillFilterOptions(); renderList(); renderDetail();
+  }));
+  dlg.querySelectorAll('[data-theme-mode]').forEach((b) => (b.onclick = () => {
+    S.theme = b.dataset.themeMode;
+    rememberView();
+    dlg.querySelectorAll('[data-theme-mode]').forEach((x) => x.classList.toggle('on', x === b));
+    applyTheme();
   }));
   dlg.querySelectorAll('[data-menu-lang]').forEach((b) => (b.onclick = () => {
     S.menuLang = b.dataset.menuLang;
