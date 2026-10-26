@@ -911,3 +911,9 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), summary:focus:not
 .sdot { margin-right: 10px; white-space: nowrap; display: inline-block; }
 .filters select { max-width: 170px; }
 .filters #fWorkType { max-width: 130px; }
+/* 안내창: 폰에서 끝까지 스크롤되게 */
+.srv-guide .m-body { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 auto; }
+.srv-guide .m-body > * { flex: none; }
+.srv-guide .m-body-wrap { display: flex; flex-direction: column; }
+.srv-manual .field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.m-body > * { flex-shrink: 0; }

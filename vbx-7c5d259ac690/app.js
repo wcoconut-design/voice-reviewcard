@@ -1460,12 +1460,18 @@ function serverBlockHtml(st) {
       <div class="note">${L('없어도 앱은 그대로 다 쓸 수 있어요.')}</div>`;
   }
   const url = window.VB_MOBILE ? getRelay().url : st.url;
+  const key = window.VB_MOBILE ? getRelay().key || '' : '';
   return `<div class="srv-status" id="srvStatus"><span class="muted">${L('서버 상태 확인 중…')}</span></div>
-    <div class="note srv-url">${esc(url || '')}</div>
+    <div class="srv-manual">
+      <label class="field">${L('서버 주소')}<input class="input" id="srvUrl" value="${esc(url || '')}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <label class="field">${L('비밀 열쇠 (VB_KEY)')}<input class="input" id="srvKey" type="password" value="${esc(key)}" placeholder="${window.VB_MOBILE ? '' : L('바꿀 때만 입력')}" autocomplete="off"></label>
+      <div class="set-row"><button type="button" class="ghost-btn" id="srvSave">${L('저장하고 연결 확인')}</button><button type="button" class="link-btn danger-link" id="srvOff">${L('연결 해제')}</button></div>
+      <div class="note" id="srvState"></div>
+    </div>
     ${window.VB_MOBILE ? `<label class="check"><input type="checkbox" id="syncOn"${st.on ? ' checked' : ''}>${L('자동으로 동기화')}</label>` : ''}
     <div class="set-row"><button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button>${window.VB_MOBILE ? `<button type="button" class="ghost-btn" id="srvCopyKey">${L('열쇠 복사 (다른 기기용)')}</button>` : ''}</div>
     <div class="note" id="boxSyncState">${esc(boxSyncText(st))}</div>
-    <div class="set-row"><button type="button" class="link-btn" id="srvGuide">${L('설정 방법 보기')}</button><span class="spacer"></span><button type="button" class="link-btn danger-link" id="srvOff">${L('연결 해제')}</button></div>`;
+    <div class="set-row"><button type="button" class="link-btn" id="srvGuide">${L('설정 방법 보기')}</button></div>`;
 }
 async function serverStatus(url) {
   const r = await fetch(url.replace(/\/+$/, '') + '/', { cache: 'no-store' });
@@ -1637,7 +1643,14 @@ async function openSettings() {
   $('imgAll').onclick = () => startImages(false);
   $('srvGuide') && ($('srvGuide').onclick = openServerGuide);
   $('srvManualOpen') && ($('srvManualOpen').onclick = () => { $('srvManual').hidden = false; $('srvManualOpen').hidden = true; $('srvUrl').focus(); });
-  $('srvSave') && ($('srvSave').onclick = async () => { if (await connectServer($('srvUrl').value, $('srvKey').value, $('srvState'))) setTimeout(openSettings, 1200); });
+  $('srvSave') && ($('srvSave').onclick = async () => {
+    // 아이맥은 열쇠를 화면에 보여주지 않아요. 비워 두면 주소만 바꾸고 열쇠는 그대로 써요.
+    if (!window.VB_MOBILE && serverReady(syncSt) && !$('srvKey').value.trim()) {
+      await api('api/sync/config', { body: { url: $('srvUrl').value.trim().replace(/\/+$/, '') } }).catch(fail);
+      $('srvState').textContent = '✓ ' + L('저장했어요.'); setTimeout(openSettings, 900); return;
+    }
+    if (await connectServer($('srvUrl').value, $('srvKey').value, $('srvState'))) setTimeout(openSettings, 1200);
+  });
   $('syncNowBtn') && ($('syncNowBtn').onclick = runSyncNow);
   $('syncOn') && ($('syncOn').onchange = async (e) => { await api('api/sync/config', { body: { on: e.target.checked } }).catch(fail); if (e.target.checked) runSyncNow(); });
   $('srvCopyKey') && ($('srvCopyKey').onclick = () => copyText(getRelay().key || '', L('열쇠를 복사했어요. 다른 기기의 설정 → 고급에 붙여넣어요.')));
@@ -1649,7 +1662,7 @@ async function openSettings() {
   });
   if ($('srvStatus')) {
     const url = window.VB_MOBILE ? getRelay().url : syncSt.url;
-    serverStatus(url).then((j) => { const el = $('srvStatus'); if (el) el.innerHTML = statusDots(j) + (j.version < 5 ? `<div class="note">${L('서버 코드가 예전 버전이에요. 그대로 써도 돼요.')}</div>` : ''); })
+    serverStatus(url).then((j) => { const el = $('srvStatus'); if (el) el.innerHTML = statusDots(j); })
       .catch(() => { const el = $('srvStatus'); if (el) el.innerHTML = `<span class="sdot no">○ ${L('서버에 연결하지 못했어요. 인터넷이나 주소를 확인해 주세요.')}</span>`; });
   }
   $('restoreFile').onchange = async (e) => {

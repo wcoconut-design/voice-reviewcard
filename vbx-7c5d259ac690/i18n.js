@@ -434,4 +434,6 @@ window.VB_I18N = {
   '동인·상업': ['Doujin / Commercial', '同人・商業'],
   '미분류': ['Unsorted', '未分類'],
   '구분 · 전체': ['Type · All', '区分 · すべて'],
+  '서버 주소': ['Server address', 'サーバーのアドレス'],
+  '바꿀 때만 입력': ['Only to change it', '変更するときだけ入力'],
 };
