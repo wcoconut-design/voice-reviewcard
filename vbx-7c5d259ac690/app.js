@@ -1485,7 +1485,7 @@ function renderPush() {
       renderNav();
       renderList();
       if (S.selected === p.id) renderDetail();
-      toast([r.pushed?.length ? `${L("노션에")} ${r.pushed.length}${L("개 반영")}` : '', r.pulled?.length ? `${L("노션 값")} ${r.pulled.length}${L("개 가져옴")}` : '', r.skipped?.length ? `${L("노션에 없는 항목")} ${r.skipped.length}${L("개는 건너뜀")}` : ''].filter(Boolean).join(' · ') || L('완료했어요.'));
+      toast([r.pushed?.length ? `${L("노션에")} ${r.pushed.length}${L("개 반영")}` : '', r.pulled?.length ? `${L("노션 값")} ${r.pulled.length}${L("개 가져옴")}` : '', r.skipped?.length ? `${L("노션에 없는 항목")} ${r.skipped.length}${L("개는 건너뜀")}` : '', r.imagesAdded ? L('이미지 {n}장 넣음', { n: r.imagesAdded }) : '', r.imagesSkipped ? L('직접 올린 이미지 {n}장은 노션에 못 넣어요', { n: r.imagesSkipped }) : ''].filter(Boolean).join(' · ') || L('완료했어요.'));
     } catch (e) {
       btn.disabled = false; btn.textContent = L('다시 시도');
       fail(e);

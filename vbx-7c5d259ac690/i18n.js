@@ -461,4 +461,6 @@ window.VB_I18N = {
   '성우·서클 이름 정리': ['Actor & circle names', '声優・サークル名の整理'],
   '한글 읽기를 한 번에 붙이거나 고쳐요': ['Add or fix Korean readings in one go', 'ハングル読みをまとめて追加・修正'],
   '등록일': ['Added', '登録日'],
+  '이미지 {n}장 넣음': ['Added {n} images', '画像{n}枚を追加'],
+  '직접 올린 이미지 {n}장은 노션에 못 넣어요': ["{n} uploaded images can't be added to Notion", 'アップロードした画像{n}枚はNotionに入れられません'],
 };
