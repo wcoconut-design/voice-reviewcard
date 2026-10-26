@@ -1,5 +1,5 @@
 // VOICE BOX 폰 앱: 인터넷이 없어도 열리게 앱 파일을 저장해 두고, 직접 첨부한 이미지를 보여줍니다.
-const VERSION = 'd367c497d3';
+const VERSION = 'd4101bf1b7';
 const SHELL = `vb-shell-${VERSION}`;
 const IMAGE_CACHE = 'vb-images';
 const FILES = ["index.html","app.js","i18n.js","sync-core.js","style.css","mobile.css","markdown.js","export-core.js","model.js","local-api.js","mobile.js","reviewcard.html","reviewcard-bridge.js","manifest.webmanifest","icons/icon-180.png","icons/icon-192.png","icons/icon.svg"];

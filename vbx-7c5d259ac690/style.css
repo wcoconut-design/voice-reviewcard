@@ -671,3 +671,12 @@ a.ghost-btn { text-decoration: none; color: var(--text); }
   .stat-kind::-webkit-scrollbar { display: none; }
   .stat-kind button { flex: none; }
 }
+
+/* 표지 가리기 */
+.cover-blur img.thumb, .cover-blur img.d-cover, .cover-blur .gallery img, .cover-blur .card-thumb img, .cover-blur #vbCurrent img { filter: blur(14px) saturate(.6); clip-path: inset(0 round 6px); transition: filter .2s; }
+.cover-blur .d-cover { clip-path: inset(0 round 8px); }
+@media (max-width: 760px) {
+  .main-head .filters { flex-wrap: nowrap; }
+  .main-head .filters #fSort { flex: 1 1 auto; min-width: 0; width: auto; }
+  .main-head .filters .tool-btn, .main-head .filters .view-switch { flex: none; }
+}

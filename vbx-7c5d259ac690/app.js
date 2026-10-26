@@ -19,6 +19,7 @@ const S = {
   menuLang: 'ko',     // 메뉴 이름: ko | en | ja
   theme: 'system',    // 화면 모드: system | light | dark
   palette: 'indigo',  // 색 테마: indigo | green | mono
+  coverBlur: false,   // 표지 가리기(흐리게): 옆에서 보는 사람 방지
   searching: false,   // 폰 검색 화면
   detailWidth: 460,   // 상세 패널 폭 (칸막이로 조절)
   listMode: 'table',  // 목록 칸 폭에 따라: table(칸 나눔) | two(2줄) | compact
@@ -33,6 +34,7 @@ try {
   if (['en', 'ja'].includes(p.menuLang)) S.menuLang = p.menuLang;
   if (['light', 'dark'].includes(p.theme)) S.theme = p.theme;
   if (['green', 'mono'].includes(p.palette)) S.palette = p.palette;
+  S.coverBlur = !!p.coverBlur;
   if (p.detailWidth > 300) S.detailWidth = p.detailWidth;
 } catch {}
 // 화면 글자 번역 (app/i18n.js). 메뉴 언어를 바꾸면 페이지를 다시 그려요.
@@ -59,7 +61,7 @@ function translateStatic(root = document.body) {
   }
 }
 translateStatic();
-const rememberView = () => { try { localStorage.setItem('voicebox.view', JSON.stringify({ view: S.view, showHidden: S.showHidden, nameMode: S.nameMode, menuLang: S.menuLang, theme: S.theme, palette: S.palette, detailWidth: S.detailWidth })); } catch {} };
+const rememberView = () => { try { localStorage.setItem('voicebox.view', JSON.stringify({ view: S.view, showHidden: S.showHidden, nameMode: S.nameMode, menuLang: S.menuLang, theme: S.theme, palette: S.palette, coverBlur: S.coverBlur, detailWidth: S.detailWidth })); } catch {} };
 const visible = (w) => S.showHidden || !w.hidden;
 // 금액 표시: ¥1,650 / ₩12,000 / $9.99
 const CUR_SIGN = { JPY: '¥', KRW: '₩', USD: '$' };
@@ -584,7 +586,19 @@ function renderViewTools() {
   $('toggleHidden').classList.toggle('on', S.showHidden);
   $('toggleHidden').setAttribute('aria-pressed', String(S.showHidden));
   $('toggleHidden').title = S.showHidden ? L('숨긴 작품을 목록에서 빼기') : L('숨긴 작품도 목록에 보기');
+  document.documentElement.classList.toggle('cover-blur', S.coverBlur);
+  $('toggleBlur').classList.toggle('on', S.coverBlur);
+  $('toggleBlur').setAttribute('aria-pressed', String(S.coverBlur));
+  $('toggleBlur').title = S.coverBlur ? L('표지 보이기') : L('표지 가리기');
 }
+// 표지 가리기: 목록·상세·리뷰카드의 표지를 흐리게. 누르면 크게 보기에서만 선명하게 보여요.
+function setCoverBlur(on) {
+  S.coverBlur = on;
+  rememberView(); renderViewTools();
+  const b = document.querySelector('[data-cover-blur]');
+  if (b) document.querySelectorAll('[data-cover-blur]').forEach((x) => x.classList.toggle('on', (x.dataset.coverBlur === 'on') === on));
+}
+$('toggleBlur').onclick = () => { setCoverBlur(!S.coverBlur); toast(S.coverBlur ? L('표지를 흐리게 가렸어요.') : L('표지를 다시 보여요.')); };
 document.querySelectorAll('[data-view]').forEach((b) => (b.onclick = () => { S.view = b.dataset.view; rememberView(); renderViewTools(); renderList(); }));
 $('toggleHidden').onclick = () => {
   S.showHidden = !S.showHidden;
@@ -1353,6 +1367,10 @@ async function openSettings() {
         <div class="tabs palette-pick" role="radiogroup" aria-label="${esc(tr('paletteNote'))}">
           ${[['indigo', 'palIndigo', '#3443C4'], ['green', 'palGreen', '#2E5A4A'], ['mono', 'palMono', '#232323']].map(([v, k, c]) => `<button type="button" data-palette="${v}" class="${S.palette === v ? 'on' : ''}"><i class="pal-dot" style="background:${c}"></i>${esc(tr(k))}</button>`).join('')}
         </div>
+        <div class="note" style="margin-top:6px">${L('표지 가리기')} · ${L('옆에서 보는 사람이 있을 때 표지를 흐리게 해요. 목록 위 버튼으로도 바로 켜고 꺼요.')}</div>
+        <div class="tabs" role="radiogroup" aria-label="${L('표지 가리기')}">
+          ${[['off', '끄기'], ['on', '켜기']].map(([v, l]) => `<button type="button" data-cover-blur="${v}" class="${(v === 'on') === S.coverBlur ? 'on' : ''}">${L(l)}</button>`).join('')}
+        </div>
         <div class="note" style="margin-top:6px">${esc(tr('modeNote'))}</div>
         <div class="tabs" role="radiogroup" aria-label="${esc(tr('modeNote'))}">
           ${[['system', 'modeSystem'], ['light', 'modeLight'], ['dark', 'modeDark']].map(([v, k]) => `<button type="button" data-theme-mode="${v}" class="${S.theme === v ? 'on' : ''}">${esc(tr(k))}</button>`).join('')}
@@ -1406,6 +1424,7 @@ async function openSettings() {
     dlg.querySelectorAll('[data-menu-lang]').forEach((x) => x.classList.toggle('on', x === b));
     location.reload();
   }));
+  dlg.querySelectorAll('[data-cover-blur]').forEach((b) => (b.onclick = () => setCoverBlur(b.dataset.coverBlur === 'on')));
   dlg.querySelectorAll('[data-palette]').forEach((b) => (b.onclick = () => {
     S.palette = b.dataset.palette;
     rememberView();

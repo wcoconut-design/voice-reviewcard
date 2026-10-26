@@ -335,6 +335,13 @@ window.VB_I18N = {
   '폰 앱과 같은 중계 서버(Cloudflare Worker) 주소와 열쇠를 넣으면, 3분마다 폰의 기록을 받아오고 이 컴퓨터에서 고친 것을 보내요.': ['Enter the same relay server (Cloudflare Worker) address and key as the phone app. Every 3 minutes this computer receives the phone records and sends its own edits.', 'スマホアプリと同じ中継サーバー(Cloudflare Worker)のアドレスとキーを入れると、3分ごとにスマホの記録を受け取り、このパソコンの変更を送ります。'],
   '저장하고 동기화': ['Save and sync', '保存して同期'],
   '받은 작품 {a}개 · 바뀐 작품 {b}개 · 보낸 작품 {c}개': ['Received {a} · changed {b} · sent {c}', '受信 {a}件 · 変更 {b}件 · 送信 {c}件'],
+  '표지 가리기': ['Hide covers', '表紙を隠す'],
+  '표지 보이기': ['Show covers', '表紙を表示'],
+  '표지를 흐리게 가렸어요.': ['Covers are blurred.', '表紙をぼかしました。'],
+  '표지를 다시 보여요.': ['Covers are visible again.', '表紙を再表示しました。'],
+  '옆에서 보는 사람이 있을 때 표지를 흐리게 해요. 목록 위 버튼으로도 바로 켜고 꺼요.': ['Blurs covers when someone might be looking. You can also toggle it with the button above the list.', '人に見られそうなときに表紙をぼかします。リスト上のボタンでもすぐ切り替えられます。'],
+  '끄기': ['Off', 'オフ'],
+  '켜기': ['On', 'オン'],
   // index.html
   '정리함': ['Library', 'ライブラリ'],
   '노션': ['Notion', 'Notion'],
