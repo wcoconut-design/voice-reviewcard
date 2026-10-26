@@ -28,6 +28,14 @@
   const LANG = (() => { try { return JSON.parse(localStorage.getItem('voicebox.view') || '{}').menuLang || 'ko'; } catch { return 'ko'; } })();
   const BACK = { en: 'Back', ja: '戻る' }[LANG] || '돌아가기';
   const isPhoneApp = /reviewcard\.html$/.test(location.pathname);
+  // 간단 화면: 작품 정보는 VOICE BOX에서 자동으로 채우니 입력칸은 숨기고 디자인만 골라요. (?full=1 이면 원래 메이커 그대로)
+  const LITE = !new URLSearchParams(location.search).has('full');
+  const T = {
+    ko: { full: '전체 편집', design: '디자인', show: '표시', cover: '표지', text: '글 고치기', textNote: '카드에만 쓰는 글이에요. 저장할 때 감상에도 반영할지 물어봐요.', down: '이미지로 받기' },
+    en: { full: 'Full editor', design: 'Design', show: 'Display', cover: 'Cover', text: 'Edit text', textNote: 'Text for this card only. You will be asked whether to update your review when saving.', down: 'Download image' },
+    ja: { full: 'フル編集', design: 'デザイン', show: '表示', cover: '表紙', text: '文章を編集', textNote: 'カード用の文章です。保存時に感想へ反映するか確認します。', down: '画像を保存' },
+  }[LANG] || null;
+  const tx = T || { full: '전체 편집', design: '디자인', show: '표시', cover: '표지', text: '글 고치기', textNote: '카드에만 쓰는 글이에요. 저장할 때 감상에도 반영할지 물어봐요.', down: '이미지로 받기' };
   // 원래 화면으로: 새 탭으로 열렸으면 탭을 닫고, 폰 앱처럼 같은 화면에서 넘어왔으면 그 작품 상세로 돌아가요.
   function goBack() {
     if (window.opener && !window.opener.closed) { window.close(); return; }
@@ -54,9 +62,63 @@
     <span class="sp"></span>
     <span id="vbCurrent"></span>
     <button type="button" id="vbRefill" title="작품 정보·감상·표지를 다시 채워요">다시 채우기</button>
+    <button type="button" id="vbFull">${tx.full}</button>
     <button type="button" class="p" id="vbSave">VOICE BOX에 대표 카드로 저장</button>`;
   document.body.prepend(bar);
   document.getElementById('vbBack').onclick = goBack;
+  document.getElementById('vbFull').onclick = () => {
+    const u = new URL(location.href);
+    if (LITE) u.searchParams.set('full', '1'); else u.searchParams.delete('full');
+    location.replace(u.toString());
+  };
+  if (!LITE) document.getElementById('vbFull').textContent = '‹ ' + ({ en: 'Simple view', ja: 'かんたん表示' }[LANG] || '간단 화면');
+  if (LITE) setupLite();
+
+  function setupLite() {
+    document.body.classList.add('vb-lite');
+    const st = document.createElement('style');
+    st.textContent = `
+      .vb-lite .topbar, .vb-lite .editor-credit, .vb-lite #resetBtn, .vb-lite #vbRefill, .vb-lite #vbCurrent { display: none !important; }
+      .vb-lite .field[data-vbtab="hide"] { display: none !important; }
+      .vb-lite .field[data-vbtab]:not(.vb-on) { display: none !important; }
+      .vb-lite .vb-tabs { grid-column: 1 / -1; display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--border, rgba(127,127,127,.15)); margin-bottom: 4px; }
+      .vb-lite .vb-tabs button { flex: 1; border: none; background: none; padding: 9px 0; border-radius: 9px; font: inherit; font-size: 14px; color: inherit; opacity: .65; cursor: pointer; }
+      .vb-lite .vb-tabs button.on { background: var(--card, #fff); opacity: 1; font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+      .vb-lite .vb-note { grid-column: 1 / -1; font-size: 12px; opacity: .7; }
+      .vb-lite .vb-note:not(.vb-on) { display: none; }
+      .vb-lite #exportBtn { font-size: 14px; }
+      .vb-lite .preview-wrap { top: var(--vbbar-h, 0px) !important; }
+    `;
+    document.head.appendChild(st);
+    const field = (id) => document.getElementById(id)?.closest('.field');
+    const groups = {
+      design: ['layoutRow', 'themeSelect', 'fontSizeSlider', 'colorGrid'],
+      show: ['ratingRow', 'heartSelectRow', 'chkSpoiler', 'chkDate', 'inHeadline', 'inReviewer'],
+      cover: ['thumbBox'],
+      text: ['inReview'],
+      hide: ['inTitle', 'inCircle', 'inArtist', 'inGenre', 'starSelectRow', 'progressSlider', 'inQR'],
+    };
+    for (const [tab, ids] of Object.entries(groups)) for (const id of ids) { const f = field(id); if (f) f.dataset.vbtab = tab; }
+    const grid = document.querySelector('.editor-grid');
+    const tabs = document.createElement('div');
+    tabs.className = 'vb-tabs';
+    tabs.innerHTML = ['design', 'show', 'cover', 'text'].map((k) => `<button type="button" data-k="${k}">${tx[k]}</button>`).join('');
+    grid.prepend(tabs);
+    const note = document.createElement('div');
+    note.className = 'vb-note'; note.dataset.vbtab2 = 'text'; note.textContent = tx.textNote;
+    field('inReview')?.before(note);
+    const show = (k) => {
+      tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.k === k));
+      grid.querySelectorAll('.field[data-vbtab]').forEach((f) => f.classList.toggle('vb-on', f.dataset.vbtab === k));
+      note.classList.toggle('vb-on', k === 'text');
+    };
+    tabs.onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) show(b.dataset.k); };
+    show('design');
+    const ex = document.getElementById('exportBtn');
+    if (ex) { ex.textContent = '📥 ' + tx.down; new MutationObserver(() => { if (!ex.textContent.includes(tx.down)) ex.textContent = '📥 ' + tx.down; }).observe(ex, { childList: true, characterData: true, subtree: true }); }
+    const setH = () => document.documentElement.style.setProperty('--vbbar-h', bar.offsetHeight + 'px');
+    setH(); addEventListener('resize', setH);
+  }
   const saveLabel = matchMedia('(max-width:600px)').matches ? ({ en: 'Save as card', ja: 'カードを保存' }[LANG] || '대표 카드로 저장') : 'VOICE BOX에 대표 카드로 저장';
   document.getElementById('vbSave').textContent = saveLabel;
 
@@ -87,6 +149,10 @@
     setInput('inHeadline', extra.headline || '');
     if (extra.eroRating) state.eroRating = extra.eroRating;
     if (extra.ageRating) state.ageRating = extra.ageRating;
+    // 재생 바 위치: 작품마다 무작위로 정하고 기억해요 (다시 열어도 같은 카드).
+    if (typeof extra.progress !== 'number') { extra.progress = Math.round((0.15 + Math.random() * 0.7) * 100) / 100; try { localStorage.setItem(extraKey, JSON.stringify(extra)); } catch {} }
+    state.progress = extra.progress;
+    if ($('progressSlider')) $('progressSlider').value = extra.progress;
     updateAll();
     showCurrent();
     const f = await coverFile((work.sourceImages || work.images || [])[0]).catch(() => null);
@@ -146,7 +212,7 @@
       if (cardReview && cardReview !== (work.review || '').trim()) {
         if (confirm('카드의 리뷰 글이 VOICE BOX 감상과 달라요.\n카드의 글로 감상도 바꿀까요?')) patch.review = cardReview;
       }
-      try { localStorage.setItem(extraKey, JSON.stringify({ headline: $('inHeadline').value, eroRating: state.eroRating, ageRating: state.ageRating })); } catch {}
+      try { localStorage.setItem(extraKey, JSON.stringify({ headline: $('inHeadline').value, eroRating: state.eroRating, ageRating: state.ageRating, progress: state.progress })); } catch {}
       work = await api('api/works/' + encodeURIComponent(workId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
       channel?.postMessage({ type: 'work', id: workId });
       showCurrent();
