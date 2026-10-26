@@ -6,7 +6,7 @@ export const SYNC_FIELDS = [
   'title', 'titleKo', 'actor', 'circle', 'tags', 'date', 'code', 'url',
   'review', 'status', 'rating', 'lastPlayed', 'favorite', 'folder',
   'organize', 'promo', 'translation',
-  'purchaseDate', 'store', 'listPrice', 'paidPrice', 'currency', 'workType',
+  'purchaseDate', 'store', 'listPrice', 'paidPrice', 'currency', 'workType', 'salePrice', 'discountNote',
 ];
 
 export const FIELD_LABELS = {
@@ -33,6 +33,8 @@ export const FIELD_LABELS = {
   paidPrice: '구매가 → 구매가',
   currency: '통화 → 통화',
   workType: '구분(동인/상업) → 구분',
+  salePrice: '할인가 → 할인가',
+  discountNote: '쿠폰·묶음 메모 → 할인 메모',
 };
 
 // 청취 상태: 로컬 값 ↔ 노션 Status 값
@@ -114,6 +116,18 @@ export function normalizeWork(w = {}) {
     paidPrice: money(w.paidPrice),
     currency: CURRENCIES.includes(str(w.currency).toUpperCase()) ? str(w.currency).toUpperCase() : '',
     workType: WORK_TYPES.includes(str(w.workType)) ? str(w.workType) : '',
+    // 할인·쿠폰·묶음 구매 (최종 구매금 = paidPrice, 직접 고치면 paidManual)
+    salePrice: money(w.salePrice),
+    couponType: ['pct', 'yen'].includes(str(w.couponType)) ? str(w.couponType) : '',
+    couponValue: money(w.couponValue),
+    couponMemo: str(w.couponMemo),
+    discountNote: str(w.discountNote), // 노션 '할인 메모'용 한 줄 요약
+    paidManual: !!w.paidManual,
+    orderId: str(w.orderId), // 같이 산 작품 묶음
+    orderType: ['', 'pct', 'yen', 'bundle'].includes(str(w.orderType)) ? str(w.orderType) : '',
+    orderValue: money(w.orderValue),
+    orderTotal: money(w.orderTotal), // 묶음 전체 최종 구매금
+    orderCount: Math.max(0, Math.round(Number(w.orderCount) || 0)),
     createdAt: str(w.createdAt),
     updatedAt: str(w.updatedAt),
     notionEditedAt: str(w.notionEditedAt),

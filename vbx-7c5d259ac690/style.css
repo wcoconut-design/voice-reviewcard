@@ -965,3 +965,34 @@ button.st-row:hover, .st-row.on { background: var(--accent-soft); }
 .ed-nostats small { margin-left: 4px; font-size: 12px; }
 @media (max-width: 760px) { .st-row { grid-template-columns: 52px minmax(0, 1fr) 84px 76px; font-size: 13.5px; } }
 .spend-view button { white-space: nowrap; }
+
+/* 할인가 · 쿠폰 · 묶음 구매 */
+.price-solo { display: flex; flex-direction: column; gap: 10px; }
+.price-solo[hidden] { display: none; }
+.cp-seg, .od-seg { display: flex; }
+.cp-seg button, .od-seg button { flex: 1; padding: 8px 4px; white-space: nowrap; }
+.final-row { display: flex; align-items: center; gap: 10px; }
+.final-row input { flex: 1; min-width: 0; font-weight: 700; }
+.final-mode { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.calc-line { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+.calc-line:empty { display: none; }
+.order-box { margin-top: 2px; }
+.order-sum { display: flex; align-items: center; gap: 10px; background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+.order-sum span { flex: 1; }
+.order-dlg .m-body { gap: 12px; }
+.od-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.od-row { display: grid; grid-template-columns: minmax(0, 1fr) 84px 72px 28px; gap: 8px; align-items: center; padding: 8px 10px; background: var(--surface); }
+.od-row + .od-row { border-top: 1px solid var(--line-soft); }
+.od-title { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.od-row .input { height: 34px; text-align: right; }
+.od-share { text-align: right; font-weight: 600; font-size: 13.5px; }
+.od-rm { border: none; background: var(--chip); border-radius: 50%; width: 26px; height: 26px; color: var(--muted); }
+.od-add { display: flex; flex-direction: column; gap: 4px; }
+.od-found { text-align: left; border: none; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; font-size: 13.5px; color: var(--accent); }
+.buy-strike { color: var(--muted); font-size: 13px; }
+.buy-arrow { color: var(--muted); }
+.chip-order { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-size: 12px; }
+.chip-sale, .chip-cp { font-size: 12px; background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+.buy-memo { font-size: 12.5px; color: var(--muted); }
+.sr-cp { color: var(--ok); font-size: 11.5px; }
+.sr-title .chip-order { padding: 1px 7px; margin-right: 2px; }

@@ -918,15 +918,127 @@ function renderDetail() {
   bindReview();
 }
 
+// ===== 묶음 구매: 같이 산 작품을 묶고, 결제한 금액을 한 번만 적어요 =====
+function splitTotal(total, n, cur) {
+  // 똑같이 나누고 남는 끝전은 앞 작품부터 1씩 더해서, 합계가 결제 금액과 딱 맞게 해요.
+  const unit = intCur(cur) ? 1 : 100;
+  const t = Math.round(total * unit), base = Math.floor(t / n), rest = t - base * n;
+  return Array.from({ length: n }, (_, i) => (base + (i < rest ? 1 : 0)) / unit);
+}
+function openOrder(id) {
+  const first = S.works.find((w) => w.id === id);
+  if (!first) return;
+  const orderId = first.orderId || '';
+  const before = orderId ? S.works.filter((w) => w.orderId === orderId) : [first];
+  let members = before.map((w) => ({ id: w.id, title: displayTitle(w), list: w.listPrice, sale: w.salePrice }));
+  const st = {
+    date: first.purchaseDate || today(), store: first.store || '', cur: first.currency || 'JPY',
+    type: first.orderType || (orderId ? '' : 'bundle'), value: first.orderValue ?? '', memo: orderId ? first.couponMemo || '' : '',
+    total: first.orderTotal ?? '', manual: orderId ? !!first.paidManual : false, q: '',
+  };
+  const dlg = document.createElement('dialog');
+  dlg.className = 'modal order-dlg';
+  document.body.appendChild(dlg);
+  const auto = () => {
+    const sum = members.reduce((a, m) => a + (numOf(m.sale) ?? numOf(m.list) ?? 0), 0);
+    return st.type === 'bundle' ? numOf(st.value) : applyCoupon(sum, st.type, st.value, st.cur);
+  };
+  const totalNow = () => (st.manual ? numOf(st.total) : auto());
+  const render = () => {
+    const listSum = members.reduce((a, m) => a + (numOf(m.list) ?? 0), 0);
+    const total = totalNow();
+    const shares = total != null && members.length ? splitTotal(total, members.length, st.cur) : [];
+    const k = nameKey(st.q);
+    const found = st.q.trim() ? S.works.filter((w) => !members.some((m) => m.id === w.id) && nameKey([w.title, w.titleKo, w.code].join(' ')).includes(k)).slice(0, 6) : [];
+    dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2 tabindex="-1" autofocus>${L('묶음 구매')}</h2><button type="button" class="close" data-close aria-label="${L('닫기')}">×</button></div>
+      <div class="m-body">
+        <div class="grid2"><label class="field">${L('구매일')}<input type="date" id="odDate" value="${esc(st.date)}"></label><label class="field">${L('구매처')}<input id="odStore" value="${esc(st.store)}" list="storeList2"></label></div>
+        <datalist id="storeList2">${[...new Set([...STORE_DEFAULTS, ...S.works.map((w) => w.store).filter(Boolean)])].map((a) => `<option value="${esc(a)}">`).join('')}</datalist>
+        <div class="field">${L('같이 산 작품')} ${members.length}${L('개')}</div>
+        <div class="od-list">${members.map((m, i) => `<div class="od-row"><span class="od-title">${esc(m.title)}</span>
+            <input class="input od-list-price" data-i="${i}" inputmode="decimal" value="${m.list ?? ''}" placeholder="${L('정가')}" aria-label="${L('정가')}">
+            <span class="od-share">${shares[i] != null ? esc(money(shares[i], st.cur)) : '–'}</span>
+            <button type="button" class="od-rm" data-rm="${i}" aria-label="${L('빼기')}">×</button></div>`).join('')}</div>
+        <div class="od-add"><input class="input" id="odSearch" placeholder="${L('작품 더하기 · 제목이나 코드로 찾기')}" value="${esc(st.q)}" autocomplete="off">
+          ${found.map((w) => `<button type="button" class="od-found" data-add="${esc(w.id)}">+ ${esc(displayTitle(w))}${w.orderId ? ` <small>(${L('다른 묶음')})</small>` : ''}</button>`).join('')}</div>
+        <div class="field">${L('할인 방식')}<div class="seg od-seg">${[['', L('없음')], ['pct', L('% 쿠폰')], ['yen', L('금액 쿠폰')], ['bundle', L('묶음가')]].map(([v, l]) => `<button type="button" data-ot="${v}" class="${st.type === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+        ${st.type ? `<div class="grid2"><label class="field">${st.type === 'pct' ? L('할인율 (%)') : st.type === 'yen' ? L('쿠폰 금액') : L('묶음 가격')}<input id="odValue" inputmode="decimal" value="${esc(st.value)}" placeholder="${st.type === 'pct' ? '30' : st.type === 'yen' ? '200' : '999'}"></label><label class="field">${L('메모')}<input id="odMemo" value="${esc(st.memo)}" placeholder="${L('3개 999엔 이벤트')}"></label></div>` : ''}
+        <div class="field">${L('최종 구매금 (결제 금액)')}<div class="final-row"><input id="odTotal" inputmode="decimal" value="${total ?? ''}"><span class="final-mode">${st.manual ? `${L('직접 입력')} · <button type="button" class="link-btn" id="odAuto">${L('자동 계산으로')}</button>` : L('자동 계산')}</span></div></div>
+        <div class="calc-line">${L('정가 합계')} ${money(listSum, st.cur)} → <strong>${money(total ?? 0, st.cur)}</strong>${listSum > (total ?? 0) ? ` <span class="buy-off">(${money(listSum - (total ?? 0), st.cur)} ${L('아낌')})</span>` : ''}<br><span class="muted">${L('작품마다 똑같이 나눠요. 끝전은 앞 작품부터 더해요.')}</span></div>
+      </div>
+      <div class="m-foot">${orderId ? `<button type="button" class="link-btn danger-link" id="odBreak">${L('묶음 풀기')}</button>` : ''}<span class="spacer"></span><button type="button" class="primary-btn" id="odSave">${L('저장')}</button></div></div>`;
+  };
+  const readInputs = () => {
+    st.date = $('odDate')?.value || st.date; st.store = $('odStore')?.value.trim() ?? st.store;
+    if ($('odValue')) st.value = $('odValue').value.trim();
+    if ($('odMemo')) st.memo = $('odMemo').value.trim();
+    dlg.querySelectorAll('.od-list-price').forEach((x) => { members[Number(x.dataset.i)].list = x.value.trim(); });
+  };
+  const rerender = (focusId) => { const pos = dlg.querySelector('.m-body')?.scrollTop || 0; const sel = document.activeElement?.id === focusId ? document.activeElement.selectionStart : null; render(); dlg.querySelector('.m-body').scrollTop = pos; if (focusId && $(focusId)) { $(focusId).focus(); if (sel != null) try { $(focusId).setSelectionRange(sel, sel); } catch {} } };
+  dlg.addEventListener('click', (e) => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.matches('[data-close]')) return dlg.close();
+    readInputs();
+    if (t.dataset.rm != null) { members.splice(Number(t.dataset.rm), 1); return rerender(); }
+    if (t.dataset.add) { const w = S.works.find((x) => x.id === t.dataset.add); if (w) members.push({ id: w.id, title: displayTitle(w), list: w.listPrice, sale: w.salePrice }); st.q = ''; return rerender('odSearch'); }
+    if (t.dataset.ot != null) { st.type = t.dataset.ot; return rerender(); }
+    if (t.id === 'odAuto') { st.manual = false; return rerender(); }
+    if (t.id === 'odBreak') return breakOrder();
+    if (t.id === 'odSave') return saveOrder();
+  });
+  dlg.addEventListener('input', (e) => {
+    const id = e.target.id;
+    if (id === 'odSearch') { st.q = e.target.value; return rerender('odSearch'); }
+    if (id === 'odTotal') { st.manual = true; st.total = e.target.value; const sh = dlg.querySelectorAll('.od-share'); const tot = numOf(st.total); const parts = tot != null ? splitTotal(tot, members.length, st.cur) : []; sh.forEach((x, i) => { x.textContent = parts[i] != null ? money(parts[i], st.cur) : '–'; }); dlg.querySelector('.final-mode').innerHTML = `${L('직접 입력')} · <button type="button" class="link-btn" id="odAuto">${L('자동 계산으로')}</button>`; return; }
+    if (id === 'odValue' || e.target.classList.contains('od-list-price')) { readInputs(); if (!st.manual) { const t = auto(); $('odTotal').value = t ?? ''; const parts = t != null ? splitTotal(t, members.length, st.cur) : []; dlg.querySelectorAll('.od-share').forEach((x, i) => { x.textContent = parts[i] != null ? money(parts[i], st.cur) : '–'; }); } }
+  });
+  async function saveOrder() {
+    readInputs();
+    const total = totalNow();
+    if (members.length < 2) return toast(L('같이 산 작품을 하나 더 더해 주세요.'), true);
+    if (total == null) return toast(L('최종 구매금을 넣어 주세요.'), true);
+    const oid = orderId || 'o-' + (crypto.randomUUID?.() || Date.now().toString(36));
+    const shares = splitTotal(total, members.length, st.cur);
+    const common = { orderId: oid, orderType: st.type, orderValue: st.type ? numOf(st.value) : null, orderTotal: total, orderCount: members.length, couponMemo: st.memo, purchaseDate: st.date, store: st.store, currency: st.cur === 'JPY' ? '' : st.cur, couponType: '', couponValue: null, paidManual: st.manual };
+    common.discountNote = discountNote({ ...common, currency: st.cur });
+    $('odSave').disabled = true;
+    try {
+      for (let i = 0; i < members.length; i++) await api('api/works/' + encodeURIComponent(members[i].id), { method: 'PATCH', body: { ...common, listPrice: members[i].list, paidPrice: shares[i] } });
+      for (const w of before) if (!members.some((m) => m.id === w.id)) await api('api/works/' + encodeURIComponent(w.id), { method: 'PATCH', body: { orderId: '', orderType: '', orderValue: null, orderTotal: null, orderCount: 0, discountNote: '' } });
+      await load();
+      dlg.close();
+      toast(L('묶음 {n}개를 저장했어요.', { n: members.length }));
+      if (S.selected) select(S.selected, { push: false });
+    } catch (e) { fail(e); $('odSave').disabled = false; }
+  }
+  async function breakOrder() {
+    if (!confirm(L('묶음을 풀까요? 작품마다 나눠진 구매가는 그대로 남아요.'))) return;
+    try {
+      for (const w of before) await api('api/works/' + encodeURIComponent(w.id), { method: 'PATCH', body: { orderId: '', orderType: '', orderValue: null, orderTotal: null, orderCount: 0, discountNote: '', paidManual: true } });
+      await load(); dlg.close(); if (S.selected) select(S.selected, { push: false });
+    } catch (e) { fail(e); }
+  }
+  dlg.addEventListener('close', () => dlg.remove());
+  render();
+  dlg.showModal();
+}
+
 function purchaseHtml(w) {
   const paid = w.paidPrice ?? w.listPrice;
   if (!w.purchaseDate && !w.store && paid == null) return `<div class="buy-line empty"><button type="button" class="link-btn" data-act="edit">${L("+ 구매 정보 넣기")}</button></div>`;
   const off = w.listPrice && w.paidPrice != null && w.paidPrice < w.listPrice ? Math.round((1 - w.paidPrice / w.listPrice) * 100) : 0;
+  const cur = w.currency;
+  const strike = w.listPrice != null && paid != null && paid < w.listPrice ? `<s class="buy-strike">${esc(money(w.listPrice, cur))}</s>` : '';
+  const tag = w.orderId
+    ? `<button type="button" class="chip chip-order" data-act="order">${L('묶음')} ${w.orderCount || ''}${L('개')} ${esc(money(w.orderTotal, cur))}</button>`
+    : [w.salePrice != null && w.salePrice !== w.listPrice ? `<span class="chip chip-sale">${L('할인가')} ${esc(money(w.salePrice, cur))}</span>` : '', w.couponType && w.couponValue ? `<span class="chip chip-cp">${w.couponType === 'pct' ? `${w.couponValue}% ${L('쿠폰')}` : `${esc(money(w.couponValue, cur))} ${L('쿠폰')}`}</span>` : ''].join('');
   return `<div class="buy-line"><span class="rec-label">${L("구매")}</span>
     ${w.purchaseDate ? `<span>${esc(w.purchaseDate)}</span>` : ''}
     ${w.store ? `<span class="chip">${esc(w.store)}</span>` : ''}
-    ${paid != null ? `<strong>${esc(money(paid, w.currency))}</strong>` : ''}
-    ${off ? `<span class="buy-off">${L("정가")} ${esc(money(w.listPrice, w.currency))} · ${off}${L("% 할인")}</span>` : ''}</div>`;
+    ${strike}${strike ? '<span class="buy-arrow">→</span>' : ''}${paid != null ? `<strong>${esc(money(paid, cur))}</strong>` : ''}
+    ${tag}
+    ${off ? `<span class="buy-off">${off}${L("% 할인")}</span>` : ''}
+    ${w.couponMemo ? `<span class="buy-memo">${esc(w.couponMemo)}</span>` : ''}</div>`;
 }
 
 // 상세 화면 버튼들
@@ -995,6 +1107,7 @@ $('detail').addEventListener('click', async (e) => {
     }
     case 'edit': return openEditor(w);
     case 'tagsopen': S.tagsOpen = true; return renderDetail();
+    case 'order': return openOrder(w.id);
     case 'more': return openActions([
       { label: L('정보 수정'), run: () => openEditor(w) },
       { label: w.hidden ? L('숨김 해제') : L('목록에서 숨기기'), run: () => $('detail').querySelector('[data-act="hide"]').click() },
@@ -1062,6 +1175,8 @@ function openEditor(work) {
     : { ...work, images: [...(work.sourceImages || work.images)], tags: [...work.tags] };
   ED.isNew = isNew;
   ED.actors = splitNames(ED.actor);
+  // 예전에 직접 적은 구매가(쿠폰·할인가 칸이 없던 때)는 그대로 지켜요.
+  if (!ED.paidManual && ED.paidPrice != null && ED.paidPrice !== '' && !ED.couponType && ED.salePrice == null && ED.paidPrice !== ED.listPrice) ED.paidManual = true;
   ED.introTab = ED.translation || !ED.promo ? 'translation' : 'promo';
   const dlg = $('editor');
   dlg.innerHTML = `<form method="dialog" id="edForm" novalidate>
@@ -1100,8 +1215,20 @@ function openEditor(work) {
         </div>
         <div class="grid2">
           <label class="field">${L("정가")}<input id="edListPrice" inputmode="decimal" value="${ED.listPrice ?? ''}" placeholder="1650"></label>
-          <label class="field">${L("구매가")}<input id="edPaidPrice" inputmode="decimal" value="${ED.paidPrice ?? ''}" placeholder="${L("할인가 · 비우면 정가")}"></label>
+          <label class="field">${L("할인가")}<input id="edSalePrice" inputmode="decimal" value="${ED.salePrice ?? ''}" placeholder="${L("세일 중이면")}"></label>
         </div>
+        <div class="price-solo"${ED.orderId ? ' hidden' : ''}>
+          <div class="field">${L("쿠폰 · 이벤트")}<div class="seg cp-seg" id="edCoupon" role="radiogroup">${[['', L('없음')], ['pct', L('% 쿠폰')], ['yen', L('금액 쿠폰')]].map(([v, l]) => `<button type="button" data-cp="${v}" class="${(ED.couponType || '') === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+          <div class="grid2" id="edCouponRow"${ED.couponType ? '' : ' hidden'}>
+            <label class="field"><span id="edCouponLabel">${ED.couponType === 'yen' ? L('쿠폰 금액') : L('할인율 (%)')}</span><input id="edCouponValue" inputmode="decimal" value="${ED.couponValue ?? ''}" placeholder="${ED.couponType === 'yen' ? '200' : '30'}"></label>
+            <label class="field">${L("메모")}<input id="edCouponMemo" value="${esc(ED.couponMemo || '')}" placeholder="${L("가을 쿠폰")}"></label>
+          </div>
+          <div class="field">${L("최종 구매금")}<div class="final-row"><input id="edPaidPrice" inputmode="decimal" value="${ED.paidPrice ?? ''}" placeholder="${L("비우면 정가")}"><span class="final-mode" id="edPaidMode"></span></div></div>
+          <div class="calc-line" id="edCalc"></div>
+        </div>
+        <div class="order-box" id="edOrderBox">${ED.orderId
+          ? `<div class="order-sum"><span>${L('묶음 구매')} ${ED.orderCount || ''}${L('개')} · <strong>${esc(money(ED.orderTotal, ED.currency))}</strong> · ${L('이 작품')} ${esc(money(ED.paidPrice, ED.currency))}</span><button type="button" class="ghost-btn" id="edOrder">${L('묶음 고치기')}</button></div>`
+          : `<button type="button" class="link-btn" id="edOrder">${L('+ 같이 산 작품 묶기 (묶음·세트 할인)')}</button>`}</div>
         <div class="sec-label" style="margin-top:6px">${L("이미지")}</div>
         <div class="note" id="edImgHint">${L('끌어서 순서를 바꿔요 · 첫 번째가 대표 이미지')}</div>
         <div class="img-edit" id="edImages"></div>
@@ -1157,8 +1284,14 @@ function readEdForm() {
   ED.purchaseDate = $('edBuyDate').value;
   ED.store = $('edStore').value.trim();
   ED.listPrice = $('edListPrice').value.trim();
-  ED.paidPrice = $('edPaidPrice').value.trim();
+  ED.salePrice = $('edSalePrice').value.trim();
+  if (!ED.orderId) {
+    ED.couponValue = ED.couponType ? $('edCouponValue').value.trim() : '';
+    ED.couponMemo = ED.couponType ? $('edCouponMemo').value.trim() : '';
+    ED.paidPrice = $('edPaidPrice').value.trim();
+  }
   ED.currency = $('edCurrency').value === 'JPY' ? '' : $('edCurrency').value; // 엔화는 비워 둬요(기본값)
+  if (!ED.orderId) ED.discountNote = discountNote(ED);
   ED[ED.introTab] = $('edIntro').value;
 }
 // 동인/상업: 작품 코드와 판매 링크로 짐작 (서버의 guessWorkType과 같은 규칙)
@@ -1200,6 +1333,44 @@ function addActors(text) {
 function flushActorInput() {
   const i = $('edActorInput');
   if (i && i.value.trim()) { addActors(i.value); i.value = ''; renderEdActors(); }
+}
+// ===== 할인가 · 쿠폰 · 최종 구매금 =====
+const numOf = (v) => { if (v === '' || v == null) return null; const n = Number(String(v).replace(/[^\d.]/g, '')); return Number.isFinite(n) ? n : null; };
+const intCur = (cur) => (cur || 'JPY') !== 'USD';
+// 쿠폰 적용: % 쿠폰은 할인 금액을 내림(엔·원은 1단위, 달러는 0.01)해서 빼요.
+function applyCoupon(base, type, value, cur) {
+  if (base == null) return null;
+  const v = numOf(value);
+  if (!type || !v) return base;
+  if (type === 'pct') { const unit = intCur(cur) ? 1 : 100; return Math.max(0, base - Math.floor(base * v / 100 * unit) / unit); }
+  if (type === 'yen') return Math.max(0, base - v);
+  if (type === 'bundle') return v;
+  return base;
+}
+function discountNote(w) {
+  const cur = w.currency || 'JPY';
+  const cp = (t, v) => (t === 'pct' && numOf(v) ? `${numOf(v)}% 쿠폰` : t === 'yen' && numOf(v) ? `${money(numOf(v), cur)} 쿠폰` : '');
+  if (w.orderId) return [`묶음 ${w.orderCount || ''}개 ${money(numOf(w.orderTotal), cur)}`, w.orderType === 'bundle' ? '' : cp(w.orderType, w.orderValue), w.couponMemo].filter(Boolean).join(' · ');
+  return [numOf(w.salePrice) != null ? `할인가 ${money(numOf(w.salePrice), cur)}` : '', cp(w.couponType, w.couponValue), w.couponMemo].filter(Boolean).join(' · ');
+}
+function recalcPrice() {
+  if (!$('edPaidPrice') || ED.orderId) return;
+  const cur = $('edCurrency').value;
+  const list = numOf($('edListPrice').value), sale = numOf($('edSalePrice').value);
+  const base = sale ?? list;
+  const auto = applyCoupon(base, ED.couponType, ED.couponType ? $('edCouponValue').value : '', cur);
+  if (!ED.paidManual) $('edPaidPrice').value = auto == null || (!ED.couponType && sale == null) ? (sale ?? '') : auto;
+  const paid = numOf($('edPaidPrice').value) ?? list;
+  $('edPaidMode').innerHTML = ED.paidManual
+    ? `${L('직접 입력')} · <button type="button" class="link-btn" id="edPaidAuto">${L('자동 계산으로')}</button>`
+    : L('자동 계산');
+  const steps = [];
+  if (list != null) steps.push(`${L('정가')} ${money(list, cur)}`);
+  if (sale != null) steps.push(`${L('할인가')} ${money(sale, cur)}`);
+  const cpv = numOf($('edCouponValue')?.value);
+  const cpText = ED.couponType && cpv ? (ED.couponType === 'pct' ? ` − ${cpv}% ${L('쿠폰')}` : ` − ${money(cpv, cur)} ${L('쿠폰')}`) : '';
+  const saved = list != null && paid != null ? list - paid : 0;
+  $('edCalc').innerHTML = paid != null && (steps.length > 1 || cpText) || ED.paidManual ? `${steps.join(' → ')}${cpText} = <strong>${money(paid, cur)}</strong>${saved > 0 ? ` <span class="buy-off">(${money(saved, cur)} ${L('아낌')})</span>` : ''}` : '';
 }
 function renderEdTags() {
   const box = $('edTags');
@@ -1264,6 +1435,28 @@ function checkDuplicate() {
   if (dup) $('edDup').innerHTML = `${L("이미 등록된 작품일 수 있어요:")} <strong>${esc(displayTitle(dup))}</strong>`;
 }
 function bindEditor() {
+  $('edCoupon').onclick = (e) => {
+    const b = e.target.closest('[data-cp]'); if (!b) return;
+    ED.couponType = b.dataset.cp;
+    $('edCoupon').querySelectorAll('[data-cp]').forEach((x) => x.classList.toggle('on', x === b));
+    $('edCouponRow').hidden = !ED.couponType;
+    $('edCouponLabel').textContent = ED.couponType === 'yen' ? L('쿠폰 금액') : L('할인율 (%)');
+    $('edCouponValue').placeholder = ED.couponType === 'yen' ? '200' : '30';
+    recalcPrice();
+  };
+  for (const id of ['edListPrice', 'edSalePrice', 'edCouponValue', 'edCurrency']) $(id).addEventListener('input', recalcPrice);
+  $('edPaidPrice').addEventListener('input', () => { ED.paidManual = true; recalcPrice(); });
+  $('edOrderBox').closest('.ed-col, form, .m-body')?.addEventListener('click', (e) => { if (e.target.id === 'edPaidAuto') { ED.paidManual = false; recalcPrice(); } });
+  $('edOrder').onclick = async () => {
+    if (ED.isNew) return toast(L('먼저 저장한 뒤 묶을 수 있어요.'), true);
+    readEdForm();
+    const body = { listPrice: ED.listPrice, salePrice: ED.salePrice, purchaseDate: ED.purchaseDate, store: ED.store, currency: ED.currency };
+    try { replaceWork(await api('api/works/' + encodeURIComponent(ED.id), { method: 'PATCH', body })); } catch (e) { return fail(e); }
+    const id = ED.id;
+    $('editor').close();
+    openOrder(id);
+  };
+  recalcPrice();
   $('edWorkType').onclick = (e) => { const b = e.target.closest('[data-wt]'); if (b) setEdWorkType(ED.workType === b.dataset.wt ? '' : b.dataset.wt); };
   const dlg = $('editor');
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
@@ -1334,7 +1527,7 @@ function bindEditor() {
       fill('code', 'edCode', info.code);
       fill('store', 'edStore', info.store);
       if (!ED.workType) { const t = info.workType || guessWorkType({ code: ED.code || info.code, url }); if (t) { setEdWorkType(t); filled.push('workType'); } }
-      if (info.listPrice && !ED.listPrice) { ED.listPrice = info.listPrice; $('edListPrice').value = info.listPrice; filled.push('listPrice'); if (info.currency) $('edCurrency').value = info.currency; }
+      if (info.listPrice && !ED.listPrice) { ED.listPrice = info.listPrice; $('edListPrice').value = info.listPrice; filled.push('listPrice'); if (info.currency) $('edCurrency').value = info.currency; recalcPrice(); }
       if (info.promo && !ED.promo) { ED.promo = info.promo; filled.push('promo'); if (ED.introTab === 'promo') $('edIntro').value = info.promo; }
       for (const src of info.images || []) if (!ED.images.includes(src)) { ED.images.push(src); filled.push('image'); }
       renderEdImages();
@@ -1374,7 +1567,7 @@ function bindEditor() {
     readEdForm();
     if (!ED.title && !ED.titleKo) { $('edTitle').focus(); return toast(L('작품명을 입력해 주세요.'), true); }
     if (ED.isNew && !ED.workType) ED.workType = guessWorkType(ED);
-    const body = { noStats: !!ED.noStats, workType: ED.workType || '', url: ED.url, titleKo: ED.titleKo, title: ED.title, actor: ED.actor, circle: ED.circle, date: ED.date, code: ED.code, tags: ED.tags, images: ED.images, promo: ED.promo, translation: ED.translation, folder: ED.folder, hidden: ED.hidden, organize: ED.organize, purchaseDate: ED.purchaseDate, store: ED.store, listPrice: ED.listPrice, paidPrice: ED.paidPrice, currency: ED.currency };
+    const body = { noStats: !!ED.noStats, workType: ED.workType || '', url: ED.url, titleKo: ED.titleKo, title: ED.title, actor: ED.actor, circle: ED.circle, date: ED.date, code: ED.code, tags: ED.tags, images: ED.images, promo: ED.promo, translation: ED.translation, folder: ED.folder, hidden: ED.hidden, organize: ED.organize, purchaseDate: ED.purchaseDate, store: ED.store, listPrice: ED.listPrice, paidPrice: ED.paidPrice, currency: ED.currency, salePrice: ED.salePrice, couponType: ED.couponType || '', couponValue: ED.couponValue, couponMemo: ED.couponMemo || '', paidManual: !!ED.paidManual, discountNote: ED.discountNote || '' };
     const pushAfter = $('edPush')?.checked;
     $('edSave').disabled = true;
     try {
@@ -2220,7 +2413,21 @@ function renderSpend() {
         <p class="note">${yearView ? L('연도를 누르면 그해 월별로 넘어가요.') : L('월을 누르면 그달 산 작품이 보여요.')}</p>
       </div>` : ''}
       ${S.spendMonth ? `<div class="spend-month"><div class="sec-head"><h3>${S.spendMonth.replace('-', ' / ')} · ${money(groups.get(S.spendMonth).sum, cur)}</h3><button type="button" class="link-btn" data-spend-month="">${L("닫기")}</button></div>
-        ${monthWorks.map((w) => `<button type="button" class="spend-row" data-open-work="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title">${esc(displayTitle(w))}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(paidOf(w), cur)}</span></button>`).join('')}</div>` : ''}
+        ${(() => {
+          // 묶음 구매는 한 줄로 (결제한 금액 그대로)
+          const seen = new Set();
+          return monthWorks.map((w) => {
+            if (w.orderId) {
+              if (seen.has(w.orderId)) return '';
+              seen.add(w.orderId);
+              const grp = monthWorks.filter((x) => x.orderId === w.orderId);
+              const sum = grp.reduce((a, x) => a + paidOf(x), 0);
+              return `<button type="button" class="spend-row" data-open-order="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title"><span class="chip chip-order">${L('묶음')} ${grp.length}${L('개')}</span> ${esc(displayTitle(w))}${grp.length > 1 ? ` ${L('외')} ${grp.length - 1}` : ''}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(sum, cur)}</span></button>`;
+            }
+            const cp = w.couponType && w.couponValue ? (w.couponType === 'pct' ? `${w.couponValue}% ${L('쿠폰')}` : `${money(w.couponValue, cur)} ${L('쿠폰')}`) : '';
+            return `<button type="button" class="spend-row" data-open-work="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title">${esc(displayTitle(w))}${cp ? ` <small class="sr-cp">${cp}</small>` : ''}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(paidOf(w), cur)}</span></button>`;
+          }).join('');
+        })()}</div>` : ''}
       ${storeRows.length ? `<div class="spend-stores"><div class="note">${L("구매처별")}</div>
         ${storeRows.map(([k, r], i) => `<div class="leg-row"><span class="leg-rank">${i + 1}</span><span class="leg-dot" style="background:${STAT_COLORS[i % STAT_COLORS.length]}"></span><span class="leg-name">${esc(k)}</span><span class="leg-bar"><span style="width:${Math.max(2, Math.round(r.sum / (total || 1) * 100))}%;background:${STAT_COLORS[i % STAT_COLORS.length]}"></span></span><span class="leg-n">${r.n}${L("개")}</span><span class="leg-p">${money(r.sum, cur)}</span></div>`).join('')}</div>` : ''}
     </div>`;
@@ -2236,6 +2443,8 @@ $('stats').addEventListener('click', (e) => {
   if (y && y.dataset.spendYear) { S.spendYear = y.dataset.spendYear; S.spendMonth = ''; return renderSpend(); }
   const gy = e.target.closest('[data-spend-goyear]');
   if (gy) { S.spendView = 'month'; S.spendYear = gy.dataset.spendGoyear; S.spendMonth = ''; rememberSpend(); return renderSpend(); }
+  const oo = e.target.closest('[data-open-order]');
+  if (oo) return openOrder(oo.dataset.openOrder);
   const o = e.target.closest('[data-open-work]');
   if (o) select(o.dataset.openWork);
 });
