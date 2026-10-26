@@ -684,6 +684,36 @@ function closeDetail() {
   document.querySelectorAll('.row.on').forEach((r) => r.classList.remove('on'));
   layoutPanel();
 }
+// 창(설정·편집·필터·크게 보기 등): 폰의 뒤로 가기 동작으로도 닫히게 기록을 하나 남겨요.
+// 열 때 X 버튼에 파란 테두리가 생기지 않게 처음 초점은 창 자체에 둬요.
+let skipPop = false;
+let modalSeq = 0;
+const openDialogs = () => [...document.querySelectorAll('dialog[open]')];
+const showModalOrig = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function () {
+  showModalOrig.call(this);
+  if (!this.hasAttribute('tabindex')) this.setAttribute('tabindex', '-1');
+  const f = document.activeElement;
+  if (!f || f === document.body || f.matches('.close, [data-close], .m-head button, .lb-nav button')) this.focus({ preventScroll: true });
+  if (isNarrow()) {
+    const token = ++modalSeq;
+    history.pushState({ vbModal: token }, '');
+    this.addEventListener('close', () => { if (history.state?.vbModal === token) { skipPop = true; history.back(); } }, { once: true });
+  }
+};
+window.addEventListener('popstate', (e) => {
+  if (skipPop) { skipPop = false; e.stopImmediatePropagation(); return; }
+  const top = openDialogs().pop();
+  if (!top) {
+    // 검색 화면: 상세가 열려 있지 않으면 뒤로 가기로 검색을 닫아요.
+    if (S.searching && $('detail').hidden) { e.stopImmediatePropagation(); exitSearch(); }
+    return;
+  }
+  e.stopImmediatePropagation();
+  const btn = top.querySelector('.m-head [data-close], .m-head .close, [data-close]');
+  if (btn) btn.click(); else top.close();
+  if (top.open) history.pushState({ vbModal: ++modalSeq }, '');
+});
 window.addEventListener('popstate', () => { if (!$('detail').hidden && isNarrow()) closeDetail(); });
 // 닫기 / '‹ 목록': 상세를 열 때 기록을 남겼으면 뒤로 가기, 아니면 바로 닫기
 function backToList() {
@@ -1603,7 +1633,7 @@ function openLightbox(list, i) {
   // 표지 가리기가 켜져 있으면 크게 보기에서도 흐리게 보이고, 한 번 누르면 선명해져요.
   let revealed = !S.coverBlur;
   const show = () => {
-    dlg.innerHTML = `<img src="${esc(list[i])}" alt="" referrerpolicy="no-referrer" class="${revealed ? '' : 'lb-blur'}">${revealed ? '' : `<div class="lb-tip">${L('눌러서 보기')}</div>`}${list.length > 1 ? `<div class="lb-nav"><button type="button" data-d="-1">${L("‹ 이전")}</button><button type="button" data-d="0">${L("닫기")}</button><button type="button" data-d="1">${L("다음 ›")}</button></div>` : ''}`;
+    dlg.innerHTML = `<button type="button" class="lb-close" data-d="0" aria-label="${L("닫기")}">✕</button><img src="${esc(list[i])}" alt="" referrerpolicy="no-referrer" class="${revealed ? '' : 'lb-blur'}">${revealed ? '' : `<div class="lb-tip">${L('눌러서 보기')}</div>`}${list.length > 1 ? `<div class="lb-nav"><button type="button" data-d="-1">${L("‹ 이전")}</button><button type="button" data-d="0">${L("닫기")}</button><button type="button" data-d="1">${L("다음 ›")}</button></div>` : ''}`;
   };
   show();
   dlg.onclick = (e) => {
@@ -1678,6 +1708,7 @@ function enterSearch() {
     navBeforeSearch = S.nav;
     if (S.nav !== 'all') { S.nav = 'all'; renderNav(); renderList(); }
     document.body.classList.add('searching');
+    if (isNarrow()) history.pushState({ vbSearch: true }, '');
   }
   renderSuggest();
   updateTabbar();
@@ -1688,6 +1719,7 @@ function exitSearch(clear = true) {
   saveRecent(S.q);
   S.searching = false;
   document.body.classList.remove('searching');
+  if (history.state?.vbSearch) { skipPop = true; history.back(); }
   $('searchSuggest').hidden = true;
   if (clear) { S.q = ''; $('search').value = ''; S.nav = navBeforeSearch === 'stats' ? 'all' : navBeforeSearch; }
   S.shown = 60;

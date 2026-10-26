@@ -41,3 +41,12 @@
 .vb-banner.warn button { border-color: transparent; }
 .vb-offline { display: flex; align-items: center; gap: 8px; font-size: 13.5px; padding: 8px 10px; border-radius: 8px; background: var(--ok-bg); color: var(--ok); margin-top: 8px; }
 .vb-offline.no { background: var(--warn-bg); color: var(--warn); }
+
+/* 감상 모음: 앱 안에서 보기 */
+.vb-doc { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: var(--bg); color: var(--text); }
+.vb-doc[open] { display: flex; flex-direction: column; }
+.vb-doc-bar { display: flex; align-items: center; gap: 8px; padding: max(10px, env(safe-area-inset-top)) 12px 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.vb-doc-bar button { border: none; background: none; font: inherit; font-size: 16px; color: var(--accent); padding: 6px 4px; -webkit-tap-highlight-color: transparent; }
+.vb-doc-back { font-weight: 600; }
+.vb-doc-t { flex: 1; text-align: center; font-weight: 600; font-size: 15px; color: var(--text); }
+.vb-doc-frame { flex: 1; width: 100%; border: none; background: #fff; }

@@ -291,6 +291,7 @@ window.fetch = async (input, init = {}) => {
 
 /* ---------- 내려받기 링크 (백업, 엑셀, CSV, 감상 모음) ---------- */
 const day = () => new Date().toISOString().slice(0, 10);
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 function download(data, name, type) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([data], { type }));
@@ -299,6 +300,30 @@ function download(data, name, type) {
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
 }
+// 홈 화면 앱에서는 파일을 열면 앱 화면이 그 파일로 바뀌고 돌아올 길이 없어요.
+// 그래서 공유 창(→ '파일에 저장')으로 넘기고, 공유가 안 되는 기기만 내려받기로 해요.
+async function saveFile(data, name, type) {
+  const file = typeof File === 'function' ? new File([data], name, { type }) : null;
+  if (file && standalone() && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name }); return; }
+    catch (e) { if (e?.name === 'AbortError') return; }
+  }
+  download(data, name, type);
+}
+// 감상 모음: 앱 안에서 열고, 위쪽 '‹ 돌아가기'(또는 뒤로 가기)로 닫아요.
+// 설정 창 위에 떠야 해서 창(dialog)으로 열어요. 뒤로 가기 처리는 화면 코드가 함께 해요.
+function showDoc(html, name) {
+  document.querySelector('.vb-doc')?.remove();
+  const dlg = document.createElement('dialog');
+  dlg.className = 'vb-doc';
+  dlg.innerHTML = `<div class="vb-doc-bar"><button type="button" class="vb-doc-back" data-close>‹ ${msg('돌아가기', 'Back', '戻る')}</button><span class="vb-doc-t">${msg('감상 모음', 'Review collection', '感想まとめ')}</span><button type="button" class="vb-doc-share">${msg('공유·저장', 'Share / Save', '共有・保存')}</button></div><iframe class="vb-doc-frame" title="${msg('감상 모음', 'Review collection', '感想まとめ')}"></iframe>`;
+  document.body.appendChild(dlg);
+  dlg.querySelector('iframe').srcdoc = html;
+  dlg.querySelector('.vb-doc-back').onclick = () => dlg.close();
+  dlg.querySelector('.vb-doc-share').onclick = () => saveFile(html, name, 'text/html');
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
 document.addEventListener('click', async (e) => {
   const a = e.target.closest('a[href]');
   if (!a) return;
@@ -306,16 +331,13 @@ document.addEventListener('click', async (e) => {
   if (url.origin !== location.origin || !url.pathname.startsWith(API)) return;
   e.preventDefault();
   const path = url.pathname.slice(API.length);
-  // 감상 모음은 새 창을 먼저 열어둬야 막히지 않아요.
-  const win = path === 'export/reviews.html' ? window.open('', '_blank') : null;
   await ready;
-  if (path === 'backup') download(JSON.stringify({ format: 'voicebox-local', version: 1, at: new Date().toISOString(), works, settings }, null, 1), `voicebox-backup-${day()}.json`, 'application/json');
-  else if (path === 'export/works.csv') download(toCsv(works), `voicebox-works-${day()}.csv`, 'text/csv');
-  else if (path === 'export/works.xlsx') download(toXlsx(works), `voicebox-works-${day()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  if (path === 'backup') saveFile(JSON.stringify({ format: 'voicebox-local', version: 1, at: new Date().toISOString(), works, settings }, null, 1), `voicebox-backup-${day()}.json`, 'application/json');
+  else if (path === 'export/works.csv') saveFile(toCsv(works), `voicebox-works-${day()}.csv`, 'text/csv');
+  else if (path === 'export/works.xlsx') saveFile(toXlsx(works), `voicebox-works-${day()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   else if (path === 'export/reviews.html') {
     const html = reviewsHtml(works, (src) => new URL(src, BASE).href, { order: 'played' }).replace(/<a href="\?order=[^"]*">[^<]*<\/a>/g, '');
-    if (win) { win.document.open(); win.document.write(html); win.document.close(); }
-    else download(html, `voicebox-reviews-${day()}.html`, 'text/html');
+    showDoc(html, `voicebox-reviews-${day()}.html`);
   } else if (path.startsWith('works/') || /\.png$/.test(path)) {
     // 리뷰카드 내려받기 등은 그대로 둡니다.
   }
