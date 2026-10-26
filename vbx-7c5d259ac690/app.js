@@ -405,7 +405,15 @@ function actorsBlock(w, max = 2) {
 }
 
 // 넓을 때: 칸 나눔 + 별점·상태 바로 고르기
-const TABLE_HEAD = `<div class="thead" aria-hidden="true"><span></span><span>${L("작품")}</span><span>${L("성우")}</span><span>${L("서클")}</span><span>${L("발매일")}</span><span>${L("나의 기록")}</span><span></span></div>`;
+// 목록의 날짜 칸: 정렬 기준에 맞는 날짜를 보여줘요. (구매일순 → 구매일, 최근 들은순 → 청취일, 등록순 → 등록일, 그 밖 → 발매일)
+const DATE_COL = {
+  bought: [L('구매일'), (w) => w.purchaseDate],
+  played: [L('청취일'), (w) => w.lastPlayed],
+  created: [L('등록일'), (w) => (w.createdAt || '').slice(0, 10)],
+};
+const dateCol = () => DATE_COL[S.sort] || [L('발매일'), (w) => w.date];
+const listDate = (w) => dateCol()[1](w) || '';
+const tableHead = () => `<div class="thead" aria-hidden="true"><span></span><span>${L("작품")}</span><span>${L("성우")}</span><span>${L("서클")}</span><span>${dateCol()[0]}</span><span>${L("나의 기록")}</span><span></span></div>`;
 function tableRowHtml(w) {
   const sub = w.titleKo && w.title ? w.title : '';
   return `<div ${rowAttrs(w, 'trow')}>
@@ -413,7 +421,7 @@ function tableRowHtml(w) {
     <div class="cell-title"><div class="row-title">${esc(displayTitle(w))}</div>${sub ? `<div class="row-orig">${esc(sub)}</div>` : ''}<div class="row-marks">${marks(w)}${w.tags.slice(0, 3).map((t) => `<span class="mini-tag">${esc(t)}</span>`).join('')}</div></div>
     <div class="cell-actor">${actorsBlock(w, 1)}</div>
     <div class="cell-circle">${esc(splitNames(w.circle).join(', ')) || '<span class="muted-dash">—</span>'}</div>
-    <div class="cell-date">${esc(w.date) || '<span class="muted-dash">—</span>'}</div>
+    <div class="cell-date">${esc(listDate(w)) || '<span class="muted-dash">—</span>'}</div>
     <div class="quick">
       <div class="qstars${w.rating ? ' rated' : ''}" role="radiogroup" aria-label="${L("별점")}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-qstar="${n}" class="${n <= w.rating ? 'on' : ''}" aria-label="${n}${L("점")}">★</button>`).join('')}</div>
       <select data-quick="status" class="qstatus st-${({ '미청취': 'no', '청취 중': 'now', '청취 완료': 'done' })[w.status] || 'none'}" aria-label="${L("청취 상태")}">${[['', L('상태 —')], ['미청취', L('안 들음')], ['청취 중', L('듣는 중')], ['청취 완료', L('들음')]].map(([v, l]) => `<option value="${v}"${v === w.status ? ' selected' : ''}>${l}</option>`).join('')}</select>
@@ -430,7 +438,7 @@ function twoRowHtml(w) {
       <div class="row-title">${esc(displayTitle(w))}</div>
       <div class="meta">${actors.slice(0, 2).map((a) => `<span class="meta-actor">${nameHtml(a)}</span>`).join('')}${actors.length > 2 ? `<span class="nm-more">${L("외")} ${actors.length - 2}</span>` : ''}${w.circle ? `<span class="meta-circle">${esc(w.circle)}</span>` : ''}</div>
     </div>
-    <div class="row-side2">${starsHtml(w)}<div class="side-sub">${marks(w)}${listeningPill(w)}${w.favorite ? '<span class="mini-heart">♥</span>' : ''}<span>${esc(w.date ? w.date.slice(2) : '')}</span></div></div>
+    <div class="row-side2">${starsHtml(w)}<div class="side-sub">${marks(w)}${listeningPill(w)}${w.favorite ? '<span class="mini-heart">♥</span>' : ''}<span>${esc(listDate(w).slice(2))}</span></div></div>
   </div>`;
 }
 // 좁을 때: 간단한 한 줄
@@ -526,7 +534,7 @@ function renderList() {
       : `<div class="empty"><strong>${L("아직 작품이 없어요")}</strong>${L("오른쪽 위 '작품 추가'로 시작해 보세요.")}</div>`;
     return;
   }
-  list.innerHTML = (S.view !== 'grid' && S.listMode === 'table' ? TABLE_HEAD : '') + currentList.slice(0, S.shown).map(itemHtml).join('');
+  list.innerHTML = (S.view !== 'grid' && S.listMode === 'table' ? tableHead() : '') + currentList.slice(0, S.shown).map(itemHtml).join('');
   $('listMore').textContent = currentList.length > S.shown ? L('아래로 내리면 더 보여요') : '';
 }
 // 스크롤 끝에 닿으면 더 그립니다.

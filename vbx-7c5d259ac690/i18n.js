@@ -460,4 +460,5 @@ window.VB_I18N = {
   '정리': ['Tidy up', '整理'],
   '성우·서클 이름 정리': ['Actor & circle names', '声優・サークル名の整理'],
   '한글 읽기를 한 번에 붙이거나 고쳐요': ['Add or fix Korean readings in one go', 'ハングル読みをまとめて追加・修正'],
+  '등록일': ['Added', '登録日'],
 };
