@@ -342,6 +342,7 @@ window.VB_I18N = {
   '옆에서 보는 사람이 있을 때 표지를 흐리게 해요. 목록 위 버튼으로도 바로 켜고 꺼요.': ['Blurs covers when someone might be looking. You can also toggle it with the button above the list.', '人に見られそうなときに表紙をぼかします。リスト上のボタンでもすぐ切り替えられます。'],
   '끄기': ['Off', 'オフ'],
   '켜기': ['On', 'オン'],
+  '작품 통계': ['Works', '作品の統計'],
   // index.html
   '정리함': ['Library', 'ライブラリ'],
   '노션': ['Notion', 'Notion'],

@@ -1753,7 +1753,7 @@ function renderStats() {
     if (shown < rows.length) { statObserver = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) add(); }, { root: $('main'), rootMargin: '400px' }); statObserver.observe(more); }
   });
   const nameCell = (key) => (S.statKind === 'actor' ? nameHtml(key) : `<span class="nm-ja">${esc(key)}</span>`);
-  $('stats').innerHTML = `
+  $('stats').innerHTML = `${statModeHtml()}
     <div class="stat-cards">
       <div class="stat-card"><div class="sc-label">${L("작품")}</div><div class="sc-num">${total.toLocaleString()}</div></div>
       <div class="stat-card"><div class="sc-label">${L("들은 작품")}</div><div class="sc-num">${played.toLocaleString()}</div></div>
@@ -1761,7 +1761,7 @@ function renderStats() {
       <div class="stat-card"><div class="sc-label">${L("평균 별점")}</div><div class="sc-num">${avg}</div></div>
     </div>
     <div class="stat-tools">
-      <div class="tabs stat-kind" role="tablist">${STAT_KINDS.map(([k, l]) => `<button type="button" data-stat-kind="${k}" class="${S.statKind === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="stat-kind-grid" role="tablist">${STAT_KINDS.filter(([k]) => k !== 'spend').map(([k, l]) => `<button type="button" data-stat-kind="${k}" class="${S.statKind === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       <select id="statScope" aria-label="${L("통계 범위")}">${STAT_SCOPES.map(([k, l]) => `<option value="${k}"${S.statScope === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
     </div>
     <div class="stat-body">
@@ -1807,7 +1807,7 @@ function renderSpend() {
   if (S.spendMonth && !months.includes(S.spendMonth)) S.spendMonth = '';
   const monthWorks = S.spendMonth ? inCur.filter((w) => w.purchaseDate.startsWith(S.spendMonth)).sort((a, b) => b.purchaseDate.localeCompare(a.purchaseDate)) : [];
   const mLabel = (m) => Number(m.slice(5)) + `<small>${L("월")}</small>`;
-  $('stats').innerHTML = `
+  $('stats').innerHTML = `${statModeHtml()}
     <div class="stat-cards">
       <div class="stat-card"><div class="sc-label">${S.spendPeriod === 'recent' ? L('최근 12개월 지출') : S.spendPeriod + L('년 지출')}</div><div class="sc-num">${money(total, cur) || money(0, cur)}</div></div>
       <div class="stat-card"><div class="sc-label">${L("월 평균 · 산 달 기준")}</div><div class="sc-num">${money(activeMonths ? total / activeMonths : 0, cur)}</div></div>
@@ -1815,7 +1815,6 @@ function renderSpend() {
       <div class="stat-card"><div class="sc-label">${L("할인으로 아낀 금액")}</div><div class="sc-num">${money(saved, cur)}</div></div>
     </div>
     <div class="stat-tools">
-      <div class="tabs stat-kind" role="tablist">${STAT_KINDS.map(([k, l]) => `<button type="button" data-stat-kind="${k}" class="${S.statKind === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       <select id="spendPeriod" aria-label="${L("기간")}"><option value="recent">${L("최근 12개월")}</option>${years.map((y) => `<option value="${y}"${S.spendPeriod === y ? ' selected' : ''}>${y}${L("년")}</option>`).join('')}</select>
       ${curs.length > 1 ? `<div class="tabs" role="radiogroup" aria-label="${L("통화")}">${curs.map((c) => `<button type="button" data-spend-cur="${c}" class="${c === cur ? 'on' : ''}">${CUR_SIGN[c]} ${c}</button>`).join('')}</div>` : ''}
     </div>
@@ -1840,6 +1839,20 @@ $('stats').addEventListener('click', (e) => {
   if (o) select(o.dataset.openWork);
 });
 $('stats').addEventListener('change', (e) => { if (e.target.id === 'spendPeriod') { S.spendPeriod = e.target.value; S.spendMonth = ''; renderSpend(); } });
+// 통계 위쪽 큰 탭: 작품 통계 | 지출
+let lastWorkKind = 'actor';
+function statModeHtml() {
+  const spend = S.statKind === 'spend';
+  if (!spend) lastWorkKind = S.statKind;
+  return `<div class="stat-mode" role="tablist"><button type="button" data-stat-mode="works" class="${spend ? '' : 'on'}">${L('작품 통계')}</button><button type="button" data-stat-mode="spend" class="${spend ? 'on' : ''}">${L('지출')}</button></div>`;
+}
+$('stats').addEventListener('click', (e) => {
+  const m = e.target.closest('[data-stat-mode]');
+  if (!m) return;
+  e.stopImmediatePropagation();
+  S.statKind = m.dataset.statMode === 'spend' ? 'spend' : (lastWorkKind || 'actor');
+  rememberStats(); renderStats();
+}, true);
 const rememberStats = () => { try { localStorage.setItem('voicebox.stats', JSON.stringify({ kind: S.statKind, scope: S.statScope })); } catch {} };
 $('stats').addEventListener('click', (e) => {
   const kind = e.target.closest('[data-stat-kind]');
