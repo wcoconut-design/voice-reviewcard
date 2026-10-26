@@ -1610,6 +1610,78 @@ async function runSyncNow() {
     if (r.changed) await load();
   } catch (e) { if (el) el.textContent = L('동기화 오류: ') + e.message; }
 }
+// ===== 이름 정리: 성우·서클 이름(한글 읽기)을 모든 작품에서 한 번에 바꿔요 =====
+function nameStats(field) {
+  const m = new Map();
+  for (const w of S.works) for (const n of splitNames(w[field])) m.set(n, (m.get(n) || 0) + 1);
+  return [...m].map(([name, n]) => ({ name, n, ...parseName(name) })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name, 'ja'));
+}
+async function openNames(tab = 'missing') {
+  let q = '';
+  const done = new Map(); // 방금 바꾼 이름 → 작품 수
+  const dlg = document.createElement('dialog');
+  dlg.className = 'modal names-dlg';
+  document.body.appendChild(dlg);
+  let fix = [];
+  if (!window.VB_MOBILE && S.notion?.connected) fix = (await api('api/names/notion-fix').catch(() => ({ items: [] }))).items || [];
+  const field = () => (tab === 'circle' ? 'circle' : 'actor');
+  const render = () => {
+    const all = nameStats(field());
+    const missingN = nameStats('actor').filter((x) => !x.ko).length;
+    let list = tab === 'missing' ? all.filter((x) => !x.ko || done.has(x.name)) : all;
+    if (q) { const k = nameKey(q); list = list.filter((x) => nameKey(x.name).includes(k)); }
+    const shown = list.slice(0, 200);
+    dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2 tabindex="-1" autofocus>${L('이름 정리')}</h2><button type="button" class="close" data-close aria-label="${L('닫기')}">×</button></div>
+      <div class="m-body">
+        ${fix.length ? `<div class="nm-fix"><span>${L('노션의 성우·서클 이름 {n}개를 앱과 맞출 수 있어요.', { n: fix.length })}</span><button type="button" class="primary-btn" id="nmFix">${L('맞추기')}</button></div>` : ''}
+        <div class="seg nm-tabs">${[['missing', L('한글 없음') + ' ' + missingN], ['actor', L('성우 전체')], ['circle', L('서클')]].map(([k, l]) => `<button type="button" data-nmtab="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <input class="input" id="nmSearch" placeholder="${L('이름 찾기')}" value="${esc(q)}" autocomplete="off">
+        <p class="note">${tab === 'missing' ? L('한글 읽기를 쓰고 Enter → 그 이름이 들어간 작품이 모두 바뀌어요.') : L('이름을 고치고 Enter → 그 이름이 들어간 작품이 모두 바뀌어요.')}</p>
+        <div class="nm-list">${shown.map((x) => `<div class="nm-row" data-name="${esc(x.name)}">
+            ${tab === 'missing' ? `<span class="nm-ja-cell">${esc(x.ja || x.name)}</span><input class="input nm-in" value="${esc(x.ko)}" placeholder="${L('한글 읽기')}" autocomplete="off">`
+              : `<input class="input nm-in nm-full" value="${esc(x.name)}" autocomplete="off">`}
+            <span class="nm-n">${done.has(x.name) ? `<span class="nm-ok">✓ ${done.get(x.name)}${L('개')}</span>` : `${L('작품')} ${x.n}`}</span>
+          </div>`).join('') || `<p class="note">${tab === 'missing' ? L('한글 읽기가 없는 성우가 없어요.') : L('찾는 이름이 없어요.')}</p>`}
+          ${list.length > shown.length ? `<p class="note">${L('이름 찾기로 좁혀 보세요.')} (${shown.length}/${list.length})</p>` : ''}</div>
+      </div></div>`;
+    dlg.querySelector('[data-close]').onclick = () => dlg.close();
+  };
+  const save = async (row, input) => {
+    const from = row.dataset.name;
+    let to = input.value.trim();
+    if (tab === 'missing') { const ja = parseName(from).ja || from; to = to ? ja + ' ' + to : ja; }
+    if (!to || to === from) return;
+    input.disabled = true;
+    try {
+      const r = await api('api/names/rename', { body: { field: field(), from, to } });
+      done.set(to, r.count);
+      if (r.notionNote) toast(L('노션 이름은 바꾸지 못했어요: ') + r.notionNote, true);
+      await load();
+      const pos = dlg.querySelector('.m-body').scrollTop;
+      render(); dlg.querySelector('.m-body').scrollTop = pos;
+      const next = dlg.querySelector(`.nm-row[data-name="${CSS.escape(to)}"]`)?.nextElementSibling?.querySelector('.nm-in');
+      next?.focus();
+    } catch (e) { fail(e); input.disabled = false; }
+  };
+  dlg.addEventListener('click', async (e) => {
+    const t = e.target.closest('[data-nmtab]');
+    if (t) { tab = t.dataset.nmtab; render(); return; }
+    if (e.target.id === 'nmFix') {
+      e.target.disabled = true;
+      try { const r = await api('api/names/notion-fix', { body: {} }); toast(L('노션 이름 {n}개를 맞췄어요.', { n: r.fixed })); fix = []; render(); } catch (err) { fail(err); }
+    }
+  });
+  dlg.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.isComposing || !e.target.classList.contains('nm-in')) return;
+    e.preventDefault(); save(e.target.closest('.nm-row'), e.target);
+  });
+  dlg.addEventListener('focusout', (e) => { if (e.target.classList?.contains('nm-in') && !e.target.disabled) { const row = e.target.closest('.nm-row'); const cur = tab === 'missing' ? parseName(row.dataset.name).ko : row.dataset.name; if (e.target.value.trim() && e.target.value.trim() !== cur) save(row, e.target); } });
+  let st;
+  dlg.addEventListener('input', (e) => { if (e.target.id !== 'nmSearch') return; clearTimeout(st); st = setTimeout(() => { q = e.target.value; const pos = e.target.selectionStart; render(); const i = $('nmSearch'); i.focus(); i.setSelectionRange(pos, pos); }, 200); });
+  dlg.addEventListener('close', () => { dlg.remove(); renderList(); if (S.detail) renderDetail(); });
+  render();
+  dlg.showModal();
+}
 // 폰 앱: 앱으로 실행 중인지, 인터넷 없이 열 준비가 됐는지
 function offlineStatusHtml() {
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -1656,6 +1728,10 @@ async function openSettings() {
         <div class="progress" id="imgBar" ${img.running ? '' : 'hidden'}><div style="width:${img.total ? Math.round(img.done / img.total * 100) : 0}%"></div></div>
         <div class="set-row"><button type="button" class="ghost-btn" id="imgCovers">${L("표지만 받기")}</button><button type="button" class="ghost-btn" id="imgAll">${L("모든 이미지 받기")}</button></div>
       </div></div>
+      <div class="set-group-title">${L("정리")}</div>
+      <div class="set-group">
+        <button type="button" class="set-item set-link" id="openNames"><div class="si-label">${L("성우·서클 이름 정리")}<small>${L("한글 읽기를 한 번에 붙이거나 고쳐요")}</small></div><span class="si-go">›</span></button>
+      </div>
       <div class="set-group-title">${L("백업")}</div>
       <div class="set-group">
         <a class="set-item set-link" href="api/backup" download><div class="si-label">${L("복원용 백업 받기")}<small>${window.VB_MOBILE ? L('복원하거나 다른 기기로 옮길 때 써요. 가끔 받아 두세요.') : L('앱을 되돌릴 때 써요. 노션 키는 들어가지 않아요.')}</small></div><span class="si-go">›</span></a>
@@ -1704,6 +1780,7 @@ async function openSettings() {
   }));
   $('imgCovers').onclick = () => startImages(true);
   $('imgAll').onclick = () => startImages(false);
+  $('openNames').onclick = () => openNames('missing');
   $('srvGuide') && ($('srvGuide').onclick = openServerGuide);
   dlg.querySelectorAll('[data-eye]').forEach((b) => (b.onclick = () => { const i = $(b.dataset.eye); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.textContent = show ? L('가리기') : L('보기'); }));
   $('srvManualOpen') && ($('srvManualOpen').onclick = () => { $('srvManual').hidden = false; $('srvManualOpen').hidden = true; $('srvUrl').focus(); });
@@ -2060,7 +2137,7 @@ function renderStats() {
     <div class="stat-body">
       <div class="donut-wrap">${svg}</div>
       <div class="stat-legend">
-        <div class="note">${kindLabel} ${rows.length.toLocaleString()}${L("개")}${hiddenN ? ` · ${L('숨긴 작품 {n}개 제외', { n: hiddenN })}` : ''}</div>
+        <div class="note">${kindLabel} ${rows.length.toLocaleString()}${L("개")}${hiddenN ? ` · ${L('숨긴 작품 {n}개 제외', { n: hiddenN })}` : ''}${S.statKind === 'actor' || S.statKind === 'circle' ? ` · <button type="button" class="link-btn" data-open-names="${S.statKind === 'circle' ? 'circle' : 'missing'}">${L('이름 정리')}</button>` : ''}</div>
         <div id="legRows"></div>
         <div class="leg-more" id="statMore"></div>
       </div>
@@ -2148,6 +2225,8 @@ $('stats').addEventListener('click', (e) => {
 }, true);
 const rememberStats = () => { try { localStorage.setItem('voicebox.stats', JSON.stringify({ kind: S.statKind, scope: S.statScope })); } catch {} };
 $('stats').addEventListener('click', (e) => {
+  const on = e.target.closest('[data-open-names]');
+  if (on) { openNames(on.dataset.openNames); return; }
   const kind = e.target.closest('[data-stat-kind]');
   if (kind) { S.statKind = kind.dataset.statKind; S.statMore = false; rememberStats(); return renderStats(); }
   const keyEl = e.target.closest('[data-stat-key]');

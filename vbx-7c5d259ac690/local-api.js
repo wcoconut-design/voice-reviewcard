@@ -1,7 +1,7 @@
 // VOICE BOX 폰 앱: 서버 없이 이 기기 안에서 데이터를 저장하고 처리합니다.
 // 화면 코드(app.js)가 'api/...'로 요청하면 여기서 가로채서 IndexedDB(기기 안 저장소)로 답해요.
 // 기록은 이 기기 안에만 있어요. 다른 기기로 옮길 때는 '복원용 백업(JSON)'을 쓰세요.
-import { normalizeWork, guessWorkType } from './model.js';
+import { normalizeWork, guessWorkType, renameInList } from './model.js';
 import { toCsv, toXlsx, reviewsHtml } from './export-core.js';
 import { syncOnce, decide } from './sync-core.js';
 
@@ -268,6 +268,23 @@ async function handle(method, path, url, body) {
     if (!r.ok) throw new ApiError(msg('표지를 가져오지 못했어요.', 'Could not fetch the cover.', '表紙を取得できませんでした。'), 502);
     return { __raw: r };
   }
+  if (method === 'POST' && path === 'names/rename') {
+    const b = JSON.parse(body || '{}');
+    const field = b.field === 'circle' ? 'circle' : 'actor';
+    const from = String(b.from || '').trim(), to = String(b.to || '').trim();
+    if (!from || !to) throw new ApiError('이름을 입력해 주세요.');
+    let count = 0;
+    const now = new Date().toISOString();
+    for (const w of works) {
+      const next = renameInList(w[field], from, to);
+      if (next == null || next === w[field]) continue;
+      addHistory(w.id, '이름 정리', { [field]: w[field] });
+      w[field] = next; w.updatedAt = now; count++;
+    }
+    if (count) { saveWorks(); syncSoon(); }
+    return { count };
+  }
+  if (method === 'GET' && path === 'names/notion-fix') return { items: [] };
   if (method === 'POST' && path === 'restore') {
     const b = JSON.parse(body || '{}');
     if (b.format !== 'voicebox-local' || !Array.isArray(b.works)) throw new ApiError('VOICE BOX 백업 파일이 아니에요.');

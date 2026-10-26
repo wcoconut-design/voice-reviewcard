@@ -929,3 +929,17 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), summary:focus:not
 .key-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: var(--chip); color: var(--text-2); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; }
 .actorbox .t .nm-ko { margin-left: 4px; color: var(--muted); font-weight: 400; }
 .actorbox input { min-width: 140px; }
+
+/* 이름 정리 */
+.names-dlg .m-body { gap: 10px; }
+.nm-tabs { display: flex; }
+.nm-tabs button { flex: 1; padding: 8px 4px; }
+.nm-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.nm-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); }
+.nm-row + .nm-row { border-top: 1px solid var(--line-soft); }
+.nm-ja-cell { font-weight: 600; min-width: 88px; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nm-in { flex: 1; min-width: 0; height: 36px; }
+.nm-n { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 52px; text-align: right; }
+.nm-ok { color: var(--ok); font-weight: 600; }
+.nm-fix { display: flex; align-items: center; gap: 10px; background: var(--accent-soft); color: var(--accent); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+.nm-fix span { flex: 1; }

@@ -119,6 +119,25 @@ export function normalizeWork(w = {}) {
   };
 }
 
+// 성우·서클 이름: '三橋渡 미츠하시 와타루' → 일본어 부분 '三橋渡'
+export const splitNameList = (v) => String(v || '').split(',').map((x) => x.trim()).filter(Boolean);
+export function nameJa(n) { const s = String(n || '').trim(); const i = s.search(/[가-힣]/); return i < 0 ? s : s.slice(0, i).trim(); }
+export const nameKey = (s) => String(s || '').replace(/[\s\u3000・･·]/g, '').toLowerCase();
+// 목록 문자열에서 이름 하나를 바꿔요. (같은 사람이 두 번 들어가지 않게)
+export function renameInList(value, from, to) {
+  const list = splitNameList(value);
+  if (!list.includes(from)) return null;
+  const out = [];
+  for (const n of list.map((x) => (x === from ? to : x))) if (n && !out.includes(n)) out.push(n);
+  return out.join(', ');
+}
+// 같은 사람들인데 한글 읽기만 다른지 (반영 대기로 세지 않으려고)
+export function sameIgnoringReading(a, b) {
+  const ka = splitNameList(a).map((n) => nameKey(nameJa(n) || n));
+  const kb = splitNameList(b).map((n) => nameKey(nameJa(n) || n));
+  return ka.length === kb.length && ka.every((k, i) => k === kb[i]);
+}
+
 export function same(a, b) {
   return JSON.stringify(a ?? '') === JSON.stringify(b ?? '');
 }
