@@ -52,6 +52,7 @@
   <header class="main-head">
    <div class="title-row">
     <h1 id="viewTitle">전체 작품</h1><span class="count" id="viewCount"></span>
+    <button class="tool-btn icon-only view-opt-btn" id="viewOptBtn" type="button" aria-label="보기·필터" title="보기·필터"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span class="opt-badge" id="viewOptBadge" hidden></span></button>
     <button class="primary-btn" id="addWork" type="button" data-menu="add">+ 작품 추가</button>
    </div>
    <div class="nav-chips" id="navChips" role="tablist" aria-label="정리함"></div>
@@ -92,6 +93,7 @@
   </header>
   <section class="search-suggest" id="searchSuggest" hidden></section>
   <section class="stats" id="stats" hidden></section>
+  <section class="now-row" id="nowRow" hidden></section>
   <div class="list" id="list" role="list"></div>
   <div class="list-more" id="listMore"></div>
  </main>
@@ -107,7 +109,7 @@
  <button type="button" data-tab="list" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h4.5v-6h4v6h4.5V9"/></svg><span data-menu="tab-home">홈</span></button>
  <button type="button" data-tab="search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span data-menu="tab-search">검색</span></button>
  <button type="button" data-tab="add" class="tab-add" aria-label="작품 추가"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
- <button type="button" data-tab="stats"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13A8.5 8.5 0 1 1 11 3.5V13z"/><path d="M14.5 3.7a8.5 8.5 0 0 1 5.8 5.8h-5.8z"/></svg><span data-menu="tab-stats">차트</span></button>
+ <button type="button" data-tab="stats"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13A8.5 8.5 0 1 1 11 3.5V13z"/><path d="M14.5 3.7a8.5 8.5 0 0 1 5.8 5.8h-5.8z"/></svg><span data-menu="tab-stats">통계</span></button>
  <button type="button" data-tab="settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span data-menu="tab-settings">설정</span></button>
 </nav>
 <div class="scrim" id="scrim" hidden></div>
@@ -124,6 +126,7 @@
 <dialog class="lightbox" id="lightbox"></dialog>
 <!-- 좁은 창 필터 -->
 <dialog class="modal modal-small" id="filterSheet"></dialog>
+<dialog class="act-sheet" id="actSheet"></dialog>
 <!-- 간단 입력 -->
 <dialog class="modal modal-small" id="promptDialog"></dialog>
 

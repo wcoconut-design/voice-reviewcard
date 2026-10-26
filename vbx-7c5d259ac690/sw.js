@@ -1,5 +1,5 @@
 // VOICE BOX 폰 앱: 인터넷이 없어도 열리게 앱 파일을 저장해 두고, 직접 첨부한 이미지를 보여줍니다.
-const VERSION = 'a407864eb6';
+const VERSION = 'ea0b9cac1c';
 const SHELL = `vb-shell-${VERSION}`;
 const IMAGE_CACHE = 'vb-images';
 const FILES = ["index.html","app.js","i18n.js","sync-core.js","style.css","mobile.css","markdown.js","export-core.js","model.js","local-api.js","mobile.js","reviewcard.html","reviewcard-bridge.js","manifest.webmanifest","icons/icon-180.png","icons/icon-192.png","icons/icon.svg"];
@@ -18,6 +18,11 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const scope = new URL(self.registration.scope);
+  // 판매 사이트 표지: 한 번 본 표지는 저장해 두고 인터넷이 없어도 보여줘요. (최근 본 600장까지)
+  if (url.origin !== scope.origin && req.destination === 'image' && /^https:$/.test(url.protocol)) {
+    e.respondWith(coverFetch(req));
+    return;
+  }
   if (url.origin !== scope.origin || !url.pathname.startsWith(scope.pathname)) return;
   const rel = url.pathname.slice(scope.pathname.length);
   // 직접 첨부한 이미지·리뷰카드
@@ -37,3 +42,28 @@ self.addEventListener('fetch', (e) => {
     return first || (await cached()) || (await net) || new Response('오프라인이에요. Offline.', { status: 503 });
   })());
 });
+
+const COVER_CACHE = 'vb-covers';
+const COVER_MAX = 600;
+let trimTimer;
+async function coverFetch(req) {
+  const cache = await caches.open(COVER_CACHE);
+  const hit = await cache.match(req.url);
+  if (hit) return hit;
+  try {
+    const r = await fetch(req);
+    if (r.ok || r.type === 'opaque') {
+      cache.put(req.url, r.clone()).catch(() => {});
+      clearTimeout(trimTimer);
+      trimTimer = setTimeout(trimCovers, 5000);
+    }
+    return r;
+  } catch {
+    return new Response('', { status: 504 });
+  }
+}
+async function trimCovers() {
+  const cache = await caches.open(COVER_CACHE);
+  const keys = await cache.keys();
+  for (const k of keys.slice(0, Math.max(0, keys.length - COVER_MAX))) await cache.delete(k);
+}

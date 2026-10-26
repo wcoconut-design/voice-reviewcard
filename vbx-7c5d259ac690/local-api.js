@@ -181,7 +181,7 @@ export function relayConfig() { try { return JSON.parse(localStorage.getItem('vo
 async function relayInfo(body) {
   const cfg = relayConfig();
   const paste = msg('판매 페이지 글을 원문 칸에 붙여넣고 "원문에서 작품명·성우·발매일 찾기"를 눌러도 돼요.', 'You can also paste the store page text into the original tab and use "Find title, actors and date".', '販売ページの文章を原文欄に貼り付けて「原文から作品名・声優・発売日を探す」も使えます。');
-  if (!cfg?.url || !cfg?.key) throw new ApiError(msg('설정 → 정보 채우기 서버를 먼저 연결해 주세요. ', 'Connect the info server in Settings first. ', '先に設定で情報取得サーバーを接続してください。') + paste);
+  if (!cfg?.url || !cfg?.key) throw new ApiError(msg('설정 → 고급에서 정보 채우기 서버를 먼저 연결해 주세요. ', 'Connect the info server in Settings → Advanced first. ', '先に設定 → 詳細設定で情報取得サーバーを接続してください。') + paste);
   let r;
   try {
     r = await realFetch(cfg.url.replace(/\/+$/, '') + '/info', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VB-Key': cfg.key }, body: JSON.stringify({ url: body.url || '' }), signal: AbortSignal.timeout(25000) });
@@ -256,7 +256,7 @@ async function handle(method, path, url, body) {
   if (path === 'image-proxy') {
     // 정보 채우기 서버가 연결돼 있으면 그 서버를 거쳐 표지를 받아요 (리뷰카드 표지 자동 넣기).
     const cfg = relayConfig();
-    if (!cfg?.url) throw new ApiError(msg('설정에서 정보 채우기 서버를 연결하면 표지가 자동으로 들어가요.', 'Connect the info server in Settings to add covers automatically.', '設定で情報取得サーバーを接続すると表紙が自動で入ります。'), 404);
+    if (!cfg?.url) throw new ApiError(msg('설정 → 고급에서 정보 채우기 서버를 연결하면 표지가 자동으로 들어가요.', 'Connect the info server in Settings → Advanced to add covers automatically.', '設定 → 詳細設定で情報取得サーバーを接続すると表紙が自動で入ります。'), 404);
     const r = await realFetch(cfg.url.replace(/\/+$/, '') + '/image?key=' + encodeURIComponent(cfg.key) + '&src=' + encodeURIComponent(url.searchParams.get('src') || ''));
     if (!r.ok) throw new ApiError(msg('표지를 가져오지 못했어요.', 'Could not fetch the cover.', '表紙を取得できませんでした。'), 502);
     return { __raw: r };

@@ -177,22 +177,22 @@ const MENU_EN = {
   unreviewed: 'No Review', hidden: 'Hidden', stats: 'Voice Chart', pending: 'Pending Sync',
   'g-library': 'LIBRARY', 'g-notion': 'NOTION', 'g-folders': 'FOLDERS', 'new-folder': '+ New',
   settings: 'Settings', 'tab-list': 'List', 'tab-search': 'Search', 'tab-menu': 'Library', 'tab-settings': 'Settings',
-  'pending-title': 'Pending Sync', 'stats-title': 'Voice Chart', 'add': '+ Add',
-  'tab-home': 'Home', 'tab-stats': 'Chart',
+  'pending-title': 'Pending Sync', 'stats-title': 'Stats', 'add': '+ Add',
+  'tab-home': 'Home', 'tab-stats': 'Stats',
 };
 const MENU_JA = {
   all: 'すべての作品', played: '聴いた作品', unplayed: '未聴の作品', fav: 'お気に入り', reviewed: '感想あり',
   unreviewed: '感想なし', hidden: '非表示', stats: 'ボイスチャート', pending: '反映待ち',
   'g-library': 'ライブラリ', 'g-notion': 'Notion', 'g-folders': 'フォルダ', 'new-folder': '+ 新規',
   settings: '設定', 'tab-list': 'リスト', 'tab-search': '検索', 'tab-menu': 'ライブラリ', 'tab-settings': '設定',
-  'pending-title': 'Notion反映待ち', 'stats-title': 'ボイスチャート', 'add': '+ 作品を追加',
-  'tab-home': 'ホーム', 'tab-stats': 'チャート',
+  'pending-title': 'Notion反映待ち', 'stats-title': '統計', 'add': '+ 作品を追加',
+  'tab-home': 'ホーム', 'tab-stats': '統計',
 };
 const MENU_KO = {
   stats: '통계', pending: '반영 대기', 'g-library': '정리함', 'g-notion': '노션', 'g-folders': '내 폴더', 'new-folder': '+ 새 폴더',
   settings: '설정 · 노션 · 백업', 'tab-list': '목록', 'tab-search': '검색', 'tab-menu': '정리함', 'tab-settings': '설정',
   'pending-title': '노션 반영 대기', 'stats-title': '통계', 'add': '+ 작품 추가',
-  'tab-home': '홈', 'tab-stats': '차트',
+  'tab-home': '홈', 'tab-stats': '통계',
 };
 // 폰 앱(노션 연동 없음)은 설정 메뉴 이름에서 '노션'을 뺍니다.
 if (window.VB_MOBILE) { MENU_KO.settings = '설정 · 백업'; MENU_EN.settings = 'Settings'; MENU_JA.settings = '設定'; }
@@ -392,7 +392,9 @@ document.addEventListener('error', (e) => {
 
 const rowAttrs = (w, cls) => `class="row ${cls}${S.selected === w.id ? ' on' : ''}${w.hidden ? ' is-hidden' : ''}" role="listitem" tabindex="0" data-id="${esc(w.id)}"`;
 const marks = (w) => (w.hidden ? `<span class="tag-hidden">${L("숨김")}</span>` : '') + (pendingTest(w) ? `<span class="dot-pending" title="${L("노션 반영 대기")}"></span>` : '');
-const starsHtml = (w) => (w.rating ? `<span class="stars-sm" aria-label="${L('별점')} ${w.rating}">${'★'.repeat(w.rating)}</span>` : `<span class="no-rating">${L("별점 없음")}</span>`);
+const starsHtml = (w) => (w.rating ? `<span class="stars-sm" aria-label="${L('별점')} ${w.rating}">${'★'.repeat(w.rating)}</span>` : '');
+const starNum = (w) => (w.rating ? `<span class="stars-num" aria-label="${L('별점')} ${w.rating}">★ ${w.rating}</span>` : '');
+const listeningPill = (w) => (w.status === '청취 중' ? `<span class="pill-now">${L('듣는 중')}</span>` : '');
 function actorsBlock(w, max = 2) {
   const list = splitNames(w.actor);
   if (!list.length) return '<span class="muted-dash">—</span>';
@@ -410,8 +412,8 @@ function tableRowHtml(w) {
     <div class="cell-circle">${esc(splitNames(w.circle).join(', ')) || '<span class="muted-dash">—</span>'}</div>
     <div class="cell-date">${esc(w.date) || '<span class="muted-dash">—</span>'}</div>
     <div class="quick">
-      <select data-quick="rating" aria-label="${L("별점")}">${[L('별점 미기재'), '★', '★★', '★★★', '★★★★', '★★★★★'].map((l, n) => `<option value="${n}"${n === w.rating ? ' selected' : ''}>${l}</option>`).join('')}</select>
-      <select data-quick="status" aria-label="${L("청취 상태")}">${[['', L('상태 미기재')], ['미청취', L('안 들음')], ['청취 중', L('듣는 중')], ['청취 완료', L('들음')]].map(([v, l]) => `<option value="${v}"${v === w.status ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <div class="qstars${w.rating ? ' rated' : ''}" role="radiogroup" aria-label="${L("별점")}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-qstar="${n}" class="${n <= w.rating ? 'on' : ''}" aria-label="${n}${L("점")}">★</button>`).join('')}</div>
+      <select data-quick="status" class="qstatus st-${({ '미청취': 'no', '청취 중': 'now', '청취 완료': 'done' })[w.status] || 'none'}" aria-label="${L("청취 상태")}">${[['', L('상태 —')], ['미청취', L('안 들음')], ['청취 중', L('듣는 중')], ['청취 완료', L('들음')]].map(([v, l]) => `<option value="${v}"${v === w.status ? ' selected' : ''}>${l}</option>`).join('')}</select>
     </div>
     <button type="button" class="heart-btn${w.favorite ? ' on' : ''}" data-quick="fav" aria-label="${L("즐겨찾기")}">${w.favorite ? '♥' : '♡'}</button>
   </div>`;
@@ -425,7 +427,7 @@ function twoRowHtml(w) {
       <div class="row-title">${esc(displayTitle(w))}</div>
       <div class="meta">${actors.slice(0, 2).map((a) => `<span class="meta-actor">${nameHtml(a)}</span>`).join('')}${actors.length > 2 ? `<span class="nm-more">${L("외")} ${actors.length - 2}</span>` : ''}${w.circle ? `<span class="meta-circle">${esc(w.circle)}</span>` : ''}</div>
     </div>
-    <div class="row-side2">${starsHtml(w)}<div class="side-sub">${marks(w)}${w.favorite ? '<span class="mini-heart">♥</span>' : ''}<span>${esc(w.date ? w.date.slice(2) : '')}</span></div></div>
+    <div class="row-side2">${starsHtml(w)}<div class="side-sub">${marks(w)}${listeningPill(w)}${w.favorite ? '<span class="mini-heart">♥</span>' : ''}<span>${esc(w.date ? w.date.slice(2) : '')}</span></div></div>
   </div>`;
 }
 // 좁을 때: 간단한 한 줄
@@ -434,7 +436,7 @@ function compactRowHtml(w) {
   return `<div ${rowAttrs(w, 'compact')}>
     ${thumbHtml(w)}
     <div class="row-main"><div class="row-title">${esc(displayTitle(w))}</div><div class="row-sub">${esc(sub)}</div></div>
-    <div class="row-side">${marks(w)}${w.favorite ? '<span class="mini-heart">♥</span>' : ''}${starsHtml(w)}</div></div>`;
+    <div class="row-side">${marks(w)}${listeningPill(w)}${w.favorite ? '<span class="mini-heart">♥</span>' : ''}${starNum(w)}</div></div>`;
 }
 // 표지 보기 카드
 function cardHtml(w) {
@@ -455,6 +457,17 @@ function refreshItem(id) {
   el.outerHTML = itemHtml(w);
 }
 
+// 홈 맨 위 '이어 듣기': 듣는 중인 작품을 가로로 보여줘요.
+function renderNowRow(statsMode) {
+  const el = $('nowRow');
+  const plain = !statsMode && S.nav === 'all' && !S.q.trim() && [S.actor, S.circle, S.tag, S.rating].every((v) => v === '');
+  const now = plain ? S.works.filter((w) => w.status === '청취 중' && visible(w)).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))).slice(0, 20) : [];
+  el.hidden = !now.length;
+  if (!now.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="now-head">${L('이어 듣기')}<span>${now.length}</span></div><div class="now-scroll">${now.map((w) => `<button type="button" class="now-item" data-id="${esc(w.id)}">${thumbHtml(w)}<span class="now-title">${esc(splitTitle(displayTitle(w))[0])}</span><span class="now-sub">${esc(splitNames(w.actor).map(nameText)[0] || w.circle || '')}</span></button>`).join('')}</div>`;
+}
+$('nowRow').addEventListener('click', (e) => { const b = e.target.closest('.now-item'); if (b) select(b.dataset.id); });
+
 let currentList = [];
 function renderList() {
   const statsMode = S.nav === 'stats';
@@ -464,6 +477,7 @@ function renderList() {
   document.querySelector('.filters').hidden = statsMode;
   $('search').closest('.search-row').hidden = statsMode;
   $('navChips').hidden = statsMode;
+  renderNowRow(statsMode);
   document.body.classList.toggle('has-q', !!S.q.trim());
   if (statsMode) { $('viewTitle').textContent = menuText('stats-title'); $('viewCount').textContent = ''; renderStats(); return; }
   currentList = filtered();
@@ -474,6 +488,9 @@ function renderList() {
   $('resetFilters').hidden = !active;
   $('filterBtn').textContent = activeCount ? `${L("필터")} ${activeCount}` : L('필터');
   $('filterBtn').classList.toggle('on', activeCount > 0);
+  const optN = activeCount + (S.showHidden ? 1 : 0);
+  $('viewOptBadge').hidden = !optN; $('viewOptBadge').textContent = optN || '';
+  $('viewOptBtn').classList.toggle('on', optN > 0);
   for (const [id, v] of [['fActor', S.actor], ['fCircle', S.circle], ['fTag', S.tag], ['fRating', S.rating]]) $(id).classList.toggle('on', v !== '');
   const list = $('list');
   list.className = 'list' + (S.view === 'grid' ? ' grid' : ' mode-' + S.listMode);
@@ -516,6 +533,8 @@ $('list').addEventListener('click', (e) => {
   const r = e.target.closest('.row');
   if (!r) return;
   if (q) { const w = S.works.find((x) => x.id === r.dataset.id); if (w) save(w.id, { favorite: !w.favorite }); return; }
+  const qs = e.target.closest('[data-qstar]');
+  if (qs) { const w = S.works.find((x) => x.id === r.dataset.id); const n = Number(qs.dataset.qstar); if (w) save(w.id, { rating: n === w.rating ? 0 : n }); return; }
   select(r.dataset.id);
 });
 // 넓은 목록에서 별점·상태를 바로 고르기
@@ -565,20 +584,38 @@ function resetFilters() {
 }
 $('resetFilters').onclick = resetFilters;
 
-// 좁은 창: 필터를 버튼 하나로 접고, 누르면 필터 창에서 고릅니다.
+// 좁은 창: 필터·정렬·보기 형식·숨김·표지 가리기를 오른쪽 위 버튼 하나로 모아요.
 const FILTER_IDS = ['fActor', 'fCircle', 'fTag', 'fRating'];
-$('filterBtn').onclick = () => {
+function openViewSheet() {
   const dlg = $('filterSheet');
-  dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2>${L("필터")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
-    <div class="m-body filter-body"></div>
+  const sw = (key, on, label) => `<button type="button" class="opt-row" data-opt="${key}" role="switch" aria-checked="${on}"><span>${label}</span><span class="switch${on ? ' on' : ''}"></span></button>`;
+  dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2>${L("보기·필터")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
+    <div class="m-body view-sheet">
+      <div class="opt-sec"><div class="opt-label">${L("정렬")}</div><div class="opt-sort"></div></div>
+      <div class="opt-sec"><div class="opt-label">${L("보기 형식")}</div><div class="seg opt-view"><button type="button" data-v="list" class="${S.view === 'list' ? 'on' : ''}">${L("목록 보기")}</button><button type="button" data-v="grid" class="${S.view === 'grid' ? 'on' : ''}">${L("표지 보기")}</button></div></div>
+      <div class="opt-sec"><div class="opt-label">${L("필터")}</div><div class="filter-body"></div></div>
+      <div class="opt-sec opt-switches">${sw('hidden', S.showHidden, L('숨긴 작품도 보기'))}${sw('blur', S.coverBlur, L('표지 가리기'))}</div>
+    </div>
     <div class="m-foot"><button type="button" class="link-btn" id="sheetReset">${L("초기화")}</button><span class="spacer"></span><button type="button" class="primary-btn" data-close>${L("적용")}</button></div></div>`;
+  const moved = [...FILTER_IDS, 'fSort'].map((id) => { const el = $(id); return [el, el.parentNode, el.nextSibling]; });
   const body = dlg.querySelector('.filter-body');
   for (const id of FILTER_IDS) body.appendChild($(id));
+  dlg.querySelector('.opt-sort').appendChild($('fSort'));
   dlg.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => dlg.close()));
+  dlg.querySelector('.opt-view').onclick = (e) => { const b = e.target.closest('[data-v]'); if (!b) return; S.view = b.dataset.v; rememberView(); renderViewTools(); renderList(); dlg.querySelectorAll('.opt-view button').forEach((x) => x.classList.toggle('on', x === b)); };
+  dlg.querySelector('.opt-switches').onclick = (e) => {
+    const b = e.target.closest('[data-opt]'); if (!b) return;
+    if (b.dataset.opt === 'hidden') { S.showHidden = !S.showHidden; rememberView(); renderViewTools(); renderNav(); renderList(); }
+    else setCoverBlur(!S.coverBlur);
+    const on = b.dataset.opt === 'hidden' ? S.showHidden : S.coverBlur;
+    b.setAttribute('aria-checked', String(on)); b.querySelector('.switch').classList.toggle('on', on);
+  };
   $('sheetReset').onclick = () => { resetFilters(); };
-  dlg.onclose = () => { const anchor = $('filterBtn'); for (const id of FILTER_IDS) anchor.before($(id)); };
+  dlg.onclose = () => { for (const [el, parent, next] of moved.reverse()) parent.insertBefore(el, next && next.parentNode === parent ? next : null); };
   dlg.showModal();
-};
+}
+$('filterBtn').onclick = openViewSheet;
+$('viewOptBtn').onclick = openViewSheet;
 
 // 보기 형식(목록/표지)과 숨긴 작품 보기
 function renderViewTools() {
@@ -611,6 +648,7 @@ applyMenuLang();
 /* ================= 상세 ================= */
 // 고른 작품이 있을 때만 상세 패널을 엽니다.
 async function select(id, { push = true } = {}) {
+  if (S.selected !== id) S.tagsOpen = false;
   S.selected = id;
   document.querySelectorAll('.row.on').forEach((r) => r.classList.remove('on'));
   document.querySelector(`.row[data-id="${CSS.escape(id)}"]`)?.classList.add('on');
@@ -691,6 +729,22 @@ function applyDetailWidth() {
 })();
 applyDetailWidth();
 
+// 제목 뒤에 붙은 해시태그(#…)는 따로 작게 보여요.
+function splitTitle(t) {
+  const m = String(t).match(/^(.*?\S)\s*((?:#[^\s#]+\s*){1,})$/s);
+  return m && m[1].length > 4 ? [m[1], m[2].trim()] : [t, ''];
+}
+const TAG_SHOW = 5;
+function openActions(items) {
+  const dlg = $('actSheet');
+  dlg.innerHTML = `<div class="as-list">${items.map((it, i) => it.href ? `<a class="as-item" href="${esc(it.href)}" target="_blank" rel="noopener">${esc(it.label)}</a>` : `<button type="button" class="as-item${it.danger ? ' danger' : ''}" data-i="${i}">${esc(it.label)}</button>`).join('')}</div><button type="button" class="as-item as-cancel" data-close>${L("취소")}</button>`;
+  dlg.onclick = (e) => {
+    if (e.target === dlg || e.target.closest('[data-close]') || e.target.closest('a.as-item')) { dlg.close(); return; }
+    const b = e.target.closest('[data-i]'); if (!b) return;
+    dlg.close(); items[Number(b.dataset.i)].run();
+  };
+  dlg.showModal();
+}
 function renderDetail() {
   const d = $('detail');
   const w = S.detail;
@@ -726,22 +780,23 @@ function renderDetail() {
         <button type="button" class="icon-btn${w.favorite ? ' on' : ''}" data-act="fav" aria-label="${L("즐겨찾기")}" title="${L("즐겨찾기")}">${w.favorite ? '♥' : '♡'}</button>
         <button type="button" class="ghost-btn${w.hidden ? ' on-warn' : ''}" data-act="hide" title="${w.hidden ? L('다시 목록에 보이게') : L('기록은 남기고 목록에서만 숨겨요')}">${w.hidden ? L('숨김 해제') : L('숨기기')}</button>
         <button type="button" class="ghost-btn" data-act="edit">${L("정보 수정")}</button>
+        <button type="button" class="icon-btn d-more" data-act="more" aria-label="${L("더 보기")}" title="${L("더 보기")}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
       </div>
     </div>
     <div class="d-hero">
       ${w.images?.[0] ? `<img class="d-cover" src="${esc(w.images[0])}" alt="${L("표지")}" referrerpolicy="no-referrer" data-act="zoom" data-i="0" data-ph="${esc(w.code)}" data-color="${placeholderColor(w.id)}">` : `<div class="d-cover ph" style="background:${placeholderColor(w.id)}">${esc(w.code)}</div>`}
       <div class="d-titles">
         <div class="d-meta-top">${esc([w.circle, w.date].filter(Boolean).join(' · '))}</div>
-        <h2 class="d-title">${esc(displayTitle(w))}</h2>
+        ${(() => { const [main, tail] = splitTitle(displayTitle(w)); return `<h2 class="d-title">${esc(main)}</h2>${tail ? `<div class="d-hash">${esc(tail)}</div>` : ''}`; })()}
         ${w.titleKo && w.title ? `<div class="d-orig">${esc(w.title)}</div>` : ''}
       </div>
     </div>
     <div class="chips">
       ${actors.map((a) => `<button type="button" class="chip chip-name" data-filter="actor" data-v="${esc(a)}" title="${L("이 성우 작품 보기")}">${nameHtml(a)}</button>`).join('')}
       ${splitNames(w.circle).map((c) => `<button type="button" class="chip" data-filter="circle" data-v="${esc(c)}" title="${L("이 서클 작품 보기")}">${esc(c)}</button>`).join('')}
-      ${w.date ? `<span class="chip">${esc(w.date)}</span>` : ''}
       ${w.code ? `<span class="chip">${esc(w.code)}</span>` : ''}
-      ${w.tags.map((t) => `<button type="button" class="chip tag" data-filter="tag" data-v="${esc(t)}">${esc(t)}</button>`).join('')}
+      ${w.tags.map((t, i) => `<button type="button" class="chip tag${i >= TAG_SHOW && !S.tagsOpen ? ' more-hide' : ''}" data-filter="tag" data-v="${esc(t)}">${esc(t)}</button>`).join('')}
+      ${w.tags.length > TAG_SHOW && !S.tagsOpen ? `<button type="button" class="chip chip-more" data-act="tagsopen">+${w.tags.length - TAG_SHOW}</button>` : ''}
       ${w.folder ? `<span class="chip">${L("폴더 ·")} ${esc(w.folder)}</span>` : ''}
     </div>
     <div class="records">
@@ -756,7 +811,7 @@ function renderDetail() {
           <button type="button" data-status="청취 중" class="${status === '청취 중' ? 'on' : ''}">${L("듣는 중")}</button>
           <button type="button" data-status="청취 완료" class="${status === '청취 완료' ? 'on' : ''}">${L("들음")}</button>
         </div>
-        <label class="played-date">${L("청취일")} <input type="date" value="${esc(w.lastPlayed)}" data-act="played" aria-label="${L("마지막 청취일")}"></label>
+        <label class="played-date${status !== '청취 완료' && !w.lastPlayed ? ' quiet' : ''}">${L("청취일")} <input type="date" value="${esc(w.lastPlayed)}" data-act="played" aria-label="${L("마지막 청취일")}"></label>
       </div>
     </div>
     ${purchaseHtml(w)}
@@ -867,6 +922,13 @@ $('detail').addEventListener('click', async (e) => {
       return;
     }
     case 'edit': return openEditor(w);
+    case 'tagsopen': S.tagsOpen = true; return renderDetail();
+    case 'more': return openActions([
+      { label: L('정보 수정'), run: () => openEditor(w) },
+      { label: w.hidden ? L('숨김 해제') : L('목록에서 숨기기'), run: () => $('detail').querySelector('[data-act="hide"]').click() },
+      ...(w.url ? [{ label: L('판매 페이지 ↗'), href: w.url }] : []),
+      { label: L('수정 이력'), run: () => openHistory(w.id) },
+    ]);
     case 'push': return openPush(w.id);
     case 'history': return openHistory(w.id);
     case 'zoom': return openLightbox(w.images, Number(t.dataset.i || 0));
@@ -907,6 +969,7 @@ async function save(id, patch, { quiet = true } = {}) {
     replaceWork(full);
     renderNav();
     refreshItem(id);
+    if ('status' in patch || 'hidden' in patch) renderNowRow(S.nav === 'stats');
     if (S.selected === id) {
       const keepReview = $('reviewBox')?.value;
       renderDetail();
@@ -1304,8 +1367,8 @@ let settingsTimer;
 const getRelay = () => { try { return JSON.parse(localStorage.getItem('voicebox.relay') || 'null') || {}; } catch { return {}; } };
 function relayBlockHtml() {
   const r = getRelay();
-  return `<div class="set-block"><h3>${L('정보 채우기 서버')}</h3>
-    <div class="note">${L('판매 링크 정보 채우기용 Cloudflare Worker')}</div>
+  return `<div class="set-sub"><h4>${L('정보 채우기 서버')}</h4>
+    <div class="note">${L('판매 링크로 작품 정보를 채울 때 써요.')}</div>
     <input class="input" id="relayUrl" placeholder="https://vb-info.○○.workers.dev" value="${esc(r.url || '')}" autocomplete="off" autocapitalize="off" spellcheck="false">
     <input class="input" id="relayKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" value="${esc(r.key || '')}" autocomplete="off" style="margin-top:6px">
     <div class="set-row"><button type="button" class="ghost-btn" id="relaySave">${L('저장하고 연결 확인')}</button>${r.url ? `<button type="button" class="link-btn" id="relayClear">${L('연결 해제')}</button>` : ''}</div>
@@ -1321,21 +1384,21 @@ function boxSyncText(st) {
 function syncBlockHtml(st) {
   if (window.VB_MOBILE) {
     if (!st.configured) return '';
-    return `<div class="set-block"><h3>${L('아이맥과 동기화')}</h3>
-      <div class="note">${L('아이맥과 기록을 주고받아요 · 최근에 고친 쪽이 남아요')}</div>
+    return `<div class="set-sub"><h4>${L('다른 기기와 동기화')}</h4>
+      <div class="note">${L('같은 서버를 쓰는 기기끼리 기록을 주고받아요 · 최근에 고친 쪽이 남아요')}</div>
       <label class="check"><input type="checkbox" id="syncOn"${st.on ? ' checked' : ''}>${L('자동으로 동기화')}</label>
       <div class="set-row"><button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button></div>
-      <div class="note" id="syncState">${esc(boxSyncText(st))}</div></div>`;
+      <div class="note" id="boxSyncState">${esc(boxSyncText(st))}</div></div>`;
   }
-  return `<div class="set-block"><h3>${L('폰과 동기화')}</h3>
-    <div class="note">${L('폰 앱과 같은 Worker 주소와 열쇠를 넣으면 3분마다 주고받아요.')}</div>
+  return `<div class="set-sub"><h4>${L('다른 기기와 동기화')}</h4>
+    <div class="note">${L('폰 앱과 같은 서버 주소와 열쇠를 넣으면 3분마다 주고받아요.')}</div>
     <input class="input" id="syncUrl" placeholder="https://vb-info.○○.workers.dev" value="${esc(st.url || '')}" autocomplete="off" spellcheck="false">
     <input class="input" id="syncKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" autocomplete="off" style="margin-top:6px">
     <div class="set-row"><button type="button" class="ghost-btn" id="syncSave">${L('저장하고 동기화')}</button>${st.configured ? `<button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button><button type="button" class="link-btn" id="syncOff">${L('연결 해제')}</button>` : ''}</div>
-    <div class="note" id="syncState">${st.configured ? esc(boxSyncText(st)) : L('아직 연결하지 않았어요.')}</div></div>`;
+    <div class="note" id="boxSyncState">${st.configured ? esc(boxSyncText(st)) : L('아직 연결하지 않았어요.')}</div></div>`;
 }
 async function runSyncNow() {
-  const el = $('syncState');
+  const el = $('boxSyncState');
   if (el) el.textContent = L('동기화하는 중…');
   try {
     const r = await api('api/sync/run', { body: {} });
@@ -1373,12 +1436,22 @@ async function openSettings() {
   const img = await api('api/images/status').catch(() => ({}));
   const total = S.works.reduce((a, w) => a + w.images.length, 0);
   const syncSt = await api('api/sync/status').catch(() => ({}));
+  const seg = (attr, cur, opts) => `<div class="tabs set-seg" role="radiogroup">${opts.map(([v, l, extra = '']) => `<button type="button" ${attr}="${v}" class="${cur === v ? 'on' : ''}">${extra}${esc(l)}</button>`).join('')}</div>`;
+  const item = (label, control, sub = '') => `<div class="set-item"><div class="si-label">${label}${sub ? `<small>${sub}</small>` : ''}</div><div class="si-ctl">${control}</div></div>`;
+  const advOn = !!getRelay().url || !!syncSt.configured;
   dlg.innerHTML = `<div class="m-body-wrap">
-    <div class="m-head"><h2>${L("설정")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
-    <div class="m-body">
-      ${n.unsupported ? `<div class="set-block"><h3>${L("이 기기의 기록")}</h3>
-        <div class="note">${L("기록은 이 기기 안에 저장돼요.")}</div>${offlineStatusHtml()}</div>${relayBlockHtml()}` : `<div class="set-block">
-        <h3>${L("노션 연결")}</h3>
+    <div class="m-head"><h2 tabindex="-1" autofocus>${L("설정")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
+    <div class="m-body settings-body">
+      ${n.unsupported ? `<div class="set-status">${offlineStatusHtml()}<div class="note">${L("기록은 이 기기 안에 저장돼요.")}</div></div>` : ''}
+      <div class="set-group-title">${esc(tr('viewTitle'))}</div>
+      <div class="set-group">
+        ${item(esc(tr('paletteNote')), seg('data-palette', S.palette, [['indigo', tr('palIndigo'), '<i class="pal-dot" style="background:#3443C4"></i>'], ['green', tr('palGreen'), '<i class="pal-dot" style="background:#2E5A4A"></i>'], ['mono', tr('palMono'), '<i class="pal-dot" style="background:#232323"></i>']]))}
+        ${item(esc(tr('modeNote')), seg('data-theme-mode', S.theme, [['system', tr('modeSystem')], ['light', tr('modeLight')], ['dark', tr('modeDark')]]))}
+        ${item(esc(tr('langNote')) + (S.menuLang === 'en' ? '' : ' · Language'), seg('data-menu-lang', S.menuLang, [['ko', '한국어'], ['en', 'English'], ['ja', '日本語']]))}
+        ${item(esc(tr('nameModeNote')), seg('data-name-mode', S.nameMode, [['both', tr('nameBoth')], ['ja', tr('nameJa')], ['ko', tr('nameKo')]]))}
+        <button type="button" class="set-item set-switch" id="blurSwitch" role="switch" aria-checked="${S.coverBlur}"><div class="si-label">${L('표지 가리기')}<small>${L('표지를 흐리게 해요')}</small></div><span class="switch${S.coverBlur ? ' on' : ''}"></span></button>
+      </div>
+      ${n.unsupported ? '' : `<div class="set-group-title">${L("노션 연결")}</div><div class="set-group set-pad">
         ${n.connected ? `<div class="banner ok">${L("CD LIST에 연결돼 있어요.")}</div>
           <div class="note" id="syncState">${syncText(n)}</div>
           <div class="progress" id="syncBar" ${n.running ? '' : 'hidden'}><div style="width:${n.running ? 50 : 0}%"></div></div>
@@ -1388,52 +1461,26 @@ async function openSettings() {
             ${L("키 만들기:")} <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">notion.so/profile/integrations ↗</a> ${L("→ CD LIST와 성우·서클·태그 DB에 연결 허용(읽기·업데이트·삽입)")}</div>
           <div class="set-row"><input class="input" id="tokenInput" type="password" placeholder="${L("ntn_… 또는 secret_…")}" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="primary-btn" id="connect">${L("연결")}</button></div>`}
       </div>`}
-      ${syncBlockHtml(syncSt)}
-      <div class="set-block"${img.unsupported ? ' hidden' : ''}>
-        <h3>${L("이미지 내려받기")}</h3>
+      <div${img.unsupported ? ' hidden' : ''}><div class="set-group-title">${L("이미지 내려받기")}</div><div class="set-group set-pad">
         <div class="note">${L("표지와 이미지를 images 폴더에 저장해요.")}</div>
         <div class="note" id="imgState">${imgText(img, total)}</div>
         <div class="progress" id="imgBar" ${img.running ? '' : 'hidden'}><div style="width:${img.total ? Math.round(img.done / img.total * 100) : 0}%"></div></div>
         <div class="set-row"><button type="button" class="ghost-btn" id="imgCovers">${L("표지만 받기")}</button><button type="button" class="ghost-btn" id="imgAll">${L("모든 이미지 받기")}</button></div>
+      </div></div>
+      <div class="set-group-title">${L("백업")}</div>
+      <div class="set-group">
+        <a class="set-item set-link" href="api/backup" download><div class="si-label">${L("복원용 백업 받기")}<small>${window.VB_MOBILE ? L('복원하거나 다른 기기로 옮길 때 써요. 가끔 받아 두세요.') : L('앱을 되돌릴 때 써요. 노션 키는 들어가지 않아요.')}</small></div><span class="si-go">›</span></a>
+        <label class="set-item set-link"><div class="si-label">${L("백업에서 복원")}</div><span class="si-go">›</span><input type="file" id="restoreFile" accept=".json,application/json" hidden></label>
+        <div class="set-item"><div class="si-label">${L("보기 좋은 백업")}<small>${L("보관·열람용이에요. 복원에는 쓸 수 없어요.")}</small></div>
+          <div class="si-ctl set-row"><a class="ghost-btn" href="api/export/works.xlsx" download>${L("엑셀 (.xlsx)")}</a><a class="ghost-btn" href="api/export/works.csv" download>CSV</a><a class="ghost-btn" href="api/export/reviews.html" target="_blank" rel="noopener">${L("감상 모음 문서 ↗")}</a></div></div>
       </div>
-      <div class="set-block">
-        <h3>${esc(tr('viewTitle'))}</h3>
-        <div class="note">${esc(tr('langNote'))}${S.menuLang === 'en' ? '' : ' · Language'}</div>
-        <div class="tabs" role="radiogroup" aria-label="Menu language">
-          ${[['ko', '한국어'], ['en', 'English'], ['ja', '日本語']].map(([v, l]) => `<button type="button" data-menu-lang="${v}" class="${S.menuLang === v ? 'on' : ''}">${l}</button>`).join('')}
+      <details class="set-adv"${advOn ? ' open' : ''}><summary><span>${L("고급")}</span><small>${advOn ? L('연결됨') : L('내 서버가 있을 때만')}</small></summary>
+        <div class="set-group set-pad">
+          <div class="note">${L("직접 만든 Cloudflare 서버가 있을 때 쓰는 기능이에요. 없어도 앱은 그대로 쓸 수 있어요.")}</div>
+          ${n.unsupported ? relayBlockHtml() : ''}
+          ${syncBlockHtml(syncSt) || `<div class="note">${L("정보 채우기 서버를 연결하면 다른 기기와 동기화도 켤 수 있어요.")}</div>`}
         </div>
-        <div class="note" style="margin-top:6px">${esc(tr('paletteNote'))}</div>
-        <div class="tabs palette-pick" role="radiogroup" aria-label="${esc(tr('paletteNote'))}">
-          ${[['indigo', 'palIndigo', '#3443C4'], ['green', 'palGreen', '#2E5A4A'], ['mono', 'palMono', '#232323']].map(([v, k, c]) => `<button type="button" data-palette="${v}" class="${S.palette === v ? 'on' : ''}"><i class="pal-dot" style="background:${c}"></i>${esc(tr(k))}</button>`).join('')}
-        </div>
-        <div class="note" style="margin-top:6px">${L('표지 가리기')} · ${L('표지를 흐리게 해요')}</div>
-        <div class="tabs" role="radiogroup" aria-label="${L('표지 가리기')}">
-          ${[['off', '끄기'], ['on', '켜기']].map(([v, l]) => `<button type="button" data-cover-blur="${v}" class="${(v === 'on') === S.coverBlur ? 'on' : ''}">${L(l)}</button>`).join('')}
-        </div>
-        <div class="note" style="margin-top:6px">${esc(tr('modeNote'))}</div>
-        <div class="tabs" role="radiogroup" aria-label="${esc(tr('modeNote'))}">
-          ${[['system', 'modeSystem'], ['light', 'modeLight'], ['dark', 'modeDark']].map(([v, k]) => `<button type="button" data-theme-mode="${v}" class="${S.theme === v ? 'on' : ''}">${esc(tr(k))}</button>`).join('')}
-        </div>
-        <div class="note" style="margin-top:6px">${esc(tr('nameModeNote'))}</div>
-        <div class="tabs name-mode" role="radiogroup" aria-label="${esc(tr('nameModeNote'))}">
-          ${[['both', 'nameBoth'], ['ja', 'nameJa'], ['ko', 'nameKo']].map(([v, k]) => `<button type="button" data-name-mode="${v}" class="${S.nameMode === v ? 'on' : ''}">${esc(tr(k))}</button>`).join('')}
-        </div>
-      </div>
-      <div class="set-block">
-        <h3>${L("보기 좋은 백업")}</h3>
-        <div class="note">${L("보관·열람용이에요. 복원에는 쓸 수 없어요.")}</div>
-        <div class="set-row">
-          <a class="ghost-btn" href="api/export/works.xlsx" download>${L("엑셀 (.xlsx)")}</a>
-          <a class="ghost-btn" href="api/export/works.csv" download>CSV</a>
-          <a class="ghost-btn" href="api/export/reviews.html" target="_blank" rel="noopener">${L("감상 모음 문서 ↗")}</a>
-        </div>
-        <div class="note">${L("감상 모음은 새 탭에서 PDF로 저장할 수 있어요.")}</div>
-      </div>
-      <div class="set-block">
-        <h3>${L("복원용 백업 (JSON)")}</h3>
-        <div class="note">${window.VB_MOBILE ? L('복원하거나 다른 기기로 옮길 때 써요. 가끔 받아 두세요.') : L('앱을 되돌릴 때 써요. 노션 키는 들어가지 않아요.')}</div>
-        <div class="set-row"><a class="ghost-btn" href="api/backup" download>${L("복원용 백업 받기")}</a><label class="ghost-btn">${L("백업에서 복원")}<input type="file" id="restoreFile" accept=".json,application/json" hidden></label></div>
-      </div>
+      </details>
     </div></div>`;
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
   if (!dlg.open) dlg.showModal();
@@ -1463,7 +1510,7 @@ async function openSettings() {
     dlg.querySelectorAll('[data-menu-lang]').forEach((x) => x.classList.toggle('on', x === b));
     location.reload();
   }));
-  dlg.querySelectorAll('[data-cover-blur]').forEach((b) => (b.onclick = () => setCoverBlur(b.dataset.coverBlur === 'on')));
+  $('blurSwitch').onclick = () => { setCoverBlur(!S.coverBlur); $('blurSwitch').setAttribute('aria-checked', String(S.coverBlur)); $('blurSwitch').querySelector('.switch').classList.toggle('on', S.coverBlur); };
   dlg.querySelectorAll('[data-palette]').forEach((b) => (b.onclick = () => {
     S.palette = b.dataset.palette;
     rememberView();
@@ -1477,7 +1524,7 @@ async function openSettings() {
   $('syncOn') && ($('syncOn').onchange = async (e) => { await api('api/sync/config', { body: { on: e.target.checked } }).catch(fail); if (e.target.checked) runSyncNow(); });
   $('syncSave') && ($('syncSave').onclick = async () => {
     const url = $('syncUrl').value.trim(), key = $('syncKey').value.trim();
-    if (!/^https:\/\//.test(url) || !key) { $('syncState').textContent = L('https로 시작하는 주소와 열쇠를 모두 넣어 주세요.'); return; }
+    if (!/^https:\/\//.test(url) || !key) { $('boxSyncState').textContent = L('https로 시작하는 주소와 열쇠를 모두 넣어 주세요.'); return; }
     await api('api/sync/config', { body: { url, key } }).catch(fail);
     await runSyncNow(); openSettings();
   });
