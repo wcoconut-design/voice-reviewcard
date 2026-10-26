@@ -943,3 +943,25 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), summary:focus:not
 .nm-ok { color: var(--ok); font-weight: 600; }
 .nm-fix { display: flex; align-items: center; gap: 10px; background: var(--accent-soft); color: var(--accent); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
 .nm-fix span { flex: 1; }
+
+/* 지출: 월별/연도별 */
+.spend-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.spend-view { display: inline-flex; }
+.spend-view button { padding: 7px 18px; }
+.year-nav { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.year-nav strong { font-size: 15px; min-width: 64px; text-align: center; }
+.year-nav button { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 18px; color: var(--text-2); line-height: 1; }
+.year-nav button:disabled { opacity: .35; }
+.spend-top .note { margin-left: auto; }
+.spend-table { display: flex; flex-direction: column; border-top: 1px solid var(--line-soft); padding-top: 6px; }
+.st-row { display: grid; grid-template-columns: 70px minmax(0, 1fr) 110px 100px; gap: 8px; align-items: center; padding: 9px 6px; border: none; border-bottom: 1px solid var(--line-soft); background: none; font: inherit; font-size: 14px; color: var(--text); text-align: left; border-radius: 0; }
+.st-row > span:nth-child(3), .st-row > span:nth-child(4) { text-align: right; }
+button.st-row:hover, .st-row.on { background: var(--accent-soft); }
+.st-head { font-size: 12px; color: var(--muted); padding-top: 4px; }
+.st-total { font-weight: 700; border-bottom: none; }
+.st-sum { font-weight: 600; }
+.st-saved { color: var(--ok); }
+.chip-nostats { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.ed-nostats small { margin-left: 4px; font-size: 12px; }
+@media (max-width: 760px) { .st-row { grid-template-columns: 52px minmax(0, 1fr) 84px 76px; font-size: 13.5px; } }
+.spend-view button { white-space: nowrap; }

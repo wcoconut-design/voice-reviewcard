@@ -864,6 +864,7 @@ function renderDetail() {
       ${actors.map((a) => `<button type="button" class="chip chip-name" data-filter="actor" data-v="${esc(a)}" title="${L("이 성우 작품 보기")}">${nameHtml(a)}</button>`).join('')}
       ${splitNames(w.circle).map((c) => `<button type="button" class="chip" data-filter="circle" data-v="${esc(c)}" title="${L("이 서클 작품 보기")}">${esc(c)}</button>`).join('')}
       ${w.code ? `<span class="chip">${esc(w.code)}</span>` : ''}
+      ${w.noStats ? `<span class="chip chip-nostats">${L('통계 제외')}</span>` : ''}
       ${w.workType ? `<button type="button" class="chip chip-wt" data-filter="wt" data-v="${esc(w.workType)}" title="${L("이 구분의 작품 보기")}">${L(w.workType)}</button>` : ''}
       ${w.tags.map((t, i) => `<button type="button" class="chip tag${i >= TAG_SHOW && !S.tagsOpen ? ' more-hide' : ''}" data-filter="tag" data-v="${esc(t)}">${esc(t)}</button>`).join('')}
       ${w.tags.length > TAG_SHOW && !S.tagsOpen ? `<button type="button" class="chip chip-more" data-act="tagsopen">+${w.tags.length - TAG_SHOW}</button>` : ''}
@@ -997,6 +998,7 @@ $('detail').addEventListener('click', async (e) => {
     case 'more': return openActions([
       { label: L('정보 수정'), run: () => openEditor(w) },
       { label: w.hidden ? L('숨김 해제') : L('목록에서 숨기기'), run: () => $('detail').querySelector('[data-act="hide"]').click() },
+      { label: w.noStats ? L('통계에 다시 넣기') : L('통계에서 빼기'), run: async () => { await save(w.id, { noStats: !w.noStats }); toast(w.noStats ? L('통계에 다시 넣었어요.') : L('통계에서 뺐어요. 지출 통계에는 그대로 있어요.')); } },
       ...(w.url ? [{ label: L('판매 페이지 ↗'), href: w.url }] : []),
       { label: L('수정 이력'), run: () => openHistory(w.id) },
     ]);
@@ -1086,6 +1088,7 @@ function openEditor(work) {
           <label class="field">${L("폴더")}<select id="edFolder"><option value="">${L("폴더 없음")}</option>${S.folders.map((f) => `<option${f === ED.folder ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
           <label class="field">${L("정리 상태")}<input id="edOrganize" value="${esc(ED.organize)}" list="organizeList"></label>
         </div>
+        <label class="check ed-nostats"><input type="checkbox" id="edNoStats"${ED.noStats ? ' checked' : ''}>${L('통계에서 빼기')} <small class="muted">${L('작품 통계에만 해당 · 지출은 그대로')}</small></label>
         <div class="sec-label" style="margin-top:6px">${L("구매 정보")}</div>
         <div class="grid2">
           <label class="field">${L("구매처")}<input id="edStore" value="${esc(ED.store || '')}" list="storeList" placeholder="${L("DLsite, 포케도라…")}"></label>
@@ -1150,6 +1153,7 @@ function readEdForm() {
   ED.folder = $('edFolder').value;
   ED.organize = $('edOrganize').value.trim();
   ED.hidden = $('edHidden').checked;
+  ED.noStats = $('edNoStats').checked;
   ED.purchaseDate = $('edBuyDate').value;
   ED.store = $('edStore').value.trim();
   ED.listPrice = $('edListPrice').value.trim();
@@ -1370,7 +1374,7 @@ function bindEditor() {
     readEdForm();
     if (!ED.title && !ED.titleKo) { $('edTitle').focus(); return toast(L('작품명을 입력해 주세요.'), true); }
     if (ED.isNew && !ED.workType) ED.workType = guessWorkType(ED);
-    const body = { workType: ED.workType || '', url: ED.url, titleKo: ED.titleKo, title: ED.title, actor: ED.actor, circle: ED.circle, date: ED.date, code: ED.code, tags: ED.tags, images: ED.images, promo: ED.promo, translation: ED.translation, folder: ED.folder, hidden: ED.hidden, organize: ED.organize, purchaseDate: ED.purchaseDate, store: ED.store, listPrice: ED.listPrice, paidPrice: ED.paidPrice, currency: ED.currency };
+    const body = { noStats: !!ED.noStats, workType: ED.workType || '', url: ED.url, titleKo: ED.titleKo, title: ED.title, actor: ED.actor, circle: ED.circle, date: ED.date, code: ED.code, tags: ED.tags, images: ED.images, promo: ED.promo, translation: ED.translation, folder: ED.folder, hidden: ED.hidden, organize: ED.organize, purchaseDate: ED.purchaseDate, store: ED.store, listPrice: ED.listPrice, paidPrice: ED.paidPrice, currency: ED.currency };
     const pushAfter = $('edPush')?.checked;
     $('edSave').disabled = true;
     try {
@@ -2051,8 +2055,8 @@ try { const p = JSON.parse(localStorage.getItem('voicebox.stats') || '{}'); if (
 function statData() {
   const [, , getter] = STAT_KINDS.find((k) => k[0] === S.statKind);
   const scope = STAT_SCOPES.find((k) => k[0] === S.statScope)[2];
-  // 숨긴 작품은 숨김 아이콘과 상관없이 작품 통계에서 빼요. (지출 통계에는 들어가요)
-  const works = S.works.filter((w) => !w.hidden && scope(w));
+  // 숨김과 상관없이 세고, '통계에서 빼기'를 켠 작품만 빼요. (지출 통계에는 들어가요)
+  const works = S.works.filter((w) => !w.noStats && scope(w));
   const m = new Map();
   let none = 0;
   for (const w of works) {
@@ -2099,7 +2103,6 @@ function renderStats() {
   if (S.statKind === 'spend') return renderSpend();
   const { works, rows, none } = statData();
   const total = works.length;
-  const hiddenN = S.works.filter((w) => w.hidden).length;
   const kindLabel = STAT_KINDS.find((k) => k[0] === S.statKind)[1];
   const played = works.filter((w) => w.status === '청취 완료' || w.status === '청취 중').length;
   const rated = works.filter((w) => w.rating);
@@ -2146,14 +2149,16 @@ function renderStats() {
     <div class="stat-body">
       <div class="donut-wrap">${svg}</div>
       <div class="stat-legend">
-        <div class="note">${kindLabel} ${rows.length.toLocaleString()}${L("개")}${hiddenN ? ` · ${L('숨긴 작품 {n}개 제외', { n: hiddenN })}` : ''}${S.statKind === 'actor' || S.statKind === 'circle' ? ` · <button type="button" class="link-btn" data-open-names="${S.statKind === 'circle' ? 'circle' : 'missing'}">${L('이름 정리')}</button>` : ''}</div>
+        <div class="note">${kindLabel} ${rows.length.toLocaleString()}${L("개")}${S.statKind === 'actor' || S.statKind === 'circle' ? ` · <button type="button" class="link-btn" data-open-names="${S.statKind === 'circle' ? 'circle' : 'missing'}">${L('이름 정리')}</button>` : ''}</div>
         <div id="legRows"></div>
         <div class="leg-more" id="statMore"></div>
       </div>
     </div>`;
 }
 // 지출: 구매일·금액이 있는 작품을 월별로 더해요. 구매가가 없으면 정가로 셉니다.
-S.spendPeriod = 'recent';
+S.spendView = (() => { try { return localStorage.getItem('voicebox.spendView') || 'month'; } catch { return 'month'; } })();
+S.spendYear = '';
+const rememberSpend = () => { try { localStorage.setItem('voicebox.spendView', S.spendView); } catch {} };
 S.spendMonth = '';
 S.spendCur = '';
 function renderSpend() {
@@ -2163,47 +2168,58 @@ function renderSpend() {
   const curs = [...curCount].sort((a, b) => b[1] - a[1]).map(([c]) => c);
   if (!curs.includes(S.spendCur)) S.spendCur = curs[0] || 'JPY';
   const cur = S.spendCur;
-  const years = [...new Set(bought.map((w) => w.purchaseDate.slice(0, 4)))].sort().reverse();
-  if (S.spendPeriod !== 'recent' && !years.includes(S.spendPeriod)) S.spendPeriod = 'recent';
   const pad = (n) => String(n).padStart(2, '0');
-  let months;
-  if (S.spendPeriod === 'recent') {
-    const d = new Date(); months = [];
-    for (let i = 11; i >= 0; i--) { const x = new Date(d.getFullYear(), d.getMonth() - i, 1); months.push(`${x.getFullYear()}-${pad(x.getMonth() + 1)}`); }
-  } else months = Array.from({ length: 12 }, (_, i) => `${S.spendPeriod}-${pad(i + 1)}`);
-  const inCur = bought.filter((w) => (w.currency || 'JPY') === cur);
-  const inPeriod = inCur.filter((w) => months.includes(w.purchaseDate.slice(0, 7)));
   const paidOf = (w) => w.paidPrice ?? w.listPrice;
-  const byMonth = new Map(months.map((m) => [m, { sum: 0, n: 0 }]));
-  for (const w of inPeriod) { const r = byMonth.get(w.purchaseDate.slice(0, 7)); r.sum += paidOf(w); r.n++; }
-  const total = inPeriod.reduce((a, w) => a + paidOf(w), 0);
-  const saved = inPeriod.reduce((a, w) => a + (w.listPrice != null && w.paidPrice != null ? Math.max(0, w.listPrice - w.paidPrice) : 0), 0);
-  const activeMonths = [...byMonth.values()].filter((r) => r.n).length;
-  const max = Math.max(1, ...[...byMonth.values()].map((r) => r.sum));
+  const savedOf = (w) => (w.listPrice != null && w.paidPrice != null ? Math.max(0, w.listPrice - w.paidPrice) : 0);
+  const inCur = bought.filter((w) => (w.currency || 'JPY') === cur);
+  const thisYear = String(new Date().getFullYear());
+  const years = [...new Set([...inCur.map((w) => w.purchaseDate.slice(0, 4)), thisYear])].sort();
+  if (!years.includes(S.spendYear)) S.spendYear = inCur.some((w) => w.purchaseDate.startsWith(thisYear)) || !inCur.length ? thisYear : years[years.length - 1];
+  const yearView = S.spendView === 'year';
+  // 막대·목록 묶음: 월별(고른 연도의 1~12월) 또는 연도별
+  const keys = yearView ? years : Array.from({ length: 12 }, (_, i) => `${S.spendYear}-${pad(i + 1)}`);
+  const keyOf = (w) => (yearView ? w.purchaseDate.slice(0, 4) : w.purchaseDate.slice(0, 7));
+  const scope = yearView ? inCur : inCur.filter((w) => w.purchaseDate.startsWith(S.spendYear));
+  const groups = new Map(keys.map((k) => [k, { sum: 0, n: 0, saved: 0 }]));
+  for (const w of scope) { const r = groups.get(keyOf(w)); if (r) { r.sum += paidOf(w); r.n++; r.saved += savedOf(w); } }
+  const total = scope.reduce((a, w) => a + paidOf(w), 0);
+  const saved = scope.reduce((a, w) => a + savedOf(w), 0);
+  const activeMonths = new Set(scope.map((w) => w.purchaseDate.slice(0, 7))).size;
+  const max = Math.max(1, ...[...groups.values()].map((r) => r.sum));
   const stores = new Map();
-  for (const w of inPeriod) { const k = w.store || L('구매처 미기재'); const r = stores.get(k) || { sum: 0, n: 0 }; r.sum += paidOf(w); r.n++; stores.set(k, r); }
+  for (const w of scope) { const k = w.store || L('구매처 미기재'); const r = stores.get(k) || { sum: 0, n: 0 }; r.sum += paidOf(w); r.n++; stores.set(k, r); }
   const storeRows = [...stores].sort((a, b) => b[1].sum - a[1].sum);
-  if (S.spendMonth && !months.includes(S.spendMonth)) S.spendMonth = '';
+  if (yearView || (S.spendMonth && !keys.includes(S.spendMonth))) S.spendMonth = '';
   const monthWorks = S.spendMonth ? inCur.filter((w) => w.purchaseDate.startsWith(S.spendMonth)).sort((a, b) => b.purchaseDate.localeCompare(a.purchaseDate)) : [];
-  const mLabel = (m) => Number(m.slice(5)) + `<small>${L("월")}</small>`;
+  const label = (k) => (yearView ? k : Number(k.slice(5)) + `<small>${L("월")}</small>`);
+  const listRows = [...groups].filter(([, r]) => r.n).reverse();
+  const yi = years.indexOf(S.spendYear);
   $('stats').innerHTML = `${statModeHtml()}
-    <div class="stat-cards">
-      <div class="stat-card"><div class="sc-label">${S.spendPeriod === 'recent' ? L('최근 12개월 지출') : S.spendPeriod + L('년 지출')}</div><div class="sc-num">${money(total, cur) || money(0, cur)}</div></div>
-      <div class="stat-card"><div class="sc-label">${L("월 평균 · 산 달 기준")}</div><div class="sc-num">${money(activeMonths ? total / activeMonths : 0, cur)}</div></div>
-      <div class="stat-card"><div class="sc-label">${L("구매한 작품")}</div><div class="sc-num">${inPeriod.length.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="sc-label">${L("할인으로 아낀 금액")}</div><div class="sc-num">${money(saved, cur)}</div></div>
-    </div>
-    <div class="stat-tools">
-      <select id="spendPeriod" aria-label="${L("기간")}"><option value="recent">${L("최근 12개월")}</option>${years.map((y) => `<option value="${y}"${S.spendPeriod === y ? ' selected' : ''}>${y}${L("년")}</option>`).join('')}</select>
+    <div class="spend-top">
+      <div class="seg spend-view" role="radiogroup"><button type="button" data-spend-view="month" class="${yearView ? '' : 'on'}">${L('월별')}</button><button type="button" data-spend-view="year" class="${yearView ? 'on' : ''}">${L('연도별')}</button></div>
+      ${yearView ? `<span class="note">${L('전체 기간')}</span>` : `<div class="year-nav"><button type="button" data-spend-year="${years[yi - 1] || ''}"${yi > 0 ? '' : ' disabled'} aria-label="${L('이전 해')}">‹</button><strong>${S.spendYear}${L('년')}</strong><button type="button" data-spend-year="${years[yi + 1] || ''}"${yi < years.length - 1 ? '' : ' disabled'} aria-label="${L('다음 해')}">›</button></div>`}
       ${curs.length > 1 ? `<div class="tabs" role="radiogroup" aria-label="${L("통화")}">${curs.map((c) => `<button type="button" data-spend-cur="${c}" class="${c === cur ? 'on' : ''}">${CUR_SIGN[c]} ${c}</button>`).join('')}</div>` : ''}
+    </div>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="sc-label">${yearView ? L('전체 지출') : S.spendYear + L('년 지출')}</div><div class="sc-num">${money(total, cur) || money(0, cur)}</div></div>
+      <div class="stat-card"><div class="sc-label">${L("월 평균 · 산 달 기준")}</div><div class="sc-num">${money(activeMonths ? total / activeMonths : 0, cur)}</div></div>
+      <div class="stat-card"><div class="sc-label">${L("구매한 작품")}</div><div class="sc-num">${scope.length.toLocaleString()}</div></div>
+      <div class="stat-card"><div class="sc-label">${L("할인으로 아낀 금액")}</div><div class="sc-num">${money(saved, cur)}</div></div>
     </div>
     <div class="stat-body spend-body">
       ${bought.length ? '' : `<div class="note">${L("아직 구매 정보가 없어요.")}</div>`}
-      <div class="bars" role="list">${months.map((m) => { const r = byMonth.get(m); return `<button type="button" class="bar${S.spendMonth === m ? ' on' : ''}" data-spend-month="${m}" role="listitem" title="${m} · ${money(r.sum, cur)} · ${r.n}${L("개")}">
+      <div class="bars${yearView ? ' bars-year' : ''}" role="list" style="${yearView ? `grid-template-columns:repeat(${Math.max(keys.length, 3)}, minmax(0, 1fr))` : ''}">${keys.map((k) => { const r = groups.get(k); return `<button type="button" class="bar${S.spendMonth === k ? ' on' : ''}" ${yearView ? `data-spend-goyear="${k}"` : `data-spend-month="${k}"`} role="listitem" title="${k} · ${money(r.sum, cur)} · ${r.n}${L("개")}">
         <span class="bar-v">${r.sum ? money(r.sum, cur) : ''}</span>
         <span class="bar-track"><span class="bar-fill" style="height:${r.sum ? Math.max(3, Math.round(r.sum / max * 100)) : 0}%"></span></span>
-        <span class="bar-m">${mLabel(m)}</span></button>`; }).join('')}</div>
-      ${S.spendMonth ? `<div class="spend-month"><div class="sec-head"><h3>${S.spendMonth.replace('-', ' / ')} · ${money(byMonth.get(S.spendMonth).sum, cur)}</h3><button type="button" class="link-btn" data-spend-month="">${L("닫기")}</button></div>
+        <span class="bar-m">${label(k)}</span></button>`; }).join('')}</div>
+      ${listRows.length ? `<div class="spend-table">
+        <div class="st-row st-head"><span>${yearView ? L('연도') : L('구매 월')}</span><span>${L('작품')}</span><span>${L('지출')}</span><span>${yearView ? L('월 평균') : L('아낀 돈')}</span></div>
+        ${listRows.map(([k, r]) => { const months = yearView ? new Set(scope.filter((w) => w.purchaseDate.startsWith(k)).map((w) => w.purchaseDate.slice(0, 7))).size : 0; return `<button type="button" class="st-row${S.spendMonth === k ? ' on' : ''}" ${yearView ? `data-spend-goyear="${k}"` : `data-spend-month="${k}"`}>
+          <span>${yearView ? k + L('년') : Number(k.slice(5)) + L('월')}</span><span>${r.n}${L('개')}</span><span class="st-sum">${money(r.sum, cur)}</span><span class="${!yearView && r.saved ? 'st-saved' : ''}">${yearView ? money(months ? r.sum / months : 0, cur) : r.saved ? money(r.saved, cur) : '–'}</span></button>`; }).join('')}
+        <div class="st-row st-total"><span>${L('합계')}</span><span>${scope.length}${L('개')}</span><span class="st-sum">${money(total, cur)}</span><span class="${!yearView && saved ? 'st-saved' : ''}">${yearView ? money(activeMonths ? total / activeMonths : 0, cur) : saved ? money(saved, cur) : '–'}</span></div>
+        <p class="note">${yearView ? L('연도를 누르면 그해 월별로 넘어가요.') : L('월을 누르면 그달 산 작품이 보여요.')}</p>
+      </div>` : ''}
+      ${S.spendMonth ? `<div class="spend-month"><div class="sec-head"><h3>${S.spendMonth.replace('-', ' / ')} · ${money(groups.get(S.spendMonth).sum, cur)}</h3><button type="button" class="link-btn" data-spend-month="">${L("닫기")}</button></div>
         ${monthWorks.map((w) => `<button type="button" class="spend-row" data-open-work="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title">${esc(displayTitle(w))}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(paidOf(w), cur)}</span></button>`).join('')}</div>` : ''}
       ${storeRows.length ? `<div class="spend-stores"><div class="note">${L("구매처별")}</div>
         ${storeRows.map(([k, r], i) => `<div class="leg-row"><span class="leg-rank">${i + 1}</span><span class="leg-dot" style="background:${STAT_COLORS[i % STAT_COLORS.length]}"></span><span class="leg-name">${esc(k)}</span><span class="leg-bar"><span style="width:${Math.max(2, Math.round(r.sum / (total || 1) * 100))}%;background:${STAT_COLORS[i % STAT_COLORS.length]}"></span></span><span class="leg-n">${r.n}${L("개")}</span><span class="leg-p">${money(r.sum, cur)}</span></div>`).join('')}</div>` : ''}
@@ -2214,10 +2230,15 @@ $('stats').addEventListener('click', (e) => {
   if (m) { S.spendMonth = S.spendMonth === m.dataset.spendMonth ? '' : m.dataset.spendMonth; return renderSpend(); }
   const c = e.target.closest('[data-spend-cur]');
   if (c) { S.spendCur = c.dataset.spendCur; S.spendMonth = ''; return renderSpend(); }
+  const v = e.target.closest('[data-spend-view]');
+  if (v) { S.spendView = v.dataset.spendView; S.spendMonth = ''; rememberSpend(); return renderSpend(); }
+  const y = e.target.closest('[data-spend-year]');
+  if (y && y.dataset.spendYear) { S.spendYear = y.dataset.spendYear; S.spendMonth = ''; return renderSpend(); }
+  const gy = e.target.closest('[data-spend-goyear]');
+  if (gy) { S.spendView = 'month'; S.spendYear = gy.dataset.spendGoyear; S.spendMonth = ''; rememberSpend(); return renderSpend(); }
   const o = e.target.closest('[data-open-work]');
   if (o) select(o.dataset.openWork);
 });
-$('stats').addEventListener('change', (e) => { if (e.target.id === 'spendPeriod') { S.spendPeriod = e.target.value; S.spendMonth = ''; renderSpend(); } });
 // 통계 위쪽 큰 탭: 작품 통계 | 지출
 let lastWorkKind = 'actor';
 function statModeHtml() {

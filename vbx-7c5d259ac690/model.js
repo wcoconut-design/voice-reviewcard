@@ -101,6 +101,7 @@ export function normalizeWork(w = {}) {
     lastPlayed: normalizeDate(w.lastPlayed),
     favorite: !!w.favorite,
     hidden: !!w.hidden,
+    noStats: !!w.noStats, // 통계에서 빼기 (작품 통계만, 지출은 그대로) · 노션에는 보내지 않아요
     folder: str(w.folder),
     organize: str(w.organize),
     review: String(w.review || '').trim(),
