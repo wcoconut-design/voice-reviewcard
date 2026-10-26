@@ -31,11 +31,11 @@
   // 간단 화면: 작품 정보는 VOICE BOX에서 자동으로 채우니 입력칸은 숨기고 디자인만 골라요. (?full=1 이면 원래 메이커 그대로)
   const LITE = !new URLSearchParams(location.search).has('full');
   const T = {
-    ko: { full: '전체 편집', design: '디자인', show: '표시', cover: '표지', text: '글 고치기', textNote: '카드에만 쓰는 글이에요. 저장할 때 감상에도 반영할지 물어봐요.', down: '이미지로 받기' },
-    en: { full: 'Full editor', design: 'Design', show: 'Display', cover: 'Cover', text: 'Edit text', textNote: 'Text for this card only. You will be asked whether to update your review when saving.', down: 'Download image' },
-    ja: { full: 'フル編集', design: 'デザイン', show: '表示', cover: '表紙', text: '文章を編集', textNote: 'カード用の文章です。保存時に感想へ反映するか確認します。', down: '画像を保存' },
+    ko: { full: '전체 편집', design: '디자인', show: '표시', cover: '표지', text: '글 고치기', textNote: '카드에만 쓰는 제목·글이에요. 앱의 제목은 바뀌지 않아요. 감상은 저장할 때 반영할지 물어봐요.', down: '이미지로 받기', qr: 'QR 코드 보이기 (판매 링크)' },
+    en: { full: 'Full editor', design: 'Design', show: 'Display', cover: 'Cover', text: 'Edit text', textNote: 'Title and text for this card only. The app title stays the same.', down: 'Download image', qr: 'Show QR code (store link)' },
+    ja: { full: 'フル編集', design: 'デザイン', show: '表示', cover: '表紙', text: '文章を編集', textNote: 'カード用のタイトル・文章です。アプリのタイトルは変わりません。', down: '画像を保存', qr: 'QRコードを表示 (販売リンク)' },
   }[LANG] || null;
-  const tx = T || { full: '전체 편집', design: '디자인', show: '표시', cover: '표지', text: '글 고치기', textNote: '카드에만 쓰는 글이에요. 저장할 때 감상에도 반영할지 물어봐요.', down: '이미지로 받기' };
+  const tx = T || { full: '전체 편집', design: '디자인', show: '표시', cover: '표지', text: '글 고치기', textNote: '카드에만 쓰는 제목·글이에요. 앱의 제목은 바뀌지 않아요.', down: '이미지로 받기', qr: 'QR 코드 보이기 (판매 링크)' };
   // 원래 화면으로: 새 탭으로 열렸으면 탭을 닫고, 폰 앱처럼 같은 화면에서 넘어왔으면 그 작품 상세로 돌아가요.
   function goBack() {
     if (window.opener && !window.opener.closed) { window.close(); return; }
@@ -95,8 +95,8 @@
       design: ['layoutRow', 'themeSelect', 'fontSizeSlider', 'colorGrid'],
       show: ['ratingRow', 'heartSelectRow', 'chkSpoiler', 'chkDate', 'inHeadline', 'inReviewer'],
       cover: ['thumbBox'],
-      text: ['inReview'],
-      hide: ['inTitle', 'inCircle', 'inArtist', 'inGenre', 'starSelectRow', 'progressSlider', 'inQR'],
+      text: ['inTitle', 'inReview'],
+      hide: ['inCircle', 'inArtist', 'inGenre', 'starSelectRow', 'progressSlider', 'inQR'],
     };
     for (const [tab, ids] of Object.entries(groups)) for (const id of ids) { const f = field(id); if (f) f.dataset.vbtab = tab; }
     const grid = document.querySelector('.editor-grid');
@@ -106,7 +106,12 @@
     grid.prepend(tabs);
     const note = document.createElement('div');
     note.className = 'vb-note'; note.dataset.vbtab2 = 'text'; note.textContent = tx.textNote;
-    field('inReview')?.before(note);
+    field('inTitle')?.before(note);
+    const qrField = document.createElement('div');
+    qrField.className = 'field full'; qrField.dataset.vbtab = 'show';
+    qrField.innerHTML = `<label class="check-label"><input type="checkbox" id="vbQrOn"> <span>${tx.qr}</span></label>`;
+    (field('inReviewer') || grid.lastElementChild).after(qrField);
+    document.getElementById('vbQrOn').onchange = (e) => { setQr(e.target.checked); saveExtra({ qrOff: !e.target.checked }); };
     const show = (k) => {
       tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.k === k));
       grid.querySelectorAll('.field[data-vbtab]').forEach((f) => f.classList.toggle('vb-on', f.dataset.vbtab === k));
@@ -133,16 +138,24 @@
     return new File([blob], 'cover', { type: blob.type || 'image/jpeg' });
   }
 
+  function readExtra() { try { return JSON.parse(localStorage.getItem(extraKey) || '{}'); } catch { return {}; } }
+  function saveExtra(patch) { try { localStorage.setItem(extraKey, JSON.stringify({ ...readExtra(), ...patch })); } catch {} }
+  function setQr(on) {
+    setInput('inQR', on && work ? work.url : '');
+    try { state.qrUrl = on && work ? (work.url || '') : ''; updateAll(); } catch {}
+  }
   async function fill() {
     work = await api('api/works/' + encodeURIComponent(workId));
     $('vbWork').textContent = work.titleKo || work.title;
     document.title = '리뷰카드 · ' + (work.titleKo || work.title);
-    setInput('inTitle', work.titleKo || work.title);
+    const ex0 = readExtra();
+    setInput('inTitle', ex0.cardTitle || work.titleKo || work.title);
     setInput('inArtist', String(work.actor || '').split(',').map((s) => s.trim()).filter(Boolean).join(', '));
     setInput('inCircle', work.circle);
     setInput('inGenre', (work.tags || []).join(' · '));
     setInput('inReview', work.review);
-    setInput('inQR', work.url);
+    setInput('inQR', ex0.qrOff ? '' : work.url);
+    if ($('vbQrOn')) $('vbQrOn').checked = !ex0.qrOff && !!work.url;
     state.starRating = work.rating ? work.rating + '/5' : '선택안함';
     let extra = {};
     try { extra = JSON.parse(localStorage.getItem(extraKey) || '{}'); } catch {}
@@ -212,7 +225,9 @@
       if (cardReview && cardReview !== (work.review || '').trim()) {
         if (confirm('카드의 리뷰 글이 VOICE BOX 감상과 달라요.\n카드의 글로 감상도 바꿀까요?')) patch.review = cardReview;
       }
-      try { localStorage.setItem(extraKey, JSON.stringify({ headline: $('inHeadline').value, eroRating: state.eroRating, ageRating: state.ageRating, progress: state.progress })); } catch {}
+      const t0 = work.titleKo || work.title;
+      const ct = $('inTitle').value.trim();
+      saveExtra({ headline: $('inHeadline').value, eroRating: state.eroRating, ageRating: state.ageRating, progress: state.progress, cardTitle: ct && ct !== t0 ? ct : '' });
       work = await api('api/works/' + encodeURIComponent(workId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
       channel?.postMessage({ type: 'work', id: workId });
       showCurrent();
