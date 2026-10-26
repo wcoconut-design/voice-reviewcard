@@ -1,0 +1,27 @@
+{
+  "name": "voicebox-server",
+  "version": "1.0.5",
+  "private": true,
+  "description": "VOICE BOX: info fill relay and device sync (your own Cloudflare Worker)",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  },
+  "cloudflare": {
+    "label": "VOICE BOX server",
+    "bindings": {
+      "VB_KEY": {
+        "description": "VOICE BOX 앱 설정 → 고급 → **열쇠 만들기**로 만든 열쇠를 붙여넣어요. / Paste the key from the app (Settings → Advanced → **Make a key**). / アプリの設定 → 詳細設定 → **キーを作る** で作ったキーを貼り付けます。"
+      },
+      "DB": {
+        "description": "기기 간 동기화 저장소 (자동으로 만들어져요) / Sync storage (created automatically) / 同期用ストレージ(自動で作成)"
+      },
+      "FILES": {
+        "description": "첨부 이미지 저장소 (자동으로 만들어져요) / Image storage (created automatically) / 画像ストレージ(自動で作成)"
+      }
+    }
+  }
+}

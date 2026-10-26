@@ -25,6 +25,7 @@ const COLUMNS = [
   ['감상', (w) => w.review, 60],
   ['구매일', (w) => w.purchaseDate || '', 11],
   ['구매처', (w) => w.store || '', 12],
+  ['구분', (w) => w.workType || '', 8],
   ['통화', (w) => (w.listPrice != null || w.paidPrice != null ? w.currency || 'JPY' : ''), 6],
   ['정가', (w) => w.listPrice ?? '', 9, 'number'],
   ['구매가', (w) => w.paidPrice ?? '', 9, 'number'],

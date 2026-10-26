@@ -1,7 +1,7 @@
 // VOICE BOX 폰 앱: 서버 없이 이 기기 안에서 데이터를 저장하고 처리합니다.
 // 화면 코드(app.js)가 'api/...'로 요청하면 여기서 가로채서 IndexedDB(기기 안 저장소)로 답해요.
 // 기록은 이 기기 안에만 있어요. 다른 기기로 옮길 때는 '복원용 백업(JSON)'을 쓰세요.
-import { normalizeWork } from './model.js';
+import { normalizeWork, guessWorkType } from './model.js';
 import { toCsv, toXlsx, reviewsHtml } from './export-core.js';
 import { syncOnce, decide } from './sync-core.js';
 
@@ -39,6 +39,12 @@ let settings = { folders: [] };
 const ready = (async () => {
   works = ((await kvGet('works')) || []).map(normalizeWork);
   settings = (await kvGet('settings')) || { folders: [] };
+  // 한 번만: 이미 있는 작품의 동인/상업을 작품 코드·판매 링크로 채워요.
+  if (!settings.workTypeFilled) {
+    for (const w of works) if (!w.workType) w.workType = guessWorkType(w);
+    settings.workTypeFilled = true;
+    await kvSet('works', works); await kvSet('settings', settings);
+  }
   // 브라우저가 저장소를 함부로 지우지 않게 요청 (홈 화면 앱이면 대부분 허용돼요)
   try { await navigator.storage?.persist?.(); } catch {}
 })();
@@ -203,6 +209,7 @@ async function handle(method, path, url, body) {
     if (!input.title && !input.titleKo) throw new ApiError('작품명을 입력해 주세요.');
     const now = new Date().toISOString();
     const w = normalizeWork({ ...input, id: uuid(), createdAt: now, updatedAt: now });
+    if (!w.workType && !('workType' in input)) w.workType = guessWorkType(w);
     works.unshift(w);
     addHistory(w.id, '작품 추가', w);
     saveWorks();
@@ -264,6 +271,8 @@ async function handle(method, path, url, body) {
   if (method === 'POST' && path === 'restore') {
     const b = JSON.parse(body || '{}');
     if (b.format !== 'voicebox-local' || !Array.isArray(b.works)) throw new ApiError('VOICE BOX 백업 파일이 아니에요.');
+    // 예전 백업(동인/상업 칸 없음)은 작품 코드·판매 링크로 채워요.
+    for (const w of b.works) if (w && !('workType' in w)) w.workType = guessWorkType(w);
     if (b.merge) { const r = mergeWorks(b.works); return { ok: true, ...r }; }
     works = b.works.map(normalizeWork);
     if (b.settings?.folders) settings.folders = b.settings.folders;

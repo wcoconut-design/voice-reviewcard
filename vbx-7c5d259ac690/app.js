@@ -8,7 +8,7 @@ const S = {
   folders: [],
   notion: {},
   nav: 'all',         // all | played | unplayed | fav | reviewed | unreviewed | hidden | pending | folder:이름
-  q: '', actor: '', circle: '', tag: '', rating: '', sort: 'updated',
+  q: '', actor: '', circle: '', tag: '', rating: '', wt: '', sort: 'updated',
   shown: 60,          // 화면에 그린 개수 (스크롤하면 늘어남)
   selected: null,     // 선택한 작품 id
   detail: null,       // 선택한 작품 전체 데이터
@@ -276,11 +276,12 @@ function renderChips(pending) {
   const chip = (nav, label, extra = '') => `<button type="button" class="nchip${S.nav === nav ? ' on' : ''}" data-nav="${esc(nav)}">${label}${extra}</button>`;
   const inFolder = S.nav.startsWith('folder:');
   $('navChips').innerHTML = [
-    chip('all', tr('chipAll')), chip('played', tr('chipPlayed')), chip('unplayed', tr('chipUnplayed')),
+    chip('all', tr('chipAll')),
     chip('fav', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg> ' + tr('chipFav')),
+    chip('played', tr('chipPlayed')), chip('unplayed', tr('chipUnplayed')),
     chip('reviewed', tr('chipReviewed')),
     `<button type="button" class="nchip${inFolder ? ' on' : ''}" data-folder-sheet>${esc(inFolder ? S.nav.slice(7) : tr('chipFolder'))} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>`,
-    S.works.some((w) => w.hidden) ? chip('hidden', tr('chipHidden')) : '',
+    S.nav === 'hidden' ? chip('hidden', tr('chipHidden')) : '',
     pending && !window.VB_MOBILE ? chip('pending', tr('chipPending'), ` <span class="badge">${pending}</span>`) : '',
   ].join('');
   const on = $('navChips').querySelector('.on');
@@ -355,6 +356,7 @@ function filtered() {
   if (S.actor) list = list.filter((w) => splitNames(w.actor).includes(S.actor));
   if (S.circle) list = list.filter((w) => splitNames(w.circle).includes(S.circle));
   if (S.tag) list = list.filter((w) => w.tags.includes(S.tag));
+  if (S.wt) list = list.filter((w) => w.workType === S.wt);
   if (S.rating !== '') list = list.filter((w) => (S.rating === '0' ? !w.rating : w.rating >= Number(S.rating)));
   const by = {
     updated: (a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''),
@@ -460,7 +462,7 @@ function refreshItem(id) {
 // 홈 맨 위 '이어 듣기': 듣는 중인 작품을 가로로 보여줘요.
 function renderNowRow(statsMode) {
   const el = $('nowRow');
-  const plain = !statsMode && S.nav === 'all' && !S.q.trim() && [S.actor, S.circle, S.tag, S.rating].every((v) => v === '');
+  const plain = !statsMode && S.nav === 'all' && !S.q.trim() && [S.actor, S.circle, S.tag, S.rating, S.wt].every((v) => v === '');
   const now = plain ? S.works.filter((w) => w.status === '청취 중' && visible(w)).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))).slice(0, 20) : [];
   el.hidden = !now.length;
   if (!now.length) { el.innerHTML = ''; return; }
@@ -477,21 +479,22 @@ function renderList() {
   document.querySelector('.filters').hidden = statsMode;
   $('search').closest('.search-row').hidden = statsMode;
   $('navChips').hidden = statsMode;
+  $('main').classList.toggle('stats-mode', statsMode);
   renderNowRow(statsMode);
   document.body.classList.toggle('has-q', !!S.q.trim());
   if (statsMode) { $('viewTitle').textContent = menuText('stats-title'); $('viewCount').textContent = ''; renderStats(); return; }
   currentList = filtered();
   $('viewTitle').textContent = navLabel(S.nav);
   $('viewCount').textContent = currentList.length.toLocaleString();
-  const activeCount = [S.actor, S.circle, S.tag, S.rating].filter((v) => v !== '').length;
+  const activeCount = [S.actor, S.circle, S.tag, S.rating, S.wt].filter((v) => v !== '').length;
   const active = !!S.q || activeCount > 0;
   $('resetFilters').hidden = !active;
   $('filterBtn').textContent = activeCount ? `${L("필터")} ${activeCount}` : L('필터');
   $('filterBtn').classList.toggle('on', activeCount > 0);
-  const optN = activeCount + (S.showHidden ? 1 : 0);
+  const optN = activeCount;
   $('viewOptBadge').hidden = !optN; $('viewOptBadge').textContent = optN || '';
   $('viewOptBtn').classList.toggle('on', optN > 0);
-  for (const [id, v] of [['fActor', S.actor], ['fCircle', S.circle], ['fTag', S.tag], ['fRating', S.rating]]) $(id).classList.toggle('on', v !== '');
+  for (const [id, v] of [['fActor', S.actor], ['fCircle', S.circle], ['fTag', S.tag], ['fRating', S.rating], ['fWorkType', S.wt]]) $(id).classList.toggle('on', v !== '');
   const list = $('list');
   list.className = 'list' + (S.view === 'grid' ? ' grid' : ' mode-' + S.listMode);
   if (!currentList.length) {
@@ -571,11 +574,12 @@ $('list').addEventListener('keydown', (e) => {
 
 let searchTimer;
 $('search').addEventListener('input', (e) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { S.q = e.target.value; S.shown = 60; renderList(); }, 150); });
-for (const [id, key] of [['fActor', 'actor'], ['fCircle', 'circle'], ['fTag', 'tag'], ['fRating', 'rating'], ['fSort', 'sort']]) {
+for (const [id, key] of [['fActor', 'actor'], ['fCircle', 'circle'], ['fTag', 'tag'], ['fRating', 'rating'], ['fWorkType', 'wt'], ['fSort', 'sort']]) {
   $(id).addEventListener('change', (e) => { S[key] = e.target.value; S.shown = 60; renderList(); });
 }
 function resetFilters() {
-  Object.assign(S, { q: '', actor: '', circle: '', tag: '', rating: '', shown: 60 });
+  Object.assign(S, { q: '', actor: '', circle: '', tag: '', rating: '', wt: '', shown: 60 });
+  $('fWorkType').value = '';
   $('search').value = '';
   fillFilterOptions();
   $('fRating').value = '';
@@ -589,12 +593,12 @@ const FILTER_IDS = ['fActor', 'fCircle', 'fTag', 'fRating'];
 function openViewSheet() {
   const dlg = $('filterSheet');
   const sw = (key, on, label) => `<button type="button" class="opt-row" data-opt="${key}" role="switch" aria-checked="${on}"><span>${label}</span><span class="switch${on ? ' on' : ''}"></span></button>`;
-  dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2>${L("보기·필터")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
+  dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2>${L("필터")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
     <div class="m-body view-sheet">
       <div class="opt-sec"><div class="opt-label">${L("정렬")}</div><div class="opt-sort"></div></div>
-      <div class="opt-sec"><div class="opt-label">${L("보기 형식")}</div><div class="seg opt-view"><button type="button" data-v="list" class="${S.view === 'list' ? 'on' : ''}">${L("목록 보기")}</button><button type="button" data-v="grid" class="${S.view === 'grid' ? 'on' : ''}">${L("표지 보기")}</button></div></div>
+      <div class="opt-sec"><div class="opt-label">${L("구분")}</div><div class="seg opt-wt">${[['', L('전체')], ['동인', L('동인')], ['상업', L('상업')]].map(([v, l]) => `<button type="button" data-wt="${v}" class="${S.wt === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <div class="opt-sec"><div class="opt-label">${L("필터")}</div><div class="filter-body"></div></div>
-      <div class="opt-sec opt-switches">${sw('hidden', S.showHidden, L('숨긴 작품도 보기'))}${sw('blur', S.coverBlur, L('표지 가리기'))}</div>
+      <div class="opt-sec opt-switches">${sw('blur', S.coverBlur, L('표지 가리기'))}</div>
     </div>
     <div class="m-foot"><button type="button" class="link-btn" id="sheetReset">${L("초기화")}</button><span class="spacer"></span><button type="button" class="primary-btn" data-close>${L("적용")}</button></div></div>`;
   const moved = [...FILTER_IDS, 'fSort'].map((id) => { const el = $(id); return [el, el.parentNode, el.nextSibling]; });
@@ -602,7 +606,6 @@ function openViewSheet() {
   for (const id of FILTER_IDS) body.appendChild($(id));
   dlg.querySelector('.opt-sort').appendChild($('fSort'));
   dlg.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => dlg.close()));
-  dlg.querySelector('.opt-view').onclick = (e) => { const b = e.target.closest('[data-v]'); if (!b) return; S.view = b.dataset.v; rememberView(); renderViewTools(); renderList(); dlg.querySelectorAll('.opt-view button').forEach((x) => x.classList.toggle('on', x === b)); };
   dlg.querySelector('.opt-switches').onclick = (e) => {
     const b = e.target.closest('[data-opt]'); if (!b) return;
     if (b.dataset.opt === 'hidden') { S.showHidden = !S.showHidden; rememberView(); renderViewTools(); renderNav(); renderList(); }
@@ -610,7 +613,8 @@ function openViewSheet() {
     const on = b.dataset.opt === 'hidden' ? S.showHidden : S.coverBlur;
     b.setAttribute('aria-checked', String(on)); b.querySelector('.switch').classList.toggle('on', on);
   };
-  $('sheetReset').onclick = () => { resetFilters(); };
+  dlg.querySelector('.opt-wt').onclick = (e) => { const b = e.target.closest('[data-wt]'); if (!b) return; S.wt = b.dataset.wt; $('fWorkType').value = S.wt; S.shown = 60; renderList(); dlg.querySelectorAll('.opt-wt button').forEach((x) => x.classList.toggle('on', x === b)); };
+  $('sheetReset').onclick = () => { resetFilters(); dlg.querySelectorAll('.opt-wt button').forEach((x) => x.classList.toggle('on', x.dataset.wt === '')); };
   dlg.onclose = () => { for (const [el, parent, next] of moved.reverse()) parent.insertBefore(el, next && next.parentNode === parent ? next : null); };
   dlg.showModal();
 }
@@ -621,6 +625,8 @@ $('viewOptBtn').onclick = openViewSheet;
 function renderViewTools() {
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === S.view));
   $('toggleHidden').classList.toggle('on', S.showHidden);
+  $('hdHidden').classList.toggle('on', S.showHidden);
+  $('hdHidden').setAttribute('aria-pressed', String(S.showHidden));
   $('toggleHidden').setAttribute('aria-pressed', String(S.showHidden));
   $('toggleHidden').title = S.showHidden ? L('숨긴 작품을 목록에서 빼기') : L('숨긴 작품도 목록에 보기');
   document.documentElement.classList.toggle('cover-blur', S.coverBlur);
@@ -637,6 +643,7 @@ function setCoverBlur(on) {
 }
 $('toggleBlur').onclick = () => { setCoverBlur(!S.coverBlur); toast(S.coverBlur ? L('표지를 흐리게 가렸어요.') : L('표지를 다시 보여요.')); };
 document.querySelectorAll('[data-view]').forEach((b) => (b.onclick = () => { S.view = b.dataset.view; rememberView(); renderViewTools(); renderList(); }));
+$('hdHidden').onclick = () => $('toggleHidden').click();
 $('toggleHidden').onclick = () => {
   S.showHidden = !S.showHidden;
   rememberView(); renderViewTools(); renderNav(); renderList();
@@ -825,6 +832,7 @@ function renderDetail() {
       ${actors.map((a) => `<button type="button" class="chip chip-name" data-filter="actor" data-v="${esc(a)}" title="${L("이 성우 작품 보기")}">${nameHtml(a)}</button>`).join('')}
       ${splitNames(w.circle).map((c) => `<button type="button" class="chip" data-filter="circle" data-v="${esc(c)}" title="${L("이 서클 작품 보기")}">${esc(c)}</button>`).join('')}
       ${w.code ? `<span class="chip">${esc(w.code)}</span>` : ''}
+      ${w.workType ? `<button type="button" class="chip chip-wt" data-filter="wt" data-v="${esc(w.workType)}" title="${L("이 구분의 작품 보기")}">${L(w.workType)}</button>` : ''}
       ${w.tags.map((t, i) => `<button type="button" class="chip tag${i >= TAG_SHOW && !S.tagsOpen ? ' more-hide' : ''}" data-filter="tag" data-v="${esc(t)}">${esc(t)}</button>`).join('')}
       ${w.tags.length > TAG_SHOW && !S.tagsOpen ? `<button type="button" class="chip chip-more" data-act="tagsopen">+${w.tags.length - TAG_SHOW}</button>` : ''}
       ${w.folder ? `<span class="chip">${L("폴더 ·")} ${esc(w.folder)}</span>` : ''}
@@ -912,6 +920,7 @@ $('detail').addEventListener('click', async (e) => {
   if (t.dataset.filter) {
     resetFilters();
     S[t.dataset.filter] = t.dataset.v;
+    if (t.dataset.filter === 'wt') $('fWorkType').value = t.dataset.v;
     fillFilterOptions();
     renderList();
     if (isNarrow()) backToList();
@@ -1046,13 +1055,16 @@ function openEditor(work) {
         </div>
         <div class="sec-label" style="margin-top:6px">${L("구매 정보")}</div>
         <div class="grid2">
-          <label class="field">${L("구매일")}<input id="edBuyDate" type="date" value="${esc(ED.purchaseDate || '')}"></label>
           <label class="field">${L("구매처")}<input id="edStore" value="${esc(ED.store || '')}" list="storeList" placeholder="${L("DLsite, 포케도라…")}"></label>
+          <div class="field">${L("구분")}<div class="seg wt-seg" id="edWorkType" role="radiogroup" aria-label="${L("구분")}">${['동인', '상업'].map((v) => `<button type="button" data-wt="${v}" class="${ED.workType === v ? 'on' : ''}">${L(v)}</button>`).join('')}</div></div>
         </div>
-        <div class="grid3">
+        <div class="grid2">
+          <label class="field">${L("구매일")}<input id="edBuyDate" type="date" value="${esc(ED.purchaseDate || '')}"></label>
+          <label class="field">${L("통화")}<select id="edCurrency">${[['JPY', L('¥ 엔')], ['KRW', L('₩ 원')], ['USD', L('$ 달러')]].map(([v, l]) => `<option value="${v}"${(ED.currency || 'JPY') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        </div>
+        <div class="grid2">
           <label class="field">${L("정가")}<input id="edListPrice" inputmode="decimal" value="${ED.listPrice ?? ''}" placeholder="1650"></label>
           <label class="field">${L("구매가")}<input id="edPaidPrice" inputmode="decimal" value="${ED.paidPrice ?? ''}" placeholder="${L("할인가 · 비우면 정가")}"></label>
-          <label class="field">${L("통화")}<select id="edCurrency">${[['JPY', L('¥ 엔')], ['KRW', L('₩ 원')], ['USD', L('$ 달러')]].map(([v, l]) => `<option value="${v}"${(ED.currency || 'JPY') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
         </div>
         <div class="sec-label" style="margin-top:6px">${L("이미지")}</div>
         <div class="note" id="edImgHint">${L('끌어서 순서를 바꿔요 · 첫 번째가 대표 이미지')}</div>
@@ -1109,6 +1121,22 @@ function readEdForm() {
   ED.paidPrice = $('edPaidPrice').value.trim();
   ED.currency = $('edCurrency').value === 'JPY' ? '' : $('edCurrency').value; // 엔화는 비워 둬요(기본값)
   ED[ED.introTab] = $('edIntro').value;
+}
+// 동인/상업: 작품 코드와 판매 링크로 짐작 (서버의 guessWorkType과 같은 규칙)
+function guessWorkType(w = {}) {
+  const code = String(w.code || '').trim().toUpperCase();
+  if (/^RJ\d/.test(code)) return '동인';
+  if (/^(VJ|BJ)\d/.test(code)) return '상업';
+  const m = String(w.url || '').match(/dlsite\.com\/([a-z-]+)\//i);
+  if (!m) return '';
+  const floor = m[1].toLowerCase();
+  if (/^(maniax|girls|bl|home|ai)$/.test(floor)) return '동인';
+  if (/(^pro$|-pro$|^soft$|^books$|^comic$|-drama$|^appx$)/.test(floor)) return '상업';
+  return '';
+}
+function setEdWorkType(v) {
+  ED.workType = v;
+  document.querySelectorAll('#edWorkType [data-wt]').forEach((b) => b.classList.toggle('on', b.dataset.wt === v));
 }
 function renderEdTags() {
   const box = $('edTags');
@@ -1173,6 +1201,7 @@ function checkDuplicate() {
   if (dup) $('edDup').innerHTML = `${L("이미 등록된 작품일 수 있어요:")} <strong>${esc(displayTitle(dup))}</strong>`;
 }
 function bindEditor() {
+  $('edWorkType').onclick = (e) => { const b = e.target.closest('[data-wt]'); if (b) setEdWorkType(ED.workType === b.dataset.wt ? '' : b.dataset.wt); };
   const dlg = $('editor');
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
   $('edCode').addEventListener('input', checkDuplicate);
@@ -1229,6 +1258,7 @@ function bindEditor() {
       fill('date', 'edDate', info.date);
       fill('code', 'edCode', info.code);
       fill('store', 'edStore', info.store);
+      if (!ED.workType) { const t = info.workType || guessWorkType({ code: ED.code || info.code, url }); if (t) { setEdWorkType(t); filled.push('workType'); } }
       if (info.listPrice && !ED.listPrice) { ED.listPrice = info.listPrice; $('edListPrice').value = info.listPrice; filled.push('listPrice'); if (info.currency) $('edCurrency').value = info.currency; }
       if (info.promo && !ED.promo) { ED.promo = info.promo; filled.push('promo'); if (ED.introTab === 'promo') $('edIntro').value = info.promo; }
       for (const src of info.images || []) if (!ED.images.includes(src)) { ED.images.push(src); filled.push('image'); }
@@ -1268,7 +1298,8 @@ function bindEditor() {
     e.preventDefault();
     readEdForm();
     if (!ED.title && !ED.titleKo) { $('edTitle').focus(); return toast(L('작품명을 입력해 주세요.'), true); }
-    const body = { url: ED.url, titleKo: ED.titleKo, title: ED.title, actor: ED.actor, circle: ED.circle, date: ED.date, code: ED.code, tags: ED.tags, images: ED.images, promo: ED.promo, translation: ED.translation, folder: ED.folder, hidden: ED.hidden, organize: ED.organize, purchaseDate: ED.purchaseDate, store: ED.store, listPrice: ED.listPrice, paidPrice: ED.paidPrice, currency: ED.currency };
+    if (ED.isNew && !ED.workType) ED.workType = guessWorkType(ED);
+    const body = { workType: ED.workType || '', url: ED.url, titleKo: ED.titleKo, title: ED.title, actor: ED.actor, circle: ED.circle, date: ED.date, code: ED.code, tags: ED.tags, images: ED.images, promo: ED.promo, translation: ED.translation, folder: ED.folder, hidden: ED.hidden, organize: ED.organize, purchaseDate: ED.purchaseDate, store: ED.store, listPrice: ED.listPrice, paidPrice: ED.paidPrice, currency: ED.currency };
     const pushAfter = $('edPush')?.checked;
     $('edSave').disabled = true;
     try {
@@ -1395,37 +1426,111 @@ function renderPush() {
 let settingsTimer;
 // 폰 앱: 판매 링크로 정보 채우기에 쓰는 중계 서버 주소와 열쇠 (이 기기에만 저장)
 const getRelay = () => { try { return JSON.parse(localStorage.getItem('voicebox.relay') || 'null') || {}; } catch { return {}; } };
-function relayBlockHtml() {
-  const r = getRelay();
-  return `<div class="set-sub"><h4>${L('정보 채우기 서버')}</h4>
-    <div class="note">${L('판매 링크로 작품 정보를 채울 때 써요.')}</div>
-    <input class="input" id="relayUrl" placeholder="https://vb-info.○○.workers.dev" value="${esc(r.url || '')}" autocomplete="off" autocapitalize="off" spellcheck="false">
-    <input class="input" id="relayKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" value="${esc(r.key || '')}" autocomplete="off" style="margin-top:6px">
-    <div class="set-row"><button type="button" class="ghost-btn" id="relaySave">${L('저장하고 연결 확인')}</button>${r.url ? `<button type="button" class="link-btn" id="relayClear">${L('연결 해제')}</button>` : ''}</div>
-    <div class="note" id="relayState">${r.url ? L('연결돼 있어요.') : L('아직 연결하지 않았어요.')}</div></div>`;
-}
-// 폰 ↔ 아이맥 동기화 상자
+// ===== 내 서버 (정보 채우기 + 기기 간 동기화) =====
+// 'Deploy to Cloudflare' 버튼으로 각자 자기 Cloudflare 계정에 서버를 만들어요. 개인 열쇠·주소는 앱에 들어 있지 않아요.
+const DEPLOY_URL = 'https://deploy.workers.cloudflare.com/?url=https://github.com/wcoconut-design/voice-reviewcard/tree/main/vb-server';
+const NEW_KEY = 'voicebox.newKey';
 function boxSyncText(st) {
   if (st.running) return L('동기화하는 중…');
   if (st.error) return L('동기화 오류: ') + st.error;
   if (st.lastSync) return L('마지막 동기화: ') + new Date(st.lastSync).toLocaleString(LOCALE());
   return L('아직 동기화한 적 없어요.');
 }
-function syncBlockHtml(st) {
-  if (window.VB_MOBILE) {
-    if (!st.configured) return '';
-    return `<div class="set-sub"><h4>${L('다른 기기와 동기화')}</h4>
-      <div class="note">${L('같은 서버를 쓰는 기기끼리 기록을 주고받아요 · 최근에 고친 쪽이 남아요')}</div>
-      <label class="check"><input type="checkbox" id="syncOn"${st.on ? ' checked' : ''}>${L('자동으로 동기화')}</label>
-      <div class="set-row"><button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button></div>
-      <div class="note" id="boxSyncState">${esc(boxSyncText(st))}</div></div>`;
+const serverReady = (st) => (window.VB_MOBILE ? !!getRelay().url : !!st.configured);
+function makeKey() {
+  const b = crypto.getRandomValues(new Uint8Array(18));
+  return 'vb-' + btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function copyText(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg || L('복사했어요.')); }
+  catch { promptText(L('복사'), L('길게 눌러 복사해 주세요.'), text); }
+}
+function serverBlockHtml(st) {
+  if (!serverReady(st)) {
+    return `<div class="srv-intro"><strong>${L('내 서버로 더 편하게')}</strong>
+        <span>${window.VB_MOBILE ? L('무료 Cloudflare 서버를 하나 만들면 판매 링크로 정보 자동 채우기와 기기 간 동기화를 쓸 수 있어요.') : L('폰 앱과 같은 서버를 연결하면 폰과 기록을 주고받아요.')}</span></div>
+      <button type="button" class="primary-btn srv-main" id="srvGuide">${L('설정 방법 보기')}</button>
+      <button type="button" class="ghost-btn srv-main" id="srvManualOpen">${L('이미 서버가 있어요 · 주소 넣기')}</button>
+      <div class="srv-manual" id="srvManual" hidden>
+        <input class="input" id="srvUrl" placeholder="https://voicebox-server.○○.workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input class="input" id="srvKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" autocomplete="off">
+        <div class="set-row"><button type="button" class="ghost-btn" id="srvSave">${L('연결 확인')}</button></div>
+        <div class="note" id="srvState"></div>
+      </div>
+      <div class="note">${L('없어도 앱은 그대로 다 쓸 수 있어요.')}</div>`;
   }
-  return `<div class="set-sub"><h4>${L('다른 기기와 동기화')}</h4>
-    <div class="note">${L('폰 앱과 같은 서버 주소와 열쇠를 넣으면 3분마다 주고받아요.')}</div>
-    <input class="input" id="syncUrl" placeholder="https://vb-info.○○.workers.dev" value="${esc(st.url || '')}" autocomplete="off" spellcheck="false">
-    <input class="input" id="syncKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" autocomplete="off" style="margin-top:6px">
-    <div class="set-row"><button type="button" class="ghost-btn" id="syncSave">${L('저장하고 동기화')}</button>${st.configured ? `<button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button><button type="button" class="link-btn" id="syncOff">${L('연결 해제')}</button>` : ''}</div>
-    <div class="note" id="boxSyncState">${st.configured ? esc(boxSyncText(st)) : L('아직 연결하지 않았어요.')}</div></div>`;
+  const url = window.VB_MOBILE ? getRelay().url : st.url;
+  return `<div class="srv-status" id="srvStatus"><span class="muted">${L('서버 상태 확인 중…')}</span></div>
+    <div class="note srv-url">${esc(url || '')}</div>
+    ${window.VB_MOBILE ? `<label class="check"><input type="checkbox" id="syncOn"${st.on ? ' checked' : ''}>${L('자동으로 동기화')}</label>` : ''}
+    <div class="set-row"><button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button>${window.VB_MOBILE ? `<button type="button" class="ghost-btn" id="srvCopyKey">${L('열쇠 복사 (다른 기기용)')}</button>` : ''}</div>
+    <div class="note" id="boxSyncState">${esc(boxSyncText(st))}</div>
+    <div class="set-row"><button type="button" class="link-btn" id="srvGuide">${L('설정 방법 보기')}</button><span class="spacer"></span><button type="button" class="link-btn danger-link" id="srvOff">${L('연결 해제')}</button></div>`;
+}
+async function serverStatus(url) {
+  const r = await fetch(url.replace(/\/+$/, '') + '/', { cache: 'no-store' });
+  const j = await r.json();
+  if (!j?.ok) throw new Error('bad');
+  return j;
+}
+function statusDots(j) {
+  const dot = (ok, label) => `<span class="sdot ${ok ? 'ok' : 'no'}">${ok ? '●' : '○'} ${label}</span>`;
+  return [dot(true, L('서버 연결됨')), dot(j.keySet, L('열쇠')), dot(j.sync, L('동기화 저장소')), dot(j.files, L('이미지 저장소'))].join('');
+}
+// 주소·열쇠 확인 후 저장. 폰은 정보 채우기에도 쓰고, 동기화 저장소가 있으면 자동 동기화를 켜요.
+async function connectServer(rawUrl, key, stateEl) {
+  let url = rawUrl.trim().replace(/\/+$/, '');
+  if (url && !/^https?:\/\//.test(url)) url = 'https://' + url;
+  key = key.trim();
+  const say = (t) => { if (stateEl) stateEl.innerHTML = t; };
+  if (!/^(https:\/\/|http:\/\/(127\.0\.0\.1|localhost)[:/])/.test(url + '/') || !key) { say(L('https로 시작하는 주소와 열쇠를 모두 넣어 주세요.')); return false; }
+  say(L('확인 중…'));
+  let st;
+  try { st = await serverStatus(url); } catch { say(L('서버에 연결하지 못했어요. 주소를 확인해 주세요.')); return false; }
+  if (!st.keySet) { say(L('서버에 VB_KEY가 아직 없어요. Cloudflare에서 열쇠를 넣었는지 확인해 주세요.')); return false; }
+  try {
+    const r = await fetch(url + '/info', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VB-Key': key }, body: '{}' });
+    if (r.status === 401) { say(L('열쇠가 맞지 않아요.')); return false; }
+  } catch { say(L('서버에 연결하지 못했어요. 주소를 확인해 주세요.')); return false; }
+  if (window.VB_MOBILE) {
+    try { localStorage.setItem('voicebox.relay', JSON.stringify({ url, key })); } catch {}
+    if (st.sync) await api('api/sync/config', { body: { on: true } }).catch(() => {});
+  } else {
+    await api('api/sync/config', { body: { url, key } }).catch(fail);
+  }
+  try { localStorage.removeItem(NEW_KEY); } catch {}
+  say('✓ ' + L('연결했어요.') + ' ' + statusDots(st));
+  if (st.sync) runSyncNow();
+  return true;
+}
+// 설정 방법 안내창 (A안: Deploy to Cloudflare 버튼)
+function openServerGuide() {
+  let key = ''; try { key = localStorage.getItem(NEW_KEY) || ''; } catch {}
+  const dlg = document.createElement('dialog');
+  dlg.className = 'modal srv-guide';
+  const step = (n, title, body) => `<li class="sg-step"><span class="sg-num">${n}</span><div class="sg-body"><strong>${title}</strong>${body}</div></li>`;
+  dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2 tabindex="-1" autofocus>${L('내 서버 만들기')}</h2><span class="sg-time">${L('약 5분 · 무료')}</span><button type="button" class="close" data-close aria-label="${L('닫기')}">×</button></div>
+    <div class="m-body">
+      <p class="note">${L('정보 채우기와 기기 간 동기화를 한 번에 켜요. 기록은 내 계정에만 저장돼요.')}</p>
+      <ol class="sg-steps">
+        ${step(1, L('계정 두 개 만들기'), `<p>${L('Cloudflare와 GitHub 계정이 필요해요. 이미 있으면 넘어가요.')}</p><div class="set-row"><a class="ghost-btn" href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener">Cloudflare ↗</a><a class="ghost-btn" href="https://github.com/signup" target="_blank" rel="noopener">GitHub ↗</a></div>`)}
+        ${step(2, L('열쇠 만들기'), `<p>${L('서버에 넣을 비밀 열쇠예요. 복사해 두세요.')}</p><div class="sg-key"><code id="sgKey">${esc(key || '—')}</code></div><div class="set-row"><button type="button" class="ghost-btn" id="sgMake">${key ? L('새로 만들기') : L('열쇠 만들기')}</button><button type="button" class="primary-btn" id="sgCopy"${key ? '' : ' hidden'}>${L('복사')}</button></div>`)}
+        ${step(3, L('버튼 누르기'), `<p>${L('GitHub 연결 → 이름은 그대로 두고 → VB_KEY 칸에 열쇠 붙여넣기 → 만들고 배포하기(Create and deploy)')}</p><div class="set-row"><a class="primary-btn sg-deploy" href="${DEPLOY_URL}" target="_blank" rel="noopener">${L('Cloudflare에 서버 만들기 ↗')}</a></div><p class="muted">${L('1~2분 걸려요. 끝나면 ○○.workers.dev 주소가 나와요.')}</p>`)}
+        ${step(4, L('주소를 앱에 넣기'), `<input class="input" id="sgUrl" placeholder="https://voicebox-server.○○.workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="set-row"><button type="button" class="primary-btn" id="sgConnect">${L('연결 확인')}</button></div><div class="note" id="sgState"></div>`)}
+      </ol>
+      <p class="note sg-more">${L('다른 기기에서는: 설정 → 고급 → 이미 서버가 있어요 → 같은 주소와 열쇠를 넣으면 돼요.')}</p>
+    </div></div>`;
+  document.body.appendChild(dlg);
+  const setKey = (k) => { key = k; try { localStorage.setItem(NEW_KEY, k); } catch {} $('sgKey').textContent = k; $('sgCopy').hidden = false; $('sgMake').textContent = L('새로 만들기'); };
+  $('sgMake').onclick = () => { if (key && !confirm(L('열쇠를 새로 만들까요? 이미 Cloudflare에 넣었다면 그 열쇠와 달라져요.'))) return; setKey(makeKey()); copyText(key, L('열쇠를 복사했어요.')); };
+  $('sgCopy').onclick = () => copyText(key, L('열쇠를 복사했어요.'));
+  $('sgConnect').onclick = async () => {
+    if (!key) { $('sgState').textContent = L('2단계에서 열쇠를 먼저 만들어 주세요.'); return; }
+    if (await connectServer($('sgUrl').value, key, $('sgState'))) setTimeout(() => { dlg.close(); if ($('settings').open) openSettings(); }, 1500);
+  };
+  dlg.querySelector('[data-close]').onclick = () => dlg.close();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
 }
 async function runSyncNow() {
   const el = $('boxSyncState');
@@ -1435,21 +1540,6 @@ async function runSyncNow() {
     if (el) el.textContent = '✓ ' + L('받은 작품 {a}개 · 바뀐 작품 {b}개 · 보낸 작품 {c}개', { a: r.pulled ?? 0, b: r.changed ?? 0, c: r.pushed ?? 0 });
     if (r.changed) await load();
   } catch (e) { if (el) el.textContent = L('동기화 오류: ') + e.message; }
-}
-async function testRelay() {
-  const url = $('relayUrl').value.trim().replace(/\/+$/, '');
-  const key = $('relayKey').value.trim();
-  const st = $('relayState');
-  if (!/^(https:\/\/|http:\/\/(127\.0\.0\.1|localhost)[:/])/.test(url + '/') || !key) { st.textContent = L('https로 시작하는 주소와 열쇠를 모두 넣어 주세요.'); return; }
-  st.textContent = L('확인 중…');
-  try {
-    const r = await fetch(url + '/info', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VB-Key': key }, body: '{}' });
-    if (r.status === 401) { st.textContent = L('열쇠가 맞지 않아요.'); return; }
-    const j = await r.json().catch(() => null);
-    if (!j || (r.status !== 502 && r.status !== 200)) { st.textContent = L('응답이 이상해요. 주소를 확인해 주세요.') + (j?.error ? ' (' + j.error + ')' : ''); return; }
-    try { localStorage.setItem('voicebox.relay', JSON.stringify({ url, key })); } catch {}
-    st.textContent = '✓ ' + L('연결했어요.');
-  } catch { st.textContent = L('서버에 연결하지 못했어요. 주소를 확인해 주세요.'); }
 }
 // 폰 앱: 앱으로 실행 중인지, 인터넷 없이 열 준비가 됐는지
 function offlineStatusHtml() {
@@ -1504,12 +1594,8 @@ async function openSettings() {
         <div class="set-item"><div class="si-label">${L("보기 좋은 백업")}<small>${L("보관·열람용이에요. 복원에는 쓸 수 없어요.")}</small></div>
           <div class="si-ctl set-row"><a class="ghost-btn" href="api/export/works.xlsx" download>${L("엑셀 (.xlsx)")}</a><a class="ghost-btn" href="api/export/works.csv" download>CSV</a><a class="ghost-btn" href="api/export/reviews.html" target="_blank" rel="noopener">${L("감상 모음 문서 ↗")}</a></div></div>
       </div>
-      <details class="set-adv"${advOn ? ' open' : ''}><summary><span>${L("고급")}</span><small>${advOn ? L('연결됨') : L('내 서버가 있을 때만')}</small></summary>
-        <div class="set-group set-pad">
-          <div class="note">${L("직접 만든 Cloudflare 서버가 있을 때 쓰는 기능이에요. 없어도 앱은 그대로 쓸 수 있어요.")}</div>
-          ${n.unsupported ? relayBlockHtml() : ''}
-          ${syncBlockHtml(syncSt) || `<div class="note">${L("정보 채우기 서버를 연결하면 다른 기기와 동기화도 켤 수 있어요.")}</div>`}
-        </div>
+      <details class="set-adv"${advOn ? ' open' : ''}><summary><span>${L("고급")}</span><small>${advOn ? L('연결됨') : L('내 서버 만들기 · 정보 채우기 · 동기화')}</small></summary>
+        <div class="set-group set-pad srv-block">${serverBlockHtml(syncSt)}</div>
       </details>
     </div></div>`;
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
@@ -1549,17 +1635,23 @@ async function openSettings() {
   }));
   $('imgCovers').onclick = () => startImages(true);
   $('imgAll').onclick = () => startImages(false);
-  $('relaySave') && ($('relaySave').onclick = testRelay);
+  $('srvGuide') && ($('srvGuide').onclick = openServerGuide);
+  $('srvManualOpen') && ($('srvManualOpen').onclick = () => { $('srvManual').hidden = false; $('srvManualOpen').hidden = true; $('srvUrl').focus(); });
+  $('srvSave') && ($('srvSave').onclick = async () => { if (await connectServer($('srvUrl').value, $('srvKey').value, $('srvState'))) setTimeout(openSettings, 1200); });
   $('syncNowBtn') && ($('syncNowBtn').onclick = runSyncNow);
   $('syncOn') && ($('syncOn').onchange = async (e) => { await api('api/sync/config', { body: { on: e.target.checked } }).catch(fail); if (e.target.checked) runSyncNow(); });
-  $('syncSave') && ($('syncSave').onclick = async () => {
-    const url = $('syncUrl').value.trim(), key = $('syncKey').value.trim();
-    if (!/^https:\/\//.test(url) || !key) { $('boxSyncState').textContent = L('https로 시작하는 주소와 열쇠를 모두 넣어 주세요.'); return; }
-    await api('api/sync/config', { body: { url, key } }).catch(fail);
-    await runSyncNow(); openSettings();
+  $('srvCopyKey') && ($('srvCopyKey').onclick = () => copyText(getRelay().key || '', L('열쇠를 복사했어요. 다른 기기의 설정 → 고급에 붙여넣어요.')));
+  $('srvOff') && ($('srvOff').onclick = async () => {
+    if (!confirm(L('이 기기에서 서버 연결을 해제할까요? 기록과 서버는 그대로 남아요.'))) return;
+    if (window.VB_MOBILE) { try { localStorage.removeItem('voicebox.relay'); } catch {} await api('api/sync/config', { body: { on: false } }).catch(() => {}); }
+    else await api('api/sync/config', { body: { url: '', key: '' } }).catch(fail);
+    openSettings();
   });
-  $('syncOff') && ($('syncOff').onclick = async () => { await api('api/sync/config', { body: { url: '', key: '' } }).catch(fail); openSettings(); });
-  $('relayClear') && ($('relayClear').onclick = () => { try { localStorage.removeItem('voicebox.relay'); } catch {} openSettings(); });
+  if ($('srvStatus')) {
+    const url = window.VB_MOBILE ? getRelay().url : syncSt.url;
+    serverStatus(url).then((j) => { const el = $('srvStatus'); if (el) el.innerHTML = statusDots(j) + (j.version < 5 ? `<div class="note">${L('서버 코드가 예전 버전이에요. 그대로 써도 돼요.')}</div>` : ''); })
+      .catch(() => { const el = $('srvStatus'); if (el) el.innerHTML = `<span class="sdot no">○ ${L('서버에 연결하지 못했어요. 인터넷이나 주소를 확인해 주세요.')}</span>`; });
+  }
   $('restoreFile').onchange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -1777,6 +1869,7 @@ const STAT_KINDS = [
   ['rating', L('별점'), (w) => [w.rating ? '★'.repeat(w.rating) : L('별점 없음')]],
   ['status', L('청취 상태'), (w) => [{ '미청취': L('안 들음'), '청취 중': L('듣는 중'), '청취 완료': L('들음') }[w.status] || L('상태 미기재')]],
   ['store', L('구매처별'), (w) => (w.store ? [w.store] : [])],
+  ['workType', L('동인·상업'), (w) => [w.workType ? L(w.workType) : L('미분류')]],
   ['spend', L('지출'), null],
 ];
 const STAT_SCOPES = [
@@ -1987,6 +2080,7 @@ $('stats').addEventListener('click', (e) => {
   if (S.statKind === 'actor' || S.statKind === 'circle' || S.statKind === 'tag') S[S.statKind] = key;
   if (S.statKind === 'year') { S.q = key + '-'; $('search').value = S.q; }
   if (S.statKind === 'rating') S.rating = key === L('별점 없음') ? '0' : String(key.length);
+  if (S.statKind === 'workType') { S.wt = key === L('동인') ? '동인' : key === L('상업') ? '상업' : ''; $('fWorkType').value = S.wt; }
   if (S.statKind === 'status') S.nav = { [L('들음')]: 'played', [L('듣는 중')]: 'played', [L('안 들음')]: 'unplayed', [L('상태 미기재')]: 'unplayed' }[key];
   fillFilterOptions();
   renderNav();

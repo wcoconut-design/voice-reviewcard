@@ -6,7 +6,7 @@ export const SYNC_FIELDS = [
   'title', 'titleKo', 'actor', 'circle', 'tags', 'date', 'code', 'url',
   'review', 'status', 'rating', 'lastPlayed', 'favorite', 'folder',
   'organize', 'promo', 'translation',
-  'purchaseDate', 'store', 'listPrice', 'paidPrice', 'currency',
+  'purchaseDate', 'store', 'listPrice', 'paidPrice', 'currency', 'workType',
 ];
 
 export const FIELD_LABELS = {
@@ -32,6 +32,7 @@ export const FIELD_LABELS = {
   listPrice: '정가 → 정가',
   paidPrice: '구매가 → 구매가',
   currency: '통화 → 통화',
+  workType: '구분(동인/상업) → 구분',
 };
 
 // 청취 상태: 로컬 값 ↔ 노션 Status 값
@@ -65,6 +66,20 @@ const money = (v) => {
 export const CURRENCIES = ['JPY', 'KRW', 'USD'];
 // 구매처 기본 목록 (직접 입력도 돼요)
 export const STORES = ['DLsite', '포케도라', '스텔라워스', '애니메이트'];
+// 동인 / 상업 구분
+export const WORK_TYPES = ['동인', '상업'];
+// 작품 코드와 판매 링크로 동인/상업을 짐작해요. (DLsite: RJ·maniax/girls/bl/home = 동인, VJ·BJ·pro/girls-pro/bl-pro/soft/books = 상업)
+export function guessWorkType(w = {}) {
+  const code = str(w.code).toUpperCase();
+  if (/^RJ\d/.test(code)) return '동인';
+  if (/^(VJ|BJ)\d/.test(code)) return '상업';
+  const m = str(w.url).match(/dlsite\.com\/([a-z-]+)\//i);
+  if (!m) return '';
+  const floor = m[1].toLowerCase();
+  if (/^(maniax|girls|bl|home|ai)$/.test(floor)) return '동인';
+  if (/(^pro$|-pro$|^soft$|^books$|^comic$|-drama$|^appx$)/.test(floor)) return '상업';
+  return '';
+}
 
 export function normalizeWork(w = {}) {
   const rating = Math.round(Number(w.rating) || 0);
@@ -97,6 +112,7 @@ export function normalizeWork(w = {}) {
     listPrice: money(w.listPrice),
     paidPrice: money(w.paidPrice),
     currency: CURRENCIES.includes(str(w.currency).toUpperCase()) ? str(w.currency).toUpperCase() : '',
+    workType: WORK_TYPES.includes(str(w.workType)) ? str(w.workType) : '',
     createdAt: str(w.createdAt),
     updatedAt: str(w.updatedAt),
     notionEditedAt: str(w.notionEditedAt),
