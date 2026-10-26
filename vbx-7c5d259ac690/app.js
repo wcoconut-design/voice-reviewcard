@@ -365,6 +365,7 @@ function filtered() {
     dateOld: (a, b) => (a.date || '9999').localeCompare(b.date || '9999'),
     rating: (a, b) => b.rating - a.rating || (b.lastPlayed || '').localeCompare(a.lastPlayed || ''),
     played: (a, b) => (b.lastPlayed || '').localeCompare(a.lastPlayed || ''),
+    bought: (a, b) => (b.purchaseDate || '').localeCompare(a.purchaseDate || ''),
     title: (a, b) => displayTitle(a).localeCompare(displayTitle(b), 'ko'),
   }[S.sort];
   return list.sort(by);
@@ -410,7 +411,7 @@ function tableRowHtml(w) {
   return `<div ${rowAttrs(w, 'trow')}>
     ${thumbHtml(w)}
     <div class="cell-title"><div class="row-title">${esc(displayTitle(w))}</div>${sub ? `<div class="row-orig">${esc(sub)}</div>` : ''}<div class="row-marks">${marks(w)}${w.tags.slice(0, 3).map((t) => `<span class="mini-tag">${esc(t)}</span>`).join('')}</div></div>
-    <div class="cell-actor">${actorsBlock(w)}</div>
+    <div class="cell-actor">${actorsBlock(w, 1)}</div>
     <div class="cell-circle">${esc(splitNames(w.circle).join(', ')) || '<span class="muted-dash">—</span>'}</div>
     <div class="cell-date">${esc(w.date) || '<span class="muted-dash">—</span>'}</div>
     <div class="quick">
