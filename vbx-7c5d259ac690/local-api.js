@@ -43,7 +43,12 @@ const ready = (async () => {
   try { await navigator.storage?.persist?.(); } catch {}
 })();
 let saveTimer;
-const saveWorks = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => kvSet('works', works), 250); };
+// 기기 저장소에 쓰기: 쓰는 중인 작업을 기억해 두고, 다른 화면으로 넘어가기 전에 끝날 때까지 기다려요.
+let writing = Promise.resolve();
+const writeNow = () => { writing = writing.then(() => kvSet('works', works)).catch(() => {}); return writing; };
+const saveWorks = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveTimer = null; writeNow(); }, 250); };
+const flushWorks = () => { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; writeNow(); } return writing; };
+addEventListener('pagehide', () => { flushWorks(); });
 const saveSettings = () => kvSet('settings', settings);
 const addHistory = (id, reason, data) => tx('history', 'readwrite', (s) => s.add({ at: new Date().toISOString(), id, reason, data }));
 const historyOf = async (id) => {
@@ -276,6 +281,7 @@ window.fetch = async (input, init = {}) => {
   const method = (init.method || 'GET').toUpperCase();
   try {
     const out = await handle(method, path, url, init.body);
+    if (method !== 'GET') await flushWorks();
     if (method !== 'GET' && /^(works|upload|restore|folders)/.test(path)) syncSoon();
     return out && out.__raw ? out.__raw : json(out);
   } catch (e) {
