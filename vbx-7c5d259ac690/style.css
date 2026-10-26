@@ -927,3 +927,5 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), summary:focus:not
 .key-wrap { position: relative; display: flex; }
 .key-wrap .input { flex: 1; min-width: 0; padding-right: 64px; font-family: ui-monospace, Menlo, monospace; }
 .key-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: var(--chip); color: var(--text-2); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; }
+.actorbox .t .nm-ko { margin-left: 4px; color: var(--muted); font-weight: 400; }
+.actorbox input { min-width: 140px; }

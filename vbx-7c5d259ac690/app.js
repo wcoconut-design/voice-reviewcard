@@ -1050,6 +1050,7 @@ function openEditor(work) {
     ? { title: '', titleKo: '', actor: '', circle: '', code: '', date: '', tags: [], url: '', images: [], promo: '', translation: '', folder: S.nav.startsWith('folder:') ? S.nav.slice(7) : '', hidden: false, organize: '' }
     : { ...work, images: [...(work.sourceImages || work.images)], tags: [...work.tags] };
   ED.isNew = isNew;
+  ED.actors = splitNames(ED.actor);
   ED.introTab = ED.translation || !ED.promo ? 'translation' : 'promo';
   const dlg = $('editor');
   dlg.innerHTML = `<form method="dialog" id="edForm" novalidate>
@@ -1065,8 +1066,8 @@ function openEditor(work) {
         <div class="sec-label">${L("기본 정보")}</div>
         <label class="field">${L("한국어 제목 · 목록에 먼저 보여요")}<input id="edTitleKo" value="${esc(ED.titleKo)}" placeholder="${L("비워두면 원제로 보여요")}"></label>
         <label class="field">${L("원제")}<input id="edTitle" value="${esc(ED.title)}"></label>
+        <div class="field">${L("성우")}<div class="tagbox actorbox" id="edActors"></div><input type="hidden" id="edActor" value="${esc(ED.actor)}"></div>
         <div class="grid2">
-          <label class="field">${L("성우 · 여러 명은 쉼표로")}<input id="edActor" value="${esc(ED.actor)}" list="actorList"></label>
           <label class="field">${L("서클")}<input id="edCircle" value="${esc(ED.circle)}" list="circleList"></label>
           <label class="field">${L("발매일")}<input id="edDate" type="date" value="${esc(ED.date)}"></label>
           <label class="field">${L("작품 코드")}<input id="edCode" value="${esc(ED.code)}" placeholder="RJ01234567"></label>
@@ -1120,6 +1121,7 @@ function openEditor(work) {
   <datalist id="storeList">${[...new Set([...STORE_DEFAULTS, ...S.works.map((w) => w.store).filter(Boolean)])].map((a) => `<option value="${esc(a)}">`).join('')}</datalist>
   <datalist id="organizeList"><option value="정보 확인 중"><option value="정리함"><option value="정리 완료"></datalist>`;
   renderEdTags();
+  renderEdActors();
   renderEdImages();
   bindImageDrag();
   renderEdIntro();
@@ -1131,7 +1133,8 @@ function readEdForm() {
   ED.url = $('edUrl').value.trim();
   ED.titleKo = $('edTitleKo').value.trim();
   ED.title = $('edTitle').value.trim();
-  ED.actor = $('edActor').value.trim();
+  flushActorInput();
+  ED.actor = ED.actors.join(', ');
   ED.circle = $('edCircle').value.trim();
   ED.date = $('edDate').value;
   ED.code = $('edCode').value.trim();
@@ -1160,6 +1163,30 @@ function guessWorkType(w = {}) {
 function setEdWorkType(v) {
   ED.workType = v;
   document.querySelectorAll('#edWorkType [data-wt]').forEach((b) => b.classList.toggle('on', b.dataset.wt === v));
+}
+// 성우·서클: 이미 기록된 이름 중 한국어 읽기가 붙은 것을 찾아 자동으로 이어 붙여요. (三橋渡 → 三橋渡 미츠하시 와타루)
+const nameKey = (s) => String(s || '').replace(/[\s\u3000・･·]/g, '').toLowerCase();
+function knownNames(field) {
+  const m = new Map();
+  for (const w of S.works) for (const n of splitNames(w[field])) { const { ja, ko } = parseName(n); if (ja && ko && !m.has(nameKey(ja))) m.set(nameKey(ja), n); }
+  return m;
+}
+function withKnownNames(list, field) {
+  const m = knownNames(field);
+  return list.map((n) => (parseName(n).ko ? n : m.get(nameKey(n)) || n));
+}
+function renderEdActors() {
+  const box = $('edActors');
+  box.innerHTML = ED.actors.map((a, i) => `<span class="t">${nameHtml(a)}<button type="button" data-rmactor="${i}" aria-label="${esc(a)} ${L("빼기")}">×</button></span>`).join('') +
+    `<input id="edActorInput" placeholder="${ED.actors.length ? L('성우 더 넣기') : L('이름 입력 후 Enter')}" list="actorList" autocomplete="off">`;
+}
+function addActors(text) {
+  const names = withKnownNames(splitNames(String(text).replace(/[、，/／]/g, ',')), 'actor');
+  for (const n of names) if (!ED.actors.some((a) => nameKey(parseName(a).ja || a) === nameKey(parseName(n).ja || n))) ED.actors.push(n);
+}
+function flushActorInput() {
+  const i = $('edActorInput');
+  if (i && i.value.trim()) { addActors(i.value); i.value = ''; renderEdActors(); }
 }
 function renderEdTags() {
   const box = $('edTags');
@@ -1237,12 +1264,18 @@ function bindEditor() {
     const t = e.target.closest('button, .drop');
     if (!t) return;
     if (t.dataset.rmtag) { readEdForm(); ED.tags.splice(Number(t.dataset.rmtag), 1); renderEdTags(); }
+    if (t.dataset.rmactor) { ED.actors.splice(Number(t.dataset.rmactor), 1); renderEdActors(); }
     if (t.dataset.rmimg) { ED.images.splice(Number(t.dataset.rmimg), 1); renderEdImages(); }
     if (t.dataset.cover) { const [x] = ED.images.splice(Number(t.dataset.cover), 1); ED.images.unshift(x); renderEdImages(); }
     if (t.dataset.edtab) { ED[ED.introTab] = $('edIntro').value; ED.introTab = t.dataset.edtab; renderEdIntro(); }
     if (t.id === 'edDrop') $('edFile').click();
   });
   dlg.addEventListener('keydown', (e) => {
+    if (e.target.id === 'edActorInput' && (e.key === 'Enter' || e.key === ',' || e.key === '、')) {
+      if (e.isComposing) return;
+      e.preventDefault(); flushActorInput(); $('edActorInput').focus();
+    }
+    if (e.target.id === 'edActorInput' && e.key === 'Backspace' && !e.target.value && ED.actors.length) { ED.actors.pop(); renderEdActors(); $('edActorInput').focus(); }
     if (e.target.id === 'edTagInput' && (e.key === 'Enter' || e.key === ',')) {
       e.preventDefault();
       const v = e.target.value.trim().replace(/,$/, '');
@@ -1252,7 +1285,12 @@ function bindEditor() {
     }
     if (e.target.id === 'edTagInput' && e.key === 'Backspace' && !e.target.value && ED.tags.length) { ED.tags.pop(); renderEdTags(); $('edTagInput').focus(); }
   });
+  dlg.addEventListener('input', (e) => {
+    // 목록에서 고르면(이름 전체가 일치) 바로 칩으로
+    if (e.target.id === 'edActorInput' && e.inputType !== 'insertText' && [...$('actorList').options].some((o) => o.value === e.target.value)) flushActorInput();
+  });
   dlg.addEventListener('focusout', (e) => {
+    if (e.target.id === 'edActorInput') flushActorInput();
     if (e.target.id === 'edTagInput' && e.target.value.trim()) { const v = e.target.value.trim(); if (!ED.tags.includes(v)) ED.tags.push(v); renderEdTags(); }
   });
   $('edImgAdd').onclick = () => { const v = $('edImgUrl').value.trim(); if (/^https?:\/\//.test(v)) { ED.images.push(v); $('edImgUrl').value = ''; renderEdImages(); } else toast(L('http로 시작하는 이미지 주소를 넣어 주세요.'), true); };
@@ -1276,7 +1314,8 @@ function bindEditor() {
       const filled = [];
       const fill = (key, el, value) => { if (value && !ED[key]) { ED[key] = value; if (el) $(el).value = value; filled.push(key); } };
       fill('title', 'edTitle', info.title);
-      fill('actor', 'edActor', info.actor);
+      if (info.actor && !ED.actors.length) { addActors(info.actor); renderEdActors(); filled.push('actor'); }
+      if (info.circle && !ED.circle) info.circle = withKnownNames(splitNames(info.circle), 'circle').join(', ');
       fill('circle', 'edCircle', info.circle);
       fill('date', 'edDate', info.date);
       fill('code', 'edCode', info.code);
@@ -1295,7 +1334,7 @@ function bindEditor() {
     const info = extractInfo(ED.promo || $('edIntro').value);
     let n = 0;
     if (info.title && !ED.title) { $('edTitle').value = info.title; n++; }
-    if (info.actor && !ED.actor) { $('edActor').value = info.actor; n++; }
+    if (info.actor && !ED.actors.length) { addActors(info.actor); renderEdActors(); n++; }
     if (info.date && !ED.date) { $('edDate').value = info.date; n++; }
     toast(n ? `${n}${L("개 항목을 찾았어요.")}` : L('원문에서 새로 찾은 항목이 없어요.'));
   };

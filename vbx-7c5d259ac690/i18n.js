@@ -440,4 +440,6 @@ window.VB_I18N = {
   '숨긴 작품 {n}개 제외': ['{n} hidden works excluded', '非表示の作品{n}件を除外'],
   '보기': ['Show', '表示'],
   '가리기': ['Hide', '隠す'],
+  '성우 더 넣기': ['Add more', '声優を追加'],
+  '이름 입력 후 Enter': ['Type a name, then Enter', '名前を入力して Enter'],
 };
