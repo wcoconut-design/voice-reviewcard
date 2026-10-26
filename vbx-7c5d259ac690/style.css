@@ -924,3 +924,6 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), summary:focus:not
 .to-top.idle { opacity: .55; }
 .to-top:active { transform: scale(.94); }
 @media (max-width: 760px) { .to-top { bottom: calc(78px + env(safe-area-inset-bottom)); } }
+.key-wrap { position: relative; display: flex; }
+.key-wrap .input { flex: 1; min-width: 0; padding-right: 64px; font-family: ui-monospace, Menlo, monospace; }
+.key-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: var(--chip); color: var(--text-2); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; }

@@ -1476,7 +1476,7 @@ function serverBlockHtml(st) {
       <button type="button" class="ghost-btn srv-main" id="srvManualOpen">${L('이미 서버가 있어요 · 주소 넣기')}</button>
       <div class="srv-manual" id="srvManual" hidden>
         <input class="input" id="srvUrl" placeholder="https://voicebox-server.○○.workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false">
-        <input class="input" id="srvKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" autocomplete="off">
+        <div class="key-wrap"><input class="input" id="srvKey" type="password" placeholder="${L('비밀 열쇠 (VB_KEY)')}" autocomplete="new-password" autocapitalize="off" spellcheck="false"><button type="button" class="key-eye" data-eye="srvKey">${L('보기')}</button></div>
         <div class="set-row"><button type="button" class="ghost-btn" id="srvSave">${L('연결 확인')}</button></div>
         <div class="note" id="srvState"></div>
       </div>
@@ -1487,7 +1487,7 @@ function serverBlockHtml(st) {
   return `<div class="srv-status" id="srvStatus"><span class="muted">${L('서버 상태 확인 중…')}</span></div>
     <div class="srv-manual">
       <label class="field">${L('서버 주소')}<input class="input" id="srvUrl" value="${esc(url || '')}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-      <label class="field">${L('비밀 열쇠 (VB_KEY)')}<input class="input" id="srvKey" type="password" value="${esc(key)}" placeholder="${window.VB_MOBILE ? '' : L('바꿀 때만 입력')}" autocomplete="off"></label>
+      <label class="field">${L('비밀 열쇠 (VB_KEY)')}<div class="key-wrap"><input class="input" id="srvKey" type="password" value="${esc(key)}" placeholder="${window.VB_MOBILE ? '' : L('바꿀 때만 입력')}" autocomplete="new-password" autocapitalize="off" spellcheck="false"><button type="button" class="key-eye" data-eye="srvKey">${L('보기')}</button></div></label>
       <div class="set-row"><button type="button" class="ghost-btn" id="srvSave">${L('저장하고 연결 확인')}</button><button type="button" class="link-btn danger-link" id="srvOff">${L('연결 해제')}</button></div>
       <div class="note" id="srvState"></div>
     </div>
@@ -1665,6 +1665,7 @@ async function openSettings() {
   $('imgCovers').onclick = () => startImages(true);
   $('imgAll').onclick = () => startImages(false);
   $('srvGuide') && ($('srvGuide').onclick = openServerGuide);
+  dlg.querySelectorAll('[data-eye]').forEach((b) => (b.onclick = () => { const i = $(b.dataset.eye); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.textContent = show ? L('가리기') : L('보기'); }));
   $('srvManualOpen') && ($('srvManualOpen').onclick = () => { $('srvManual').hidden = false; $('srvManualOpen').hidden = true; $('srvUrl').focus(); });
   $('srvSave') && ($('srvSave').onclick = async () => {
     // 아이맥은 열쇠를 화면에 보여주지 않아요. 비워 두면 주소만 바꾸고 열쇠는 그대로 써요.
