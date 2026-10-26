@@ -436,4 +436,6 @@ window.VB_I18N = {
   '구분 · 전체': ['Type · All', '区分 · すべて'],
   '서버 주소': ['Server address', 'サーバーのアドレス'],
   '바꿀 때만 입력': ['Only to change it', '変更するときだけ入力'],
+  '맨 위로': ['Back to top', 'トップへ'],
+  '숨긴 작품 {n}개 제외': ['{n} hidden works excluded', '非表示の作品{n}件を除外'],
 };

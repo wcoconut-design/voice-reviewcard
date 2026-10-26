@@ -468,6 +468,27 @@ function renderNowRow(statsMode) {
   if (!now.length) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="now-head">${L('이어 듣기')}<span>${now.length}</span></div><div class="now-scroll">${now.map((w) => `<button type="button" class="now-item" data-id="${esc(w.id)}">${thumbHtml(w)}<span class="now-title">${esc(splitTitle(displayTitle(w))[0])}</span><span class="now-sub">${esc(splitNames(w.actor).map(nameText)[0] || w.circle || '')}</span></button>`).join('')}</div>`;
 }
+// 위로 가기: 목록·상세를 많이 내리면 오른쪽 아래에 ↑ 버튼이 떠요. (아이폰 상단 톡톡은 이 앱 구조에선 동작하지 않아서)
+const toTopBtn = document.createElement('button');
+toTopBtn.type = 'button'; toTopBtn.className = 'to-top'; toTopBtn.hidden = true;
+toTopBtn.setAttribute('aria-label', L('맨 위로'));
+toTopBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>';
+document.body.appendChild(toTopBtn);
+const scrollTarget = () => (!$('detail').hidden && isNarrow() ? $('detail') : $('main'));
+let toTopIdle;
+function updateToTop() {
+  const el = scrollTarget();
+  const show = isNarrow() && el.scrollTop > Math.min(700, el.clientHeight * 0.75) && !document.querySelector('dialog[open]');
+  toTopBtn.hidden = !show;
+  toTopBtn.classList.remove('idle');
+  clearTimeout(toTopIdle);
+  if (show) toTopIdle = setTimeout(() => toTopBtn.classList.add('idle'), 1800);
+}
+$('main').addEventListener('scroll', updateToTop, { passive: true });
+$('detail').addEventListener('scroll', updateToTop, { passive: true });
+toTopBtn.onclick = () => { scrollTarget().scrollTo({ top: 0, behavior: 'smooth' }); };
+// 상세 위쪽 줄의 빈 곳을 누르면 맨 위로
+$('detail').addEventListener('click', (e) => { if (e.target.classList?.contains('d-top') || e.target.classList?.contains('right')) $('detail').scrollTo({ top: 0, behavior: 'smooth' }); });
 $('nowRow').addEventListener('click', (e) => { const b = e.target.closest('.now-item'); if (b) select(b.dataset.id); });
 
 let currentList = [];
@@ -682,6 +703,7 @@ function openDetailPanel(push) {
   if (isNarrow() && wasHidden && push && !S.solo) history.pushState({ detail: true }, '');
   if (wasHidden) d.scrollTop = 0;
   layoutPanel();
+  updateToTop();
 }
 function closeDetail() {
   if (S.solo) { window.close(); return; }
@@ -690,6 +712,7 @@ function closeDetail() {
   S.detail = null;
   document.querySelectorAll('.row.on').forEach((r) => r.classList.remove('on'));
   layoutPanel();
+  updateToTop();
 }
 // 창(설정·편집·필터·크게 보기 등): 폰의 뒤로 가기 동작으로도 닫히게 기록을 하나 남겨요.
 // 열 때 X 버튼에 파란 테두리가 생기지 않게 처음 초점은 창 자체에 둬요.
@@ -1901,7 +1924,8 @@ try { const p = JSON.parse(localStorage.getItem('voicebox.stats') || '{}'); if (
 function statData() {
   const [, , getter] = STAT_KINDS.find((k) => k[0] === S.statKind);
   const scope = STAT_SCOPES.find((k) => k[0] === S.statScope)[2];
-  const works = S.works.filter((w) => visible(w) && scope(w));
+  // 숨긴 작품은 숨김 아이콘과 상관없이 작품 통계에서 빼요. (지출 통계에는 들어가요)
+  const works = S.works.filter((w) => !w.hidden && scope(w));
   const m = new Map();
   let none = 0;
   for (const w of works) {
@@ -1948,6 +1972,7 @@ function renderStats() {
   if (S.statKind === 'spend') return renderSpend();
   const { works, rows, none } = statData();
   const total = works.length;
+  const hiddenN = S.works.filter((w) => w.hidden).length;
   const kindLabel = STAT_KINDS.find((k) => k[0] === S.statKind)[1];
   const played = works.filter((w) => w.status === '청취 완료' || w.status === '청취 중').length;
   const rated = works.filter((w) => w.rating);
@@ -1994,7 +2019,7 @@ function renderStats() {
     <div class="stat-body">
       <div class="donut-wrap">${svg}</div>
       <div class="stat-legend">
-        <div class="note">${kindLabel} ${rows.length.toLocaleString()}${L("개")}</div>
+        <div class="note">${kindLabel} ${rows.length.toLocaleString()}${L("개")}${hiddenN ? ` · ${L('숨긴 작품 {n}개 제외', { n: hiddenN })}` : ''}</div>
         <div id="legRows"></div>
         <div class="leg-more" id="statMore"></div>
       </div>
