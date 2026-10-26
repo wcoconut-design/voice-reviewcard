@@ -691,3 +691,16 @@ a.ghost-btn { text-decoration: none; color: var(--text); }
   input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { font-size: 16px !important; }
 }
 .stats .stat-body.spend-body { display: flex !important; flex-direction: column; } .bars { width: 100%; }
+
+/* 편집창 이미지: 끌어서 순서 바꾸기, 대표 지정 */
+.img-edit .it { touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: box-shadow .15s; border-radius: 8px; }
+.img-edit .it.is-cover { box-shadow: 0 0 0 2px var(--accent); }
+.img-edit .it.dragging { z-index: 5; opacity: .85; cursor: grabbing; transition: none; box-shadow: 0 8px 20px rgba(0,0,0,.25); }
+.img-edit .it.drop-on { box-shadow: 0 0 0 3px var(--accent); }
+.img-edit .it img { pointer-events: none; }
+.img-edit .it .cover-badge { left: 4px; bottom: 4px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.img-edit .it .cover-set { position: absolute; left: 4px; bottom: 4px; border: none; border-radius: 4px; background: rgba(0,0,0,.6); color: #fff; font-size: 10.5px; padding: 2px 6px; }
+.img-edit .it .rm { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 13px; border: none; background: rgba(0,0,0,.6); color: #fff; font-size: 15px; line-height: 26px; padding: 0; }
+/* 편집창이 옆으로 밀리지 않게 */
+.field input, .field select, .field textarea { min-width: 0; width: 100%; }
+#editor .ed-cols, #editor .ed-col, #editor .m-body { min-width: 0; overflow-x: hidden; }
