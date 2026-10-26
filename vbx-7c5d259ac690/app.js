@@ -1417,7 +1417,8 @@ $('addWork').onclick = () => openEditor(null);
 
 /* ================= 노션 반영 ================= */
 let PUSH = null;
-const fmt = (v) => (Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? L('예') : L('아니오')) : typeof v === 'number' ? (v ? '★'.repeat(v) : L('없음')) : v) || L('(비어 있음)');
+// 별점만 ★로, 금액 같은 다른 숫자는 숫자 그대로 보여요.
+const fmt = (v, key) => (Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? L('예') : L('아니오')) : typeof v === 'number' ? (key === 'rating' ? (v ? '★'.repeat(v) : L('없음')) : v.toLocaleString()) : v) || L('(비어 있음)');
 async function openPush(id) {
   const dlg = $('pushDialog');
   if (!S.notion.connected) { toast(L('먼저 설정에서 노션을 연결해 주세요.'), true); return openSettings(); }
@@ -1433,8 +1434,8 @@ async function openPush(id) {
   }
 }
 // 긴 글은 처음 달라지는 곳부터 보여줍니다.
-function diffPair(a, b) {
-  a = String(fmt(a)); b = String(fmt(b));
+function diffPair(a, b, key) {
+  a = String(fmt(a, key)); b = String(fmt(b, key));
   if (a.length < 140 && b.length < 140) return [esc(a), esc(b)];
   let i = 0;
   while (i < a.length && i < b.length && a[i] === b[i]) i++;
@@ -1445,7 +1446,7 @@ function diffPair(a, b) {
 function renderPush() {
   const dlg = $('pushDialog');
   const p = PUSH;
-  const rows = p.changes.map((c) => { const [lv, nv] = diffPair(c.local, c.notion); return `<div class="push-row">
+  const rows = p.changes.map((c) => { const [lv, nv] = diffPair(c.local, c.notion, c.key); return `<div class="push-row">
       <input type="checkbox" data-pick="${c.key}"${p.pick.has(c.key) ? ' checked' : ''} aria-label="${esc(c.label)} ${L("반영")}">
       <div>
         <div class="push-label">${esc(c.label)}
@@ -1868,7 +1869,7 @@ async function openHistory(id) {
   const list = await api(`api/works/${encodeURIComponent(id)}/history`).catch((e) => (fail(e), []));
   const item = (h) => {
     const keys = Object.keys(h.data || {}).filter((k) => FIELD_KO[k]);
-    const preview = keys.slice(0, 6).map((k) => `${FIELD_KO[k]}: ${esc(String(fmt(h.data[k])).slice(0, 40))}`).join(' · ');
+    const preview = keys.slice(0, 6).map((k) => `${FIELD_KO[k]}: ${esc(String(fmt(h.data[k], k)).slice(0, 40))}`).join(' · ');
     return `<div class="hist"><div class="hist-head"><span>${esc(h.reason)} · ${new Date(h.at).toLocaleString(LOCALE())}</span>${keys.length ? `<button type="button" class="link-btn" data-restore="${esc(h.at)}">${L("이 전 상태로 되돌리기")}</button>` : ''}</div><div class="hist-fields">${preview || L('변경 내용 없음')}</div></div>`;
   };
   dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2>${L("수정 이력")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
