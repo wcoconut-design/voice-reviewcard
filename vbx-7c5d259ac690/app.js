@@ -1553,11 +1553,14 @@ async function openHistory(id) {
 /* ================= 기타 ================= */
 function openLightbox(list, i) {
   const dlg = $('lightbox');
+  // 표지 가리기가 켜져 있으면 크게 보기에서도 흐리게 보이고, 한 번 누르면 선명해져요.
+  let revealed = !S.coverBlur;
   const show = () => {
-    dlg.innerHTML = `<img src="${esc(list[i])}" alt="" referrerpolicy="no-referrer">${list.length > 1 ? `<div class="lb-nav"><button type="button" data-d="-1">${L("‹ 이전")}</button><button type="button" data-d="0">${L("닫기")}</button><button type="button" data-d="1">${L("다음 ›")}</button></div>` : ''}`;
+    dlg.innerHTML = `<img src="${esc(list[i])}" alt="" referrerpolicy="no-referrer" class="${revealed ? '' : 'lb-blur'}">${revealed ? '' : `<div class="lb-tip">${L('눌러서 보기')}</div>`}${list.length > 1 ? `<div class="lb-nav"><button type="button" data-d="-1">${L("‹ 이전")}</button><button type="button" data-d="0">${L("닫기")}</button><button type="button" data-d="1">${L("다음 ›")}</button></div>` : ''}`;
   };
   show();
   dlg.onclick = (e) => {
+    if (!revealed && (e.target.tagName === 'IMG' || e.target.classList.contains('lb-tip'))) { revealed = true; return show(); }
     const d = e.target.dataset.d;
     if (d === undefined || d === '0') return dlg.close();
     i = (i + Number(d) + list.length) % list.length;

@@ -345,6 +345,7 @@ window.VB_I18N = {
   '대표': ['Cover', '表紙'],
   '대표로': ['Set cover', '表紙に'],
   '끌어서 순서를 바꿔요 · 첫 번째가 대표 이미지': ['Drag to reorder · the first is the cover', 'ドラッグで並べ替え · 1枚目が表紙'],
+  '눌러서 보기': ['Tap to view', 'タップして表示'],
   // index.html
   '정리함': ['Library', 'ライブラリ'],
   '노션': ['Notion', 'Notion'],

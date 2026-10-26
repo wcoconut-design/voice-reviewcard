@@ -704,3 +704,8 @@ a.ghost-btn { text-decoration: none; color: var(--text); }
 /* 편집창이 옆으로 밀리지 않게 */
 .field input, .field select, .field textarea { min-width: 0; width: 100%; }
 #editor .ed-cols, #editor .ed-col, #editor .m-body { min-width: 0; overflow-x: hidden; }
+
+/* 표지 가리기: 큰 표지와 크게 보기는 더 강하게 */
+.cover-blur img.d-cover { filter: blur(36px) saturate(.5); }
+.lightbox img.lb-blur { filter: blur(40px) saturate(.5); clip-path: inset(0 round 8px); }
+.lightbox .lb-tip { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.65); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 15px; pointer-events: auto; cursor: pointer; }
