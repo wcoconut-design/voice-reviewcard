@@ -53,7 +53,9 @@ async function get(url, headers = {}) {
   return r;
 }
 
-async function fetchInfo(link) {
+// DLsite 작품 종류 코드 → 이름 (영수증 가져오기에서 음성 작품만 고르려고)
+const KIND = { SOU: '음성', MUS: '음악', MNG: '만화', WBT: '만화', SCM: '만화', ICG: 'CG', DNV: '노벨', NRE: '노벨', KSV: '노벨', ADV: '게임', RPG: '게임', ACN: '게임', SLN: '게임', STG: '게임', PZL: '게임', QIZ: '게임', TBL: '게임', DGT: '게임', ETC: '기타', MOV: '동영상', TOL: '툴', IMT: '소재', AMT: '소재', PBC: '소재' };
+async function fetchInfo(link, { quick = false } = {}) {
   let url;
   try { url = new URL(link); } catch { throw new Error('링크 형식을 확인해 주세요.'); }
   if (!/^https?:$/.test(url.protocol)) throw new Error('링크 형식을 확인해 주세요.');
@@ -83,8 +85,11 @@ async function fetchInfo(link) {
         const img = d.image_main?.url || d.work_image || '';
         if (img) out.images.push(img.startsWith('//') ? 'https:' + img : img);
         if (d.intro_s) out.promoShort = String(d.intro_s).trim();
+        if (d.work_type) { out.workKindCode = d.work_type; out.workKind = KIND[d.work_type] || '기타'; }
       }
     } catch {}
+    // 빠른 조회(영수증 가져오기): 종류·정가만 필요해서 판매 페이지는 읽지 않아요.
+    if (quick && out.title) { delete out.promoShort; return out; }
     // 2) 예전 방식 (위가 비었을 때)
     if (!out.title) {
       try {
@@ -97,6 +102,8 @@ async function fetchInfo(link) {
           const price = Number(d.official_price || d.price || 0);
           if (price > 0) out.listPrice = price;
           if (d.work_image) out.images.push(d.work_image.startsWith('//') ? 'https:' + d.work_image : d.work_image);
+          if (d.work_type && !out.workKind) { out.workKindCode = d.work_type; out.workKind = KIND[d.work_type] || '기타'; }
+          if (quick) { delete out.promoShort; return out; }
         }
       } catch {}
     }
@@ -132,7 +139,7 @@ async function fetchInfo(link) {
    폰 앱이 판매 페이지 링크를 보내면, 이 서버가 페이지를 읽어 제목·서클·성우·발매일·표지·정가를 돌려줘요.
    - 설정 → 변수(Variables and Secrets)에 VB_KEY(비밀 열쇠)를 넣어야 동작해요. 열쇠가 맞는 요청만 받아요.
    - 기록은 저장하지 않아요. 받은 링크의 페이지만 읽고 바로 돌려줘요. */
-const VERSION = 5;
+const VERSION = 6;
 export default {
   async fetch(req, env) {
     const origin = req.headers.get('Origin');
@@ -171,7 +178,7 @@ export default {
     if (req.method === 'POST' && url.pathname === '/info') {
       let body;
       try { body = await req.json(); } catch { return json({ error: '요청 형식이 잘못됐어요.' }, 400); }
-      try { return json(await fetchInfo(String(body.url || ''))); }
+      try { return json(await fetchInfo(String(body.url || ''), { quick: !!body.quick })); }
       catch (e) { return json({ error: e.message || '정보를 가져오지 못했어요.' }, 502); }
     }
     // ---------- 동기화 상자: 폰과 아이맥이 바뀐 작품을 주고받아요 ----------

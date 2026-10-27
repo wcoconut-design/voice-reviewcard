@@ -35,6 +35,7 @@ const COLUMNS = [
 
 /* ---------------- CSV ---------------- */
 export function toCsv(works) {
+  works = works.filter((w) => !w.entryType); // 기타 구매·포인트 충전은 빼요
   const cell = (v) => {
     const s = String(v ?? '');
     return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -75,6 +76,7 @@ function countBy(works, getter) {
 }
 
 export function toXlsx(works, compress) {
+  works = works.filter((w) => !w.entryType); // 기타 구매·포인트 충전은 빼요
   const visible = works;
   const allRows = [COLUMNS.map((c) => c[0]), ...visible.map((w) => COLUMNS.map((c) => c[1](w)))];
   const types = COLUMNS.map((c) => c[3]);
@@ -209,6 +211,7 @@ function zip(entries, compress) {
 
 /* ---------------- 감상 모음 문서 ---------------- */
 export function reviewsHtml(works, localize, { order = 'played' } = {}) {
+  works = works.filter((w) => !w.entryType); // 기타 구매·포인트 충전은 빼요
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const list = works.filter((w) => w.review).sort(order === 'rating'
     ? (a, b) => b.rating - a.rating || (b.lastPlayed || '').localeCompare(a.lastPlayed || '')

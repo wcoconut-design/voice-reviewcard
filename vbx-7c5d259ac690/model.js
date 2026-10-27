@@ -128,6 +128,11 @@ export function normalizeWork(w = {}) {
     orderValue: money(w.orderValue),
     orderTotal: money(w.orderTotal), // 묶음 전체 최종 구매금
     orderCount: Math.max(0, Math.round(Number(w.orderCount) || 0)),
+    orderNo: str(w.orderNo), // 영수증 주문번호 (같은 주문을 두 번 넣지 않게)
+    pointsUsed: money(w.pointsUsed),
+    // 작품이 아닌 기록: 'other' = 만화 등 기타 구매, 'points' = 포인트 충전. 목록·통계·노션에는 안 나와요.
+    entryType: ['other', 'points'].includes(str(w.entryType)) ? str(w.entryType) : '',
+    workKind: str(w.workKind), // DLsite 작품 종류 (음성, 만화…)
     createdAt: str(w.createdAt),
     updatedAt: str(w.updatedAt),
     notionEditedAt: str(w.notionEditedAt),

@@ -190,7 +190,7 @@ async function relayInfo(body) {
   if (!cfg?.url || !cfg?.key) throw new ApiError(msg('설정 → 고급에서 정보 채우기 서버를 먼저 연결해 주세요. ', 'Connect the info server in Settings → Advanced first. ', '先に設定 → 詳細設定で情報取得サーバーを接続してください。') + paste);
   let r;
   try {
-    r = await realFetch(cfg.url.replace(/\/+$/, '') + '/info', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VB-Key': cfg.key }, body: JSON.stringify({ url: body.url || '' }), signal: AbortSignal.timeout(25000) });
+    r = await realFetch(cfg.url.replace(/\/+$/, '') + '/info', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-VB-Key': cfg.key }, body: JSON.stringify({ url: body.url || '', quick: !!body.quick }), signal: AbortSignal.timeout(25000) });
   } catch {
     throw new ApiError(msg('정보 채우기 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요. ', 'Could not reach the info server. Check your connection. ', '情報取得サーバーに接続できませんでした。インターネット接続を確認してください。') + paste, 502);
   }

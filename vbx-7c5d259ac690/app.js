@@ -5,6 +5,7 @@
 /* ================= 상태 ================= */
 const S = {
   works: [],          // 목록용 작품 (긴 본문 제외)
+  others: [],         // 기타 구매·포인트 충전 (지출 통계 전용)
   folders: [],
   notion: {},
   nav: 'all',         // all | played | unplayed | fav | reviewed | unreviewed | hidden | pending | folder:이름
@@ -125,7 +126,9 @@ const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel('v
 
 async function load() {
   const d = await api('api/works');
-  S.works = d.works;
+  // 기타 구매(만화 등)·포인트 충전은 작품 목록과 따로 둬요. 지출 통계에서만 써요.
+  S.works = d.works.filter((w) => !w.entryType);
+  S.others = d.works.filter((w) => w.entryType);
   S.folders = d.folders;
   S.notion = d.notion;
   fillFilterOptions();
@@ -136,6 +139,7 @@ async function load() {
 function replaceWork(full, { broadcast = true } = {}) {
   const { promo, translation, sourceImages, ...rest } = full;
   const item = { ...rest, hasPromo: !!promo, hasTranslation: !!translation };
+  if (item.entryType) { const j = S.others.findIndex((w) => w.id === full.id); if (j >= 0) S.others[j] = item; else S.others.unshift(item); return; }
   const i = S.works.findIndex((w) => w.id === full.id);
   if (i >= 0) S.works[i] = item; else S.works.unshift(item);
   if (S.selected === full.id) S.detail = full;
@@ -928,6 +932,7 @@ function splitTotal(total, n, cur) {
 function openOrder(id) {
   const first = S.works.find((w) => w.id === id);
   if (!first) return;
+  if (first.orderNo) return openReceiptOrder(first);
   const orderId = first.orderId || '';
   const before = orderId ? S.works.filter((w) => w.orderId === orderId) : [first];
   let members = before.map((w) => ({ id: w.id, title: displayTitle(w), list: w.listPrice, sale: w.salePrice }));
@@ -1029,9 +1034,9 @@ function purchaseHtml(w) {
   const off = w.listPrice && w.paidPrice != null && w.paidPrice < w.listPrice ? Math.round((1 - w.paidPrice / w.listPrice) * 100) : 0;
   const cur = w.currency;
   const strike = w.listPrice != null && paid != null && paid < w.listPrice ? `<s class="buy-strike">${esc(money(w.listPrice, cur))}</s>` : '';
-  const tag = w.orderId
-    ? `<button type="button" class="chip chip-order" data-act="order">${L('묶음')} ${w.orderCount || ''}${L('개')} ${esc(money(w.orderTotal, cur))}</button>`
-    : [w.salePrice != null && w.salePrice !== w.listPrice ? `<span class="chip chip-sale">${L('할인가')} ${esc(money(w.salePrice, cur))}</span>` : '', w.couponType && w.couponValue ? `<span class="chip chip-cp">${w.couponType === 'pct' ? `${w.couponValue}% ${L('쿠폰')}` : `${esc(money(w.couponValue, cur))} ${L('쿠폰')}`}</span>` : ''].join('');
+  const tag = (w.orderId
+    ? `<button type="button" class="chip chip-order" data-act="order">${L('묶음')} ${w.orderCount || ''}${L('개')} ${esc(money(w.orderTotal, cur))}</button>` : '')
+    + (w.orderId && !w.orderNo ? '' : [w.salePrice != null && w.salePrice !== w.listPrice ? `<span class="chip chip-sale">${L('할인가')} ${esc(money(w.salePrice, cur))}</span>` : '', w.couponType && w.couponValue ? `<span class="chip chip-cp">${w.couponType === 'pct' ? `${w.couponValue}% ${L('쿠폰')}` : `${esc(money(w.couponValue, cur))} ${L('쿠폰')}`}</span>` : ''].join(''));
   return `<div class="buy-line"><span class="rec-label">${L("구매")}</span>
     ${w.purchaseDate ? `<span>${esc(w.purchaseDate)}</span>` : ''}
     ${w.store ? `<span class="chip">${esc(w.store)}</span>` : ''}
@@ -1217,7 +1222,7 @@ function openEditor(work) {
           <label class="field">${L("정가")}<input id="edListPrice" inputmode="decimal" value="${ED.listPrice ?? ''}" placeholder="1650"></label>
           <label class="field">${L("할인가")}<input id="edSalePrice" inputmode="decimal" value="${ED.salePrice ?? ''}" placeholder="${L("세일 중이면")}"></label>
         </div>
-        <div class="price-solo"${ED.orderId ? ' hidden' : ''}>
+        <div class="price-solo"${ED.orderId && !ED.orderNo ? ' hidden' : ''}>
           <div class="field">${L("쿠폰 · 이벤트")}<div class="seg cp-seg" id="edCoupon" role="radiogroup">${[['', L('없음')], ['pct', L('% 쿠폰')], ['yen', L('금액 쿠폰')]].map(([v, l]) => `<button type="button" data-cp="${v}" class="${(ED.couponType || '') === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
           <div class="grid2" id="edCouponRow"${ED.couponType ? '' : ' hidden'}>
             <label class="field"><span id="edCouponLabel">${ED.couponType === 'yen' ? L('쿠폰 금액') : L('할인율 (%)')}</span><input id="edCouponValue" inputmode="decimal" value="${ED.couponValue ?? ''}" placeholder="${ED.couponType === 'yen' ? '200' : '30'}"></label>
@@ -1285,13 +1290,14 @@ function readEdForm() {
   ED.store = $('edStore').value.trim();
   ED.listPrice = $('edListPrice').value.trim();
   ED.salePrice = $('edSalePrice').value.trim();
-  if (!ED.orderId) {
+  if (!ED.orderId || ED.orderNo) {
     ED.couponValue = ED.couponType ? $('edCouponValue').value.trim() : '';
     ED.couponMemo = ED.couponType ? $('edCouponMemo').value.trim() : '';
     ED.paidPrice = $('edPaidPrice').value.trim();
   }
   ED.currency = $('edCurrency').value === 'JPY' ? '' : $('edCurrency').value; // 엔화는 비워 둬요(기본값)
   if (!ED.orderId) ED.discountNote = discountNote(ED);
+  else if (ED.orderNo && ED.discountNote) ED.discountNote = ED.discountNote.replace(/^할인가 [^·]+/, `할인가 ${money(numOf(ED.salePrice), ED.currency || 'JPY')}`);
   ED[ED.introTab] = $('edIntro').value;
 }
 // 동인/상업: 작품 코드와 판매 링크로 짐작 (서버의 guessWorkType과 같은 규칙)
@@ -1354,7 +1360,7 @@ function discountNote(w) {
   return [numOf(w.salePrice) != null ? `할인가 ${money(numOf(w.salePrice), cur)}` : '', cp(w.couponType, w.couponValue), w.couponMemo].filter(Boolean).join(' · ');
 }
 function recalcPrice() {
-  if (!$('edPaidPrice') || ED.orderId) return;
+  if (!$('edPaidPrice') || (ED.orderId && !ED.orderNo)) return;
   const cur = $('edCurrency').value;
   const list = numOf($('edListPrice').value), sale = numOf($('edSalePrice').value);
   const base = sale ?? list;
@@ -1699,6 +1705,7 @@ const getRelay = () => { try { return JSON.parse(localStorage.getItem('voicebox.
 // 'Deploy to Cloudflare' 버튼으로 각자 자기 Cloudflare 계정에 서버를 만들어요. 개인 열쇠·주소는 앱에 들어 있지 않아요.
 const DEPLOY_URL = 'https://deploy.workers.cloudflare.com/?url=https://github.com/wcoconut-design/voice-reviewcard/tree/main/vb-server';
 const NEW_KEY = 'voicebox.newKey';
+const SERVER_LATEST = 6;
 function boxSyncText(st) {
   if (st.running) return L('동기화하는 중…');
   if (st.error) return L('동기화 오류: ') + st.error;
@@ -1888,6 +1895,226 @@ async function openNames(tab = 'missing') {
   render();
   dlg.showModal();
 }
+// ===== 영수증 메일 가져오기 (DLsite 월별 구매 명세) =====
+const yenNum = (s) => Number(String(s || '').replace(/[^\d]/g, '')) || 0;
+// 메일 본문 → 주문 목록. 표가 탭·띄어쓰기·줄바꿈 어느 쪽으로 복사돼도 읽어요.
+function parseReceipts(text) {
+  const src = String(text || '').replace(/\r/g, '').replace(/ /g, ' ');
+  const starts = [...src.matchAll(/注文番号\s*[：:]\s*([A-Z0-9]+)/g)];
+  const orders = [];
+  starts.forEach((m, i) => {
+    const block = src.slice(m.index, i + 1 < starts.length ? starts[i + 1].index : src.length);
+    const o = { orderNo: m[1], date: '', items: [], subtotal: 0, points: 0, coupon: 0, total: 0, pointAmount: 0 };
+    const d = block.match(/購入日時\s*[：:]\s*(\d{4})\s*\/\s*(\d{1,2})\s*\/\s*(\d{1,2})/);
+    if (d) o.date = `${d[1]}-${d[2].padStart(2, '0')}-${d[3].padStart(2, '0')}`;
+    o.kind = /ポイント購入\s*[\d,]+\s*ポイント/.test(block) || /^BPT/.test(o.orderNo) ? 'points' : 'works';
+    for (const it of block.matchAll(/(?:^|\n)\s*\d+\s+((?:RJ|VJ|BJ)\d{6,8})\s+([\s\S]*?)\s*[¥￥]\s*([\d,]+)\s*(?=\n|$)/gi)) {
+      o.items.push({ code: it[1].toUpperCase(), title: it[2].replace(/\s+/g, ' ').trim(), price: yenNum(it[3]) });
+    }
+    const pa = block.match(/ポイント購入\s*([\d,]+)\s*ポイント\s*[¥￥]\s*([\d,]+)/);
+    if (pa) o.pointAmount = yenNum(pa[2]);
+    const num = (re) => { const x = block.match(re); return x ? yenNum(x[1]) : 0; };
+    o.subtotal = num(/小計\s*[¥￥]\s*([\d,]+)/) || o.items.reduce((a, x) => a + x.price, 0);
+    o.points = num(/ポイント利用\s*-?\s*[¥￥]\s*([\d,]+)/);
+    o.coupon = num(/クーポン利用\s*-?\s*[¥￥]\s*([\d,]+)/);
+    o.total = num(/合計金額\s*[¥￥]\s*([\d,]+)/);
+    if (o.kind === 'points' && !o.pointAmount) o.pointAmount = o.total || o.subtotal;
+    if (o.date && (o.items.length || o.kind === 'points')) orders.push(o);
+  });
+  return orders;
+}
+// 쿠폰을 가격 비율로 나눠요. 버린 소수점이 큰 작품부터 1엔씩 더해서 합계가 정확히 맞게.
+function allocate(prices, total) {
+  const base = prices.reduce((a, p) => a + p, 0);
+  if (!base) return prices.map(() => 0);
+  const raw = prices.map((p) => (total * p) / base);
+  const out = raw.map(Math.floor);
+  let rest = total - out.reduce((a, x) => a + x, 0);
+  const order = raw.map((r, i) => [r - Math.floor(r), i]).filter(([, i]) => prices[i] > 0).sort((a, b) => b[0] - a[0]);
+  for (let k = 0; rest > 0 && order.length; k++, rest--) out[order[k % order.length][1]]++;
+  return out;
+}
+function couponPct(coupon, subtotal) {
+  if (!coupon || !subtotal) return { num: 0, text: '' };
+  const pct = (coupon / subtotal) * 100, near = Math.round(pct);
+  return Math.abs(pct - near) < 0.15 ? { num: near, text: `${near}%` } : { num: Math.round(pct * 10) / 10, text: `${L('약')} ${Math.round(pct)}%` };
+}
+const dlUrl = (code) => `https://www.dlsite.com/maniax/work/=/product_id/${code}.html`;
+async function openReceiptImport() {
+  const st = { orders: [], look: new Map(), fetchPrice: true, step: 'paste', busy: false, msg: '' };
+  const dlg = document.createElement('dialog');
+  dlg.className = 'modal rc-dlg';
+  document.body.appendChild(dlg);
+  const byCode = (code) => S.works.find((w) => (w.code || '').toUpperCase() === code);
+  const doneOrder = (no) => S.works.some((w) => w.orderNo === no) || S.others.some((w) => w.orderNo === no);
+  const prepare = () => {
+    for (const o of st.orders) {
+      o.done = doneOrder(o.orderNo);
+      o.include = !o.done;
+      o.paid = o.subtotal - o.coupon;
+      o.shares = allocate(o.items.map((x) => x.price), o.paid);
+      o.pct = couponPct(o.coupon, o.subtotal);
+      for (const it of o.items) {
+        const w = byCode(it.code);
+        it.workId = w?.id || '';
+        it.hasBuy = !!(w && w.purchaseDate && w.orderNo !== o.orderNo);
+        if (it.target) continue;
+        it.target = w ? (it.hasBuy ? 'skip' : 'work') : 'ask';
+      }
+    }
+  };
+  const applyLookups = () => {
+    for (const o of st.orders) for (const it of o.items) {
+      const r = st.look.get(it.code);
+      if (!r || it.workId || it.target !== 'ask') continue;
+      it.kind = r.workKind || '';
+      if (r.workKind === '음성') it.target = 'new';
+      else if (r.workKind) it.target = 'other';
+    }
+  };
+  const needLook = () => {
+    const set = new Set();
+    for (const o of st.orders) if (o.include) for (const it of o.items) {
+      if (!it.workId && !st.look.has(it.code)) set.add(it.code);
+      else if (st.fetchPrice && it.workId && it.target === 'work' && S.works.find((w) => w.id === it.workId)?.listPrice == null && !st.look.has(it.code)) set.add(it.code);
+    }
+    return [...set];
+  };
+  const counts = () => {
+    let items = 0, found = 0, missing = 0, ask = 0, others = 0, pointsN = 0, pointsSum = 0, done = 0;
+    for (const o of st.orders) {
+      if (o.done) { done++; continue; }
+      if (o.kind === 'points') { if (o.include) { pointsN++; pointsSum += o.pointAmount; } continue; }
+      if (!o.include) continue;
+      for (const it of o.items) { items++; if (it.workId) found++; else missing++; if (it.target === 'ask') ask++; if (it.target === 'other') others++; }
+    }
+    return { items, found, missing, ask, others, pointsN, pointsSum, done };
+  };
+  const tSel = (oi, ii, it) => {
+    const opts = it.workId ? [['work', L('이 작품에 넣기')], ['skip', L('건너뛰기')]] : [['ask', L('— 고르기 —')], ['new', L('새 음성 작품으로 추가')], ['other', L('기타 구매 (만화 등)')], ['skip', L('건너뛰기')]];
+    return `<select class="rc-sel" data-o="${oi}" data-i="${ii}">${opts.map(([v, l]) => `<option value="${v}"${it.target === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+  };
+  const render = () => {
+    const pos = dlg.querySelector('.m-body')?.scrollTop || 0;
+    let body;
+    if (st.step === 'paste') {
+      body = `<p class="note">${L('DLsite에서 받은 구매 명세 메일 본문을 통째로 복사해서 붙여넣어요. 여러 달을 이어 붙여도 돼요.')}</p>
+        <textarea class="input rc-text" id="rcText" placeholder="2026年10月3日&#10;作品購入&#10;注文番号：PTA0I…&#10;購入日時：2026/10/03 00:57&#10;…"></textarea>
+        ${st.msg ? `<p class="note rc-msg">${esc(st.msg)}</p>` : ''}`;
+    } else {
+      const c = counts();
+      const nl = needLook();
+      body = `<div class="rc-sum">${L('주문')} ${st.orders.filter((o) => o.kind === 'works' && !o.done).length}${L('건')} · ${L('작품')} ${c.items}${L('개')} (${L('찾음')} ${c.found} · ${L('앱에 없음')} ${c.missing})${c.pointsN ? ` · ${L('포인트 충전')} ${c.pointsN}${L('건')} ${money(c.pointsSum, 'JPY')}` : ''}${c.done ? ` · <span class="muted">${L('이미 넣은 주문')} ${c.done}${L('건')}</span>` : ''}</div>
+        <div class="rc-tools">
+          <label class="check"><input type="checkbox" id="rcPrice"${st.fetchPrice ? ' checked' : ''}>${L('정가 비어 있는 작품은 DLsite에서 정가 가져오기')}</label>
+          ${nl.length ? `<button type="button" class="ghost-btn" id="rcLook"${st.busy ? ' disabled' : ''}>${st.busy ? esc(st.msg) : `${L('DLsite에서 종류·정가 확인')} (${nl.length})`}</button>` : ''}
+          ${!st.busy && st.msg ? `<p class="note rc-msg">${st.msg}</p>` : ''}
+        </div>
+        ${st.orders.map((o, oi) => {
+          if (o.kind === 'points') return `<div class="rc-order rc-points${o.done ? ' is-done' : ''}"><label class="check"><input type="checkbox" data-inc="${oi}"${o.include ? ' checked' : ''}${o.done ? ' disabled' : ''}>${esc(o.date)} · ${L('포인트 충전')} <strong>${money(o.pointAmount, 'JPY')}</strong></label>${o.done ? `<span class="muted">${L('이미 넣음')}</span>` : ''}</div>`;
+          return `<div class="rc-order${o.done ? ' is-done' : ''}">
+            <div class="rc-head"><label class="check"><input type="checkbox" data-inc="${oi}"${o.include ? ' checked' : ''}${o.done ? ' disabled' : ''}><strong>${esc(o.date)}</strong> <span class="muted">${esc(o.orderNo)}</span></label>
+              <span class="rc-tot">${money(o.subtotal, 'JPY')}${o.coupon ? ` − ${o.pct.text} ${L('쿠폰')} ${money(o.coupon, 'JPY')}` : ''} = <strong>${money(o.paid, 'JPY')}</strong>${o.points ? ` <span class="muted">(${L('포인트')} ${money(o.points, 'JPY')})</span>` : ''}</span></div>
+            ${o.done ? `<p class="note">${L('이미 넣은 주문이에요.')}</p>` : o.items.map((it, ii) => `<div class="rc-item${it.target === 'skip' ? ' is-skip' : ''}">
+                <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}` : ''}</small></span>
+                <span class="rc-price">${money(it.price, 'JPY')} → <strong>${money(o.shares[ii], 'JPY')}</strong></span>
+                ${tSel(oi, ii, it)}</div>`).join('')}
+          </div>`;
+        }).join('')}`;
+    }
+    const c = st.step === 'review' ? counts() : null;
+    dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2 tabindex="-1" autofocus>${L('영수증 메일 가져오기')}</h2><button type="button" class="close" data-close aria-label="${L('닫기')}">×</button></div>
+      <div class="m-body">${body}</div>
+      <div class="m-foot">${st.step === 'review' ? `<button type="button" class="link-btn" id="rcBack">${L('다시 붙여넣기')}</button>` : ''}<span class="spacer"></span>
+        ${st.step === 'paste' ? `<button type="button" class="primary-btn" id="rcRead">${L('읽기')}</button>` : `<button type="button" class="primary-btn" id="rcApply"${st.busy || c.ask ? ' disabled' : ''}>${c.ask ? L('고를 작품 {n}개', { n: c.ask }) : L('넣기')}</button>`}</div></div>`;
+    const mb = dlg.querySelector('.m-body'); if (mb) mb.scrollTop = pos;
+  };
+  async function lookup() {
+    const codes = needLook();
+    if (!codes.length) return;
+    st.busy = true; let ok = 0, noKind = 0, fail = 0;
+    for (let i = 0; i < codes.length; i++) {
+      st.msg = `${L('확인 중')} ${i + 1}/${codes.length}`; render();
+      try {
+        const r = await api('api/info', { body: { url: dlUrl(codes[i]), quick: true } });
+        st.look.set(codes[i], r); ok++;
+        if (!r.workKind) noKind++;
+      } catch (e) { fail++; if (i === 0 && /서버|server|サーバー/i.test(e.message)) { st.msg = e.message; break; } }
+      await new Promise((res) => setTimeout(res, 500));
+    }
+    st.busy = false;
+    applyLookups();
+    st.msg = [fail ? L('{n}개는 확인하지 못했어요.', { n: fail }) : '', noKind ? L('서버가 작품 종류를 알려주지 않아요. 설정 → 고급에서 서버 코드를 새로 고치면 돼요.') : ''].filter(Boolean).join(' ') || (ok ? '✓ ' + L('확인했어요.') : st.msg);
+    render();
+  }
+  async function apply() {
+    st.busy = true; render();
+    let n = 0, newN = 0, otherN = 0, pointsN = 0;
+    const note = (o, multi, price) => [multi ? `묶음 ${o.items.length}개 ${money(o.paid, 'JPY')}` : `할인가 ${money(price, 'JPY')}`, o.pct.num ? `${o.pct.text.replace(L('약') + ' ', '약 ')} 쿠폰` : '', o.points ? `포인트 ${money(o.points, 'JPY')}` : '', `주문 ${o.orderNo}`].filter(Boolean).join(' · ');
+    try {
+      for (const o of st.orders) {
+        if (!o.include || o.done) continue;
+        if (o.kind === 'points') {
+          await api('api/works', { body: { entryType: 'points', title: `ポイント購入 ${o.pointAmount.toLocaleString()}`, purchaseDate: o.date, store: 'DLsite', paidPrice: o.pointAmount, orderNo: o.orderNo, paidManual: true } });
+          pointsN++; continue;
+        }
+        const multi = o.items.length > 1;
+        const common = { purchaseDate: o.date, store: 'DLsite', currency: '', couponType: o.pct.num ? 'pct' : '', couponValue: o.pct.num || null, paidManual: true, orderNo: o.orderNo, pointsUsed: o.points || null, couponMemo: o.points ? `포인트 ${money(o.points, 'JPY')}` : '',
+          orderId: multi ? 'dl-' + o.orderNo : '', orderType: multi ? (o.pct.num ? 'pct' : '') : '', orderValue: multi ? o.pct.num || null : null, orderTotal: multi ? o.paid : null, orderCount: multi ? o.items.length : 0 };
+        for (let i = 0; i < o.items.length; i++) {
+          const it = o.items[i];
+          const look = st.look.get(it.code);
+          const body = { ...common, salePrice: it.price, paidPrice: o.shares[i], discountNote: note(o, multi, it.price) };
+          if (it.target === 'work') {
+            const w = S.works.find((x) => x.id === it.workId);
+            if (st.fetchPrice && w?.listPrice == null && look?.listPrice) body.listPrice = look.listPrice;
+            await api('api/works/' + encodeURIComponent(it.workId), { method: 'PATCH', body }); n++;
+          } else if (it.target === 'new') {
+            await api('api/works', { body: { ...body, title: look?.title || it.title, code: it.code, url: dlUrl(it.code), circle: look?.circle || '', actor: look?.actor || '', date: look?.date || '', images: look?.images || [], listPrice: look?.listPrice ?? null, workKind: look?.workKind || '' } }); n++; newN++;
+          } else if (it.target === 'other') {
+            await api('api/works', { body: { ...body, entryType: 'other', title: it.title, code: it.code, workKind: it.kind || look?.workKind || '', listPrice: look?.listPrice ?? null } }); otherN++;
+          }
+        }
+      }
+      await load();
+      dlg.close();
+      toast([L('작품 {n}개에 넣었어요', { n }), newN ? L('새 작품 {n}개', { n: newN }) : '', otherN ? L('기타 구매 {n}개', { n: otherN }) : '', pointsN ? L('포인트 충전 {n}건', { n: pointsN }) : ''].filter(Boolean).join(' · '));
+      if (S.nav === 'stats') renderStats();
+    } catch (e) { st.busy = false; fail(e); render(); }
+  }
+  dlg.addEventListener('click', (e) => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.matches('[data-close]')) return dlg.close();
+    if (t.id === 'rcRead') {
+      st.orders = parseReceipts($('rcText').value);
+      if (!st.orders.length) { st.msg = L('주문을 찾지 못했어요. 메일 본문 전체(注文番号, 購入日時가 있는 부분)를 붙여넣어 주세요.'); return render(); }
+      st.msg = ''; prepare(); st.step = 'review'; render();
+      if (needLook().length) lookup();
+      return;
+    }
+    if (t.id === 'rcBack') { st.step = 'paste'; st.msg = ''; return render(); }
+    if (t.id === 'rcLook') return lookup();
+    if (t.id === 'rcApply') return apply();
+  });
+  dlg.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.classList.contains('rc-sel')) { st.orders[t.dataset.o].items[t.dataset.i].target = t.value; return render(); }
+    if (t.dataset.inc != null) { st.orders[t.dataset.inc].include = t.checked; return render(); }
+    if (t.id === 'rcPrice') { st.fetchPrice = t.checked; return render(); }
+  });
+  dlg.addEventListener('close', () => dlg.remove());
+  render();
+  dlg.showModal();
+}
+// 영수증에서 가져온 주문: 같은 주문의 작품·기타 구매와 금액을 보여줘요.
+function openReceiptOrder(w) {
+  const items = [...S.works, ...S.others].filter((x) => x.orderNo === w.orderNo && !x.entryType || x.orderNo === w.orderNo && x.entryType === 'other');
+  const total = items.reduce((a, x) => a + (x.paidPrice ?? 0), 0);
+  openActions([
+    ...items.map((x) => ({ label: `${x.entryType ? `[${x.workKind || L('기타')}] ` : ''}${displayTitle(x).slice(0, 26)} · ${money(x.salePrice, 'JPY')} → ${money(x.paidPrice, 'JPY')}`, run: () => { if (!x.entryType) select(x.id); } })),
+    { label: `${L('주문')} ${w.orderNo} · ${L('합계')} ${money(w.orderTotal ?? total, 'JPY')}${w.pointsUsed ? ` · ${L('포인트')} ${money(w.pointsUsed, 'JPY')}` : ''}`, run: () => {} },
+  ]);
+}
 // 폰 앱: 앱으로 실행 중인지, 인터넷 없이 열 준비가 됐는지
 function offlineStatusHtml() {
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -1936,6 +2163,7 @@ async function openSettings() {
       </div></div>
       <div class="set-group-title">${L("정리")}</div>
       <div class="set-group">
+        <button type="button" class="set-item set-link" id="openReceipts"><div class="si-label">${L("영수증 메일 가져오기")}<small>${L("DLsite 구매 명세로 구매 정보를 한 번에 넣어요")}</small></div><span class="si-go">›</span></button>
         <button type="button" class="set-item set-link" id="openNames"><div class="si-label">${L("성우·서클 이름 정리")}<small>${L("한글 읽기를 한 번에 붙이거나 고쳐요")}</small></div><span class="si-go">›</span></button>
       </div>
       <div class="set-group-title">${L("백업")}</div>
@@ -1987,6 +2215,7 @@ async function openSettings() {
   $('imgCovers').onclick = () => startImages(true);
   $('imgAll').onclick = () => startImages(false);
   $('openNames').onclick = () => openNames('missing');
+  $('openReceipts').onclick = () => openReceiptImport();
   $('srvGuide') && ($('srvGuide').onclick = openServerGuide);
   dlg.querySelectorAll('[data-eye]').forEach((b) => (b.onclick = () => { const i = $(b.dataset.eye); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.textContent = show ? L('가리기') : L('보기'); }));
   $('srvManualOpen') && ($('srvManualOpen').onclick = () => { $('srvManual').hidden = false; $('srvManualOpen').hidden = true; $('srvUrl').focus(); });
@@ -2009,7 +2238,16 @@ async function openSettings() {
   });
   if ($('srvStatus')) {
     const url = window.VB_MOBILE ? getRelay().url : syncSt.url;
-    serverStatus(url).then((j) => { const el = $('srvStatus'); if (el) el.innerHTML = statusDots(j); })
+    serverStatus(url).then((j) => {
+      const el = $('srvStatus'); if (!el) return;
+      el.innerHTML = statusDots(j);
+      // 영수증 가져오기의 작품 종류 조회는 서버 코드 6판부터 돼요. 폰 앱에서만 안내해요.
+      if (window.VB_MOBILE && (j.version || 0) < SERVER_LATEST) el.insertAdjacentHTML('afterend', `<div class="srv-update"><strong>${L('서버 코드 업데이트')}</strong><span>${L('영수증 가져오기에서 작품 종류(음성·만화)를 알아내려면 서버 코드를 새로 넣어야 해요.')}</span>
+        <ol><li>${L('아래 버튼으로 새 코드 복사')}</li><li>${L('Cloudflare → Workers 및 Pages → 내 서버 → 코드 편집')}</li><li>${L('코드를 전부 지우고 붙여넣기 → 배포')}</li></ol>
+        <div class="set-row"><button type="button" class="primary-btn" id="srvCodeCopy">${L('새 서버 코드 복사')}</button><a class="ghost-btn" href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare ↗</a></div></div>`);
+      const b = $('srvCodeCopy');
+      if (b) b.onclick = async () => { try { const code = await (await fetch('../vb-server/src/index.js', { cache: 'no-store' })).text(); if (!/VOICE BOX/.test(code)) throw new Error(); copyText(code, L('서버 코드를 복사했어요. Cloudflare 코드 편집기에 붙여넣으세요.')); } catch { toast(L('코드를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'), true); } };
+    })
       .catch(() => { const el = $('srvStatus'); if (el) el.innerHTML = `<span class="sdot no">○ ${L('서버에 연결하지 못했어요. 인터넷이나 주소를 확인해 주세요.')}</span>`; });
   }
   $('restoreFile').onchange = async (e) => {
@@ -2351,11 +2589,16 @@ function renderStats() {
 // 지출: 구매일·금액이 있는 작품을 월별로 더해요. 구매가가 없으면 정가로 셉니다.
 S.spendView = (() => { try { return localStorage.getItem('voicebox.spendView') || 'month'; } catch { return 'month'; } })();
 S.spendYear = '';
+S.spendOthers = (() => { try { return localStorage.getItem('voicebox.spendOthers') === '1'; } catch { return false; } })();
 const rememberSpend = () => { try { localStorage.setItem('voicebox.spendView', S.spendView); } catch {} };
 S.spendMonth = '';
 S.spendCur = '';
 function renderSpend() {
-  const bought = S.works.filter((w) => w.purchaseDate && (w.paidPrice ?? w.listPrice) != null);
+  const hasBuy = (w) => w.purchaseDate && (w.paidPrice ?? w.listPrice) != null;
+  // 위쪽 숫자와 막대는 음성 작품만. '기타 구매 포함'을 켜면 만화 등도 더해요. 포인트 충전은 따로 보여줘요.
+  const otherBuys = S.others.filter((w) => w.entryType === 'other' && hasBuy(w));
+  const bought = [...S.works.filter(hasBuy), ...(S.spendOthers ? otherBuys : [])];
+  const charges = S.others.filter((w) => w.entryType === 'points' && w.purchaseDate);
   const curCount = new Map();
   for (const w of bought) curCount.set(w.currency || 'JPY', (curCount.get(w.currency || 'JPY') || 0) + 1);
   const curs = [...curCount].sort((a, b) => b[1] - a[1]).map(([c]) => c);
@@ -2377,6 +2620,7 @@ function renderSpend() {
   for (const w of scope) { const r = groups.get(keyOf(w)); if (r) { r.sum += paidOf(w); r.n++; r.saved += savedOf(w); } }
   const total = scope.reduce((a, w) => a + paidOf(w), 0);
   const saved = scope.reduce((a, w) => a + savedOf(w), 0);
+  const chargeSum = charges.filter((w) => yearView || w.purchaseDate.startsWith(S.spendYear)).reduce((a, w) => a + (w.paidPrice || 0), 0);
   const activeMonths = new Set(scope.map((w) => w.purchaseDate.slice(0, 7))).size;
   const max = Math.max(1, ...[...groups.values()].map((r) => r.sum));
   const stores = new Map();
@@ -2392,6 +2636,11 @@ function renderSpend() {
       <div class="seg spend-view" role="radiogroup"><button type="button" data-spend-view="month" class="${yearView ? '' : 'on'}">${L('월별')}</button><button type="button" data-spend-view="year" class="${yearView ? 'on' : ''}">${L('연도별')}</button></div>
       ${yearView ? `<span class="note">${L('전체 기간')}</span>` : `<div class="year-nav"><button type="button" data-spend-year="${years[yi - 1] || ''}"${yi > 0 ? '' : ' disabled'} aria-label="${L('이전 해')}">‹</button><strong>${S.spendYear}${L('년')}</strong><button type="button" data-spend-year="${years[yi + 1] || ''}"${yi < years.length - 1 ? '' : ' disabled'} aria-label="${L('다음 해')}">›</button></div>`}
       ${curs.length > 1 ? `<div class="tabs" role="radiogroup" aria-label="${L("통화")}">${curs.map((c) => `<button type="button" data-spend-cur="${c}" class="${c === cur ? 'on' : ''}">${CUR_SIGN[c]} ${c}</button>`).join('')}</div>` : ''}
+    </div>
+    <div class="spend-opts">
+      <button type="button" class="ghost-btn" id="rcOpen">${L('영수증 메일 가져오기')}</button>
+      ${otherBuys.length ? `<label class="check"><input type="checkbox" id="spendOthers"${S.spendOthers ? ' checked' : ''}>${L('기타 구매(만화 등) 포함')} <small class="muted">${otherBuys.length}${L('개')}</small></label>` : ''}
+      ${chargeSum ? `<span class="note">${L('포인트 충전')} ${money(chargeSum, 'JPY')} <small>(${L('지출에는 안 들어가요')})</small></span>` : ''}
     </div>
     <div class="stat-cards">
       <div class="stat-card"><div class="sc-label">${yearView ? L('전체 지출') : S.spendYear + L('년 지출')}</div><div class="sc-num">${money(total, cur) || money(0, cur)}</div></div>
@@ -2425,6 +2674,7 @@ function renderSpend() {
               return `<button type="button" class="spend-row" data-open-order="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title"><span class="chip chip-order">${L('묶음')} ${grp.length}${L('개')}</span> ${esc(displayTitle(w))}${grp.length > 1 ? ` ${L('외')} ${grp.length - 1}` : ''}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(sum, cur)}</span></button>`;
             }
             const cp = w.couponType && w.couponValue ? (w.couponType === 'pct' ? `${w.couponValue}% ${L('쿠폰')}` : `${money(w.couponValue, cur)} ${L('쿠폰')}`) : '';
+            if (w.entryType) return `<button type="button" class="spend-row" data-other="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title"><span class="chip chip-kind">${esc(w.workKind || L('기타'))}</span> ${esc(w.title)}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(paidOf(w), cur)}</span></button>`;
             return `<button type="button" class="spend-row" data-open-work="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title">${esc(displayTitle(w))}${cp ? ` <small class="sr-cp">${cp}</small>` : ''}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(paidOf(w), cur)}</span></button>`;
           }).join('');
         })()}</div>` : ''}
@@ -2443,6 +2693,13 @@ $('stats').addEventListener('click', (e) => {
   if (y && y.dataset.spendYear) { S.spendYear = y.dataset.spendYear; S.spendMonth = ''; return renderSpend(); }
   const gy = e.target.closest('[data-spend-goyear]');
   if (gy) { S.spendView = 'month'; S.spendYear = gy.dataset.spendGoyear; S.spendMonth = ''; rememberSpend(); return renderSpend(); }
+  if (e.target.closest('#rcOpen')) return openReceiptImport();
+  const ot = e.target.closest('[data-other]');
+  if (ot) {
+    const w = S.others.find((x) => x.id === ot.dataset.other);
+    if (w) openActions([{ label: `${w.title} · ${money(w.paidPrice, 'JPY')}`, run: () => {} }, { label: L('이 기타 구매 지우기'), danger: true, run: async () => { if (!confirm(L('이 기록을 지울까요?'))) return; await api('api/works/' + encodeURIComponent(w.id), { method: 'DELETE' }).catch(fail); await load(); renderStats(); } }]);
+    return;
+  }
   const oo = e.target.closest('[data-open-order]');
   if (oo) return openOrder(oo.dataset.openOrder);
   const o = e.target.closest('[data-open-work]');
@@ -2485,7 +2742,7 @@ $('stats').addEventListener('click', (e) => {
   $('main').scrollTop = 0;
   if (S.statKind === 'rating' && S.rating !== '0' && S.rating !== '5') toast(`★${S.rating} ${L("이상인 작품이에요.")}`);
 });
-$('stats').addEventListener('change', (e) => { if (e.target.id === 'statScope') { S.statScope = e.target.value; rememberStats(); renderStats(); } });
+$('stats').addEventListener('change', (e) => { if (e.target.id === 'spendOthers') { S.spendOthers = e.target.checked; try { localStorage.setItem('voicebox.spendOthers', S.spendOthers ? '1' : ''); } catch {} return renderSpend(); } if (e.target.id === 'statScope') { S.statScope = e.target.value; rememberStats(); renderStats(); } });
 
 // 동기화로 다른 기기의 기록을 받으면 목록을 다시 그려요.
 async function reloadAfterSync() {
