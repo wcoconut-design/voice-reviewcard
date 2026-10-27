@@ -566,4 +566,9 @@ window.VB_I18N = {
   '새 서버 코드 복사': ['Copy new server code', '新しいサーバーコードをコピー'],
   '서버 코드를 복사했어요. Cloudflare 코드 편집기에 붙여넣으세요.': ['Server code copied. Paste it into the Cloudflare code editor.', 'サーバーコードをコピーしました。Cloudflareのコードエディタに貼り付けてください。'],
   '코드를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.': ["Couldn't load the code. Check your connection.", 'コードを読み込めませんでした。インターネット接続を確認してください。'],
+  '연결한 작품에 넣기': ['Add to linked work', '連結した作品に入れる'],
+  '연결 끊기': ['Unlink', '連結を解除'],
+  '앱의 다른 작품에 넣기 (찾기)': ['Add to another work in the app (search)', 'アプリの別の作品に入れる (検索)'],
+  '제목이나 코드로 찾기': ['Search by title or code', 'タイトルやコードで検索'],
+  '일본판': ['Japanese edition', '日本語版'],
 };
