@@ -133,6 +133,8 @@ export function normalizeWork(w = {}) {
     // 작품이 아닌 기록: 'other' = 만화 등 기타 구매, 'points' = 포인트 충전. 목록·통계·노션에는 안 나와요.
     entryType: ['other', 'points'].includes(str(w.entryType)) ? str(w.entryType) : '',
     workKind: str(w.workKind), // DLsite 작품 종류 (음성, 만화…)
+    packCode: str(w.packCode), // 팩으로 산 작품: 영수증의 팩 코드 (다음에 같은 팩이 나오면 자동 연결)
+    packTitle: str(w.packTitle),
     createdAt: str(w.createdAt),
     updatedAt: str(w.updatedAt),
     notionEditedAt: str(w.notionEditedAt),

@@ -1967,6 +1967,8 @@ async function openReceiptImport() {
           if (w) it.edition = editionOf(it.title);
         }
         if (it.picked) w = S.works.find((x) => x.id === it.workId);
+        // 팩: 전에 연결한 적 있으면 그 작품들로 자동 연결
+        if (!w && !it.pack) { const mem = S.works.filter((x) => x.packCode === it.code); if (mem.length) { it.pack = mem.map((x) => x.id); it.target ||= 'pack'; } }
         it.workId = w?.id || '';
         it.workTitle = w ? displayTitle(w) : '';
         it.hasBuy = !!(w && w.purchaseDate && w.orderNo !== o.orderNo);
@@ -1989,6 +1991,7 @@ async function openReceiptImport() {
     for (const o of st.orders) if (o.include) for (const it of o.items) {
       if (!it.workId && !st.look.has(it.code)) set.add(it.code);
       else if (st.fetchPrice && it.workId && it.target === 'work' && !it.edition && !it.picked && S.works.find((w) => w.id === it.workId)?.listPrice == null && !st.look.has(it.code)) set.add(it.code);
+      if (it.target === 'pack') for (const id of it.pack || []) { const w = S.works.find((x) => x.id === id); if (w?.code && w.listPrice == null && !st.look.has(w.code.toUpperCase())) set.add(w.code.toUpperCase()); }
     }
     return [...set];
   };
@@ -1998,7 +2001,7 @@ async function openReceiptImport() {
       if (o.done) { done++; continue; }
       if (o.kind === 'points') { if (o.include) { pointsN++; pointsSum += o.pointAmount; } continue; }
       if (!o.include) continue;
-      for (const it of o.items) { items++; if (it.workId) found++; else missing++; if (it.target === 'ask') ask++; if (it.target === 'other') others++; }
+      for (const it of o.items) { items++; if (it.workId || (it.target === 'pack' && it.pack?.length)) found++; else missing++; if (it.target === 'ask' || (it.target === 'pack' && !it.pack?.length)) ask++; if (it.target === 'other') others++; }
     }
     return { items, found, missing, ask, others, pointsN, pointsSum, done };
   };
@@ -2006,13 +2009,35 @@ async function openReceiptImport() {
     const linked = it.edition || it.picked;
     const opts = it.workId
       ? [['work', linked ? L('연결한 작품에 넣기') : L('이 작품에 넣기')], ...(linked ? [['unlink', L('연결 끊기')]] : []), ['skip', L('건너뛰기')]]
-      : [['ask', L('— 고르기 —')], ['new', L('새 음성 작품으로 추가')], ['pick', L('앱의 다른 작품에 넣기 (찾기)')], ['other', L('기타 구매 (만화 등)')], ['skip', L('건너뛰기')]];
+      : [['ask', L('— 고르기 —')], ['new', L('새 음성 작품으로 추가')], ['pick', L('앱의 다른 작품에 넣기 (찾기)')], ['pack', L('팩 → 앱의 여러 작품에 나누기')], ['other', L('기타 구매 (만화 등)')], ['skip', L('건너뛰기')]];
     const sel = `<select class="rc-sel" data-o="${oi}" data-i="${ii}">${opts.map(([v, l]) => `<option value="${v}"${it.target === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+    if (it.target === 'pack') {
+      const k = nameKey(it.q || '');
+      const mem = (it.pack || []).map((id) => S.works.find((x) => x.id === id)).filter(Boolean);
+      const found = k ? S.works.filter((w) => !(it.pack || []).includes(w.id) && nameKey([w.title, w.titleKo, w.code].join(' ')).includes(k)).slice(0, 5) : [];
+      const shares = packShares(it, st.orders[oi].shares[ii]);
+      return sel + `<div class="rc-pick rc-pack">
+        ${mem.map((w, j) => `<div class="rc-pack-row"><span>${esc(displayTitle(w))} <small class="muted">${esc(w.code)}${w.listPrice != null || st.look.get((w.code || '').toUpperCase())?.listPrice ? ` · ${L('정가')} ${money(w.listPrice ?? st.look.get(w.code.toUpperCase()).listPrice, 'JPY')}` : ''}</small></span><strong>${money(shares[j].paid, 'JPY')}</strong><button type="button" class="od-rm" data-packrm="${esc(w.id)}" data-o="${oi}" data-i="${ii}" aria-label="${L('빼기')}">×</button></div>`).join('') || `<p class="note">${L('팩에 든 작품을 찾아서 더해 주세요.')}</p>`}
+        <input class="input rc-q" data-o="${oi}" data-i="${ii}" value="${esc(it.q || '')}" placeholder="${L('팩에 든 작품 찾기 · 제목이나 코드')}" autocomplete="off">
+        ${found.map((w) => `<button type="button" class="od-found" data-packadd="${esc(w.id)}" data-o="${oi}" data-i="${ii}">+ ${esc(displayTitle(w))} <small class="muted">${esc(w.code)}</small></button>`).join('')}
+        ${mem.length ? `<p class="note">${shares.byList ? L('정가 비율로 나눠요.') : L('정가가 없는 작품이 있어서 똑같이 나눠요.')}</p>` : ''}</div>`;
+    }
     if (it.target !== 'pick') return sel;
     const k = nameKey(it.q || '');
     const found = k ? S.works.filter((w) => nameKey([w.title, w.titleKo, w.code].join(' ')).includes(k)).slice(0, 5) : [];
     return sel + `<div class="rc-pick"><input class="input rc-q" data-o="${oi}" data-i="${ii}" value="${esc(it.q || '')}" placeholder="${L('제목이나 코드로 찾기')}" autocomplete="off">
       ${found.map((w) => `<button type="button" class="od-found" data-pick="${esc(w.id)}" data-o="${oi}" data-i="${ii}">${esc(displayTitle(w))} <small class="muted">${esc(w.code)}</small></button>`).join('')}</div>`;
+  };
+  // 팩 금액을 연결한 작품들에 나눠요: 정가 비율(모두 정가가 있을 때) 아니면 똑같이.
+  const packShares = (it, paidTotal) => {
+    const mem = (it.pack || []).map((id) => S.works.find((x) => x.id === id)).filter(Boolean);
+    const lp = mem.map((w) => w.listPrice ?? st.look.get((w.code || '').toUpperCase())?.listPrice ?? null);
+    const byList = mem.length > 0 && lp.every((x) => x > 0);
+    const weights = byList ? lp : mem.map(() => 1);
+    const paid = allocate(weights, paidTotal), sale = allocate(weights, it.price);
+    const out = mem.map((_, j) => ({ paid: paid[j], sale: sale[j] }));
+    out.byList = byList;
+    return out;
   };
   const render = () => {
     const pos = dlg.querySelector('.m-body')?.scrollTop || 0;
@@ -2036,7 +2061,7 @@ async function openReceiptImport() {
             <div class="rc-head"><label class="check"><input type="checkbox" data-inc="${oi}"${o.include ? ' checked' : ''}${o.done ? ' disabled' : ''}><strong>${esc(o.date)}</strong> <span class="muted">${esc(o.orderNo)}</span></label>
               <span class="rc-tot">${money(o.subtotal, 'JPY')}${o.coupon ? ` − ${o.pct.text} ${L('쿠폰')} ${money(o.coupon, 'JPY')}` : ''} = <strong>${money(o.paid, 'JPY')}</strong>${o.points ? ` <span class="muted">(${L('포인트')} ${money(o.points, 'JPY')})</span>` : ''}</span></div>
             ${o.done ? `<p class="note">${L('이미 넣은 주문이에요.')}</p>` : o.items.map((it, ii) => `<div class="rc-item${it.target === 'skip' ? ' is-skip' : ''}">
-                <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}` : ''}</small>${(it.edition || it.picked) && it.workId ? `<small class="rc-link">↳ ${it.edition ? `${esc(it.edition)} → ${L('일본판')}: ` : ''}${esc(it.workTitle)}</small>` : ''}</span>
+                <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}` : ''}</small>${it.target === 'pack' && it.pack?.length ? `<small class="rc-link">↳ ${L('팩')} → ${it.pack.length}${L('개 작품')}</small>` : ''}${(it.edition || it.picked) && it.workId ? `<small class="rc-link">↳ ${it.edition ? `${esc(it.edition)} → ${L('일본판')}: ` : ''}${esc(it.workTitle)}</small>` : ''}</span>
                 <span class="rc-price">${money(it.price, 'JPY')} → <strong>${money(o.shares[ii], 'JPY')}</strong></span>
                 ${tSel(oi, ii, it)}</div>`).join('')}
           </div>`;
@@ -2059,11 +2084,13 @@ async function openReceiptImport() {
         const r = await api('api/info', { body: { url: dlUrl(codes[i]), quick: true } });
         st.look.set(codes[i], r); ok++;
         if (!r.workKind) noKind++;
-      } catch (e) { fail++; if (i === 0 && /서버|server|サーバー/i.test(e.message)) { st.msg = e.message; break; } }
+      } catch (e) { fail++; st.look.set(codes[i], {}); if (i === 0 && /서버|server|サーバー/i.test(e.message)) { st.msg = e.message; break; } }
       await new Promise((res) => setTimeout(res, 500));
     }
     st.busy = false;
     applyLookups();
+    // 조회하는 동안 새로 더한 작품(팩 등)이 있으면 이어서 조회
+    if (needLook().length) return lookup();
     st.msg = [fail ? L('{n}개는 확인하지 못했어요.', { n: fail }) : '', noKind ? L('서버가 작품 종류를 알려주지 않아요. 설정 → 고급에서 서버 코드를 새로 고치면 돼요.') : ''].filter(Boolean).join(' ') || (ok ? '✓ ' + L('확인했어요.') : st.msg);
     render();
   }
@@ -2078,13 +2105,27 @@ async function openReceiptImport() {
           await api('api/works', { body: { entryType: 'points', title: `ポイント購入 ${o.pointAmount.toLocaleString()}`, purchaseDate: o.date, store: 'DLsite', paidPrice: o.pointAmount, orderNo: o.orderNo, paidManual: true } });
           pointsN++; continue;
         }
-        const multi = o.items.length > 1;
+        const appCount = o.items.reduce((a, it) => a + (it.target === 'pack' ? (it.pack || []).length : ['work', 'new', 'other'].includes(it.target) ? 1 : 0), 0);
+        const multi = o.items.length > 1 || o.items.some((it) => it.target === 'pack');
         const common = { purchaseDate: o.date, store: 'DLsite', currency: '', couponType: o.pct.num ? 'pct' : '', couponValue: o.pct.num || null, paidManual: true, orderNo: o.orderNo, pointsUsed: o.points || null, couponMemo: o.points ? `포인트 ${money(o.points, 'JPY')}` : '',
-          orderId: multi ? 'dl-' + o.orderNo : '', orderType: multi ? (o.pct.num ? 'pct' : '') : '', orderValue: multi ? o.pct.num || null : null, orderTotal: multi ? o.paid : null, orderCount: multi ? o.items.length : 0 };
+          orderId: multi ? 'dl-' + o.orderNo : '', orderType: multi ? (o.pct.num ? 'pct' : '') : '', orderValue: multi ? o.pct.num || null : null, orderTotal: multi ? o.paid : null, orderCount: multi ? appCount : 0 };
         for (let i = 0; i < o.items.length; i++) {
           const it = o.items[i];
           const look = st.look.get(it.code);
           const body = { ...common, salePrice: it.price, paidPrice: o.shares[i], discountNote: note(o, multi, it.price) };
+          if (it.target === 'pack') {
+            const shares = packShares(it, o.shares[i]);
+            const mem = (it.pack || []).map((id) => S.works.find((x) => x.id === id)).filter(Boolean);
+            for (let j = 0; j < mem.length; j++) {
+              const w = mem[j], lp = st.look.get((w.code || '').toUpperCase())?.listPrice;
+              const b2 = { ...common, salePrice: shares[j].sale, paidPrice: shares[j].paid, packCode: it.code, packTitle: it.title,
+                couponMemo: [`팩 ${it.title.slice(0, 40)} (${it.code}) · ${j + 1}/${mem.length}`, common.couponMemo].filter(Boolean).join(' · '),
+                discountNote: [note(o, true, shares[j].sale), `팩 ${it.code}`].join(' · ') };
+              if (w.listPrice == null && lp && st.fetchPrice) b2.listPrice = lp;
+              await api('api/works/' + encodeURIComponent(w.id), { method: 'PATCH', body: b2 }); n++;
+            }
+            continue;
+          }
           if (it.target === 'work') {
             const w = S.works.find((x) => x.id === it.workId);
             // 다른 코드(한국어판 등)로 산 작품이면 메모에 남겨요.
@@ -2116,6 +2157,15 @@ async function openReceiptImport() {
     }
     if (t.id === 'rcBack') { st.step = 'paste'; st.msg = ''; return render(); }
     if (t.id === 'rcLook') return lookup();
+    if (t.dataset.packadd || t.dataset.packrm) {
+      const it = st.orders[t.dataset.o].items[t.dataset.i];
+      it.pack = it.pack || [];
+      if (t.dataset.packadd) { it.pack.push(t.dataset.packadd); it.q = ''; } else it.pack = it.pack.filter((x) => x !== t.dataset.packrm);
+      render();
+      if (needLook().length && !st.busy) lookup();
+      const q = dlg.querySelector(`.rc-q[data-o="${t.dataset.o}"][data-i="${t.dataset.i}"]`); if (q && t.dataset.packadd) q.focus();
+      return;
+    }
     if (t.dataset.pick) {
       const it = st.orders[t.dataset.o].items[t.dataset.i];
       const w = S.works.find((x) => x.id === t.dataset.pick);

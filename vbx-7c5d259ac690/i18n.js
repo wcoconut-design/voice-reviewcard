@@ -571,4 +571,11 @@ window.VB_I18N = {
   '앱의 다른 작품에 넣기 (찾기)': ['Add to another work in the app (search)', 'アプリの別の作品に入れる (検索)'],
   '제목이나 코드로 찾기': ['Search by title or code', 'タイトルやコードで検索'],
   '일본판': ['Japanese edition', '日本語版'],
+  '팩 → 앱의 여러 작품에 나누기': ['Pack → split into several works', 'パック → アプリの複数作品に分ける'],
+  '팩에 든 작품을 찾아서 더해 주세요.': ['Find and add the works in this pack.', 'パックに入っている作品を探して追加してください。'],
+  '팩에 든 작품 찾기 · 제목이나 코드': ['Find works in the pack · title or code', 'パックの作品を検索 · タイトルやコード'],
+  '정가 비율로 나눠요.': ['Split by list price.', '定価の比率で分けます。'],
+  '정가가 없는 작품이 있어서 똑같이 나눠요.': ['Some works have no list price, so it is split equally.', '定価のない作品があるので均等に分けます。'],
+  '팩': ['Pack', 'パック'],
+  '개 작품': [' works', '作品'],
 };
