@@ -30,7 +30,7 @@ const svg = (d, s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" 
 
 const T = {
   ko: {
-    head: '듣는 순간,<br>쌓이는 취향 기록',
+    head: '들을 때마다,<br>쌓여가는 취향 기록',
     lead: '들은 보이스 작품의 별점과 감상을 모아두는 개인 기록 앱이에요.',
     f1: '기록은 <b>이 기기 안에</b> 저장돼요', f2: '설치하면 <b>인터넷 없이도</b> 열려요',
     install: '앱으로 설치하기', ios: '아이폰', android: '안드로이드',
@@ -48,7 +48,7 @@ const T = {
     copy: '주소 복사', copied: '복사했어요', later: '닫기',
   },
   en: {
-    head: 'Every listen,<br>a growing taste log',
+    head: 'Every listen,<br>another layer of you.',
     lead: 'A personal app for keeping ratings and reviews of the voice works you listen to.',
     f1: 'Records stay <b>on this device</b>', f2: 'Once installed, it opens <b>without internet</b>',
     install: 'Install as an app', ios: 'iPhone', android: 'Android',
@@ -66,7 +66,7 @@ const T = {
     copy: 'Copy link', copied: 'Copied', later: 'Close',
   },
   ja: {
-    head: '聴いた瞬間、<br>積もっていく好きの記録',
+    head: '聴くたびに、<br>好きが積もる',
     lead: '聴いたボイス作品の評価と感想をまとめておく、個人用の記録アプリです。',
     f1: '記録は<b>この端末の中</b>に保存', f2: 'インストールすると<b>オフラインでも</b>開けます',
     install: 'アプリとしてインストール', ios: 'iPhone', android: 'Android',
