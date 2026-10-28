@@ -73,6 +73,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const isPhone = () => matchMedia('(max-width: 760px)').matches;
 const isNarrow = () => matchMedia('(max-width: 900px)').matches; // 이 폭 이하에서는 상세가 목록 위를 덮어요
+S.home = isPhone(); // 폰은 홈 화면부터 열려요.
 const displayTitle = (w) => w.titleKo || w.title || L('제목 미정');
 const splitNames = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
 
@@ -171,6 +172,7 @@ const NAV = [
   ['played', '들은 작품', (w) => w.status === '청취 완료' || w.status === '청취 중'],
   ['unplayed', '안 들은 작품', (w) => w.status !== '청취 완료' && w.status !== '청취 중'],
   ['fav', '즐겨찾기', (w) => w.favorite],
+  ['listening', '듣는 중', (w) => w.status === '청취 중'],
   ['reviewed', '감상 쓴 작품', (w) => !!w.review],
   ['unreviewed', '감상 안 쓴 작품', (w) => !w.review],
   ['hidden', '숨긴 작품', (w) => w.hidden],
@@ -178,7 +180,7 @@ const NAV = [
 // 메뉴 이름 영어 버전 (설정 → 보기 → 메뉴 이름)
 const MENU_EN = {
   all: 'All Works', played: 'Listened', unplayed: 'Not Yet', fav: 'Favorites', reviewed: 'Reviewed',
-  unreviewed: 'No Review', hidden: 'Hidden', stats: 'Voice Chart', pending: 'Pending Sync',
+  unreviewed: 'No Review', hidden: 'Hidden', stats: 'Voice Chart', pending: 'Pending Sync', listening: 'Listening', toreview: 'To Review',
   'g-library': 'LIBRARY', 'g-notion': 'NOTION', 'g-folders': 'FOLDERS', 'new-folder': '+ New',
   settings: 'Settings', 'tab-list': 'List', 'tab-search': 'Search', 'tab-menu': 'Library', 'tab-settings': 'Settings',
   'pending-title': 'Pending Sync', 'stats-title': 'Stats', 'add': '+ Add',
@@ -186,13 +188,14 @@ const MENU_EN = {
 };
 const MENU_JA = {
   all: 'すべての作品', played: '聴いた作品', unplayed: '未聴の作品', fav: 'お気に入り', reviewed: '感想あり',
-  unreviewed: '感想なし', hidden: '非表示', stats: 'ボイスチャート', pending: '反映待ち',
+  unreviewed: '感想なし', hidden: '非表示', stats: 'ボイスチャート', pending: '反映待ち', listening: '聴いている作品', toreview: '感想を書く作品',
   'g-library': 'ライブラリ', 'g-notion': 'Notion', 'g-folders': 'フォルダ', 'new-folder': '+ 新規',
   settings: '設定', 'tab-list': 'リスト', 'tab-search': '検索', 'tab-menu': 'ライブラリ', 'tab-settings': '設定',
   'pending-title': 'Notion反映待ち', 'stats-title': '統計', 'add': '+ 作品を追加',
   'tab-home': 'ホーム', 'tab-stats': '統計',
 };
 const MENU_KO = {
+  toreview: '감상 쓸 작품',
   stats: '통계', pending: '반영 대기', 'g-library': '정리함', 'g-notion': '노션', 'g-folders': '내 폴더', 'new-folder': '+ 새 폴더',
   settings: '설정 · 노션 · 백업', 'tab-list': '목록', 'tab-search': '검색', 'tab-menu': '정리함', 'tab-settings': '설정',
   'pending-title': '노션 반영 대기', 'stats-title': '통계', 'add': '+ 작품 추가',
@@ -206,7 +209,7 @@ const UI = {
   ko: {
     cancel: '취소', recent: '최근 검색', clearRecent: '지우기', topActors: '자주 듣는 성우', topCircles: '자주 듣는 서클', topTags: '장르',
     searchPh: '작품명, 성우, 서클, 태그, 코드, 감상', searchPhPhone: '작품명이나 성우 검색',
-    chipAll: '전체', chipPlayed: '들음', chipUnplayed: '안 들음', chipFav: '즐겨찾기', chipReviewed: '감상', chipHidden: '숨김', chipFolder: '폴더', chipPending: '반영 대기',
+    chipAll: '전체', chipPlayed: '들음', chipUnplayed: '안 들음', chipFav: '즐겨찾기', chipListening: '듣는 중', chipReviewed: '감상', chipHidden: '숨김', chipFolder: '폴더', chipPending: '반영 대기',
     folders: '폴더', noFolders: '아직 폴더가 없어요.', manageFolders: '+ 새 폴더',
     viewTitle: '보기', nameModeNote: '성우 이름 표시', nameBoth: '일본어 + 한국어', nameJa: '일본어만', nameKo: '한국어만',
     langNote: '메뉴 언어', paletteNote: '색 테마', palIndigo: '인디고', palGreen: '내추럴 그린', palMono: '모노',
@@ -215,7 +218,7 @@ const UI = {
   en: {
     cancel: 'Cancel', recent: 'Recent', clearRecent: 'Clear', topActors: 'Top voice actors', topCircles: 'Top circles', topTags: 'Genres',
     searchPh: 'Title, actor, circle, tag, code, review', searchPhPhone: 'Search titles or actors',
-    chipAll: 'All', chipPlayed: 'Listened', chipUnplayed: 'Not yet', chipFav: 'Favorites', chipReviewed: 'Reviewed', chipHidden: 'Hidden', chipFolder: 'Folders', chipPending: 'Pending',
+    chipAll: 'All', chipPlayed: 'Listened', chipUnplayed: 'Not yet', chipFav: 'Favorites', chipListening: 'Listening', chipReviewed: 'Reviewed', chipHidden: 'Hidden', chipFolder: 'Folders', chipPending: 'Pending',
     folders: 'Folders', noFolders: 'No folders yet.', manageFolders: '+ New folder',
     viewTitle: 'Display', nameModeNote: 'Voice actor names', nameBoth: 'Japanese + Korean', nameJa: 'Japanese only', nameKo: 'Korean only',
     langNote: 'Menu language', paletteNote: 'Color theme', palIndigo: 'Indigo', palGreen: 'Natural green', palMono: 'Mono',
@@ -224,7 +227,7 @@ const UI = {
   ja: {
     cancel: 'キャンセル', recent: '最近の検索', clearRecent: '消去', topActors: 'よく聴く声優', topCircles: 'よく聴くサークル', topTags: 'ジャンル',
     searchPh: '作品名・声優・サークル・タグ・コード・感想', searchPhPhone: '作品名や声優で検索',
-    chipAll: 'すべて', chipPlayed: '聴いた', chipUnplayed: '未聴', chipFav: 'お気に入り', chipReviewed: '感想あり', chipHidden: '非表示', chipFolder: 'フォルダ', chipPending: '反映待ち',
+    chipAll: 'すべて', chipPlayed: '聴いた', chipUnplayed: '未聴', chipFav: 'お気に入り', chipListening: '聴取中', chipReviewed: '感想あり', chipHidden: '非表示', chipFolder: 'フォルダ', chipPending: '反映待ち',
     folders: 'フォルダ', noFolders: 'フォルダはまだありません。', manageFolders: '+ 新規フォルダ',
     viewTitle: '表示', nameModeNote: '声優名の表示', nameBoth: '日本語 + 韓国語', nameJa: '日本語のみ', nameKo: '韓国語のみ',
     langNote: 'メニューの言語', paletteNote: 'カラーテーマ', palIndigo: 'インディゴ', palGreen: 'ナチュラルグリーン', palMono: 'モノ',
@@ -253,11 +256,13 @@ const inView = (nav, w) => (nav === 'hidden' || nav === 'pending' || visible(w))
 const pendingTest = (w) => w.pending && w.pending.length > 0;
 function navTest(nav) {
   if (nav === 'pending') return pendingTest;
+  if (nav === 'toreview') return (w) => w.status === '청취 완료' && !w.review;
   if (nav.startsWith('folder:')) { const f = nav.slice(7); return (w) => w.folder === f; }
   return (NAV.find((n) => n[0] === nav) || NAV[0])[2];
 }
 function navLabel(nav) {
   if (nav === 'pending') return menuText('pending-title');
+  if (nav === 'toreview') return menuText('toreview');
   if (nav.startsWith('folder:')) return nav.slice(7);
   return menuText((NAV.find((n) => n[0] === nav) || NAV[0])[0]);
 }
@@ -282,8 +287,10 @@ function renderChips(pending) {
   $('navChips').innerHTML = [
     chip('all', tr('chipAll')),
     chip('fav', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg> ' + tr('chipFav')),
+    S.nav === 'listening' || S.works.some((w) => w.status === '청취 중' && visible(w)) ? chip('listening', tr('chipListening')) : '',
     chip('played', tr('chipPlayed')), chip('unplayed', tr('chipUnplayed')),
     chip('reviewed', tr('chipReviewed')),
+    S.nav === 'toreview' ? chip('toreview', menuText('toreview')) : '',
     `<button type="button" class="nchip${inFolder ? ' on' : ''}" data-folder-sheet>${esc(inFolder ? S.nav.slice(7) : tr('chipFolder'))} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>`,
     S.nav === 'hidden' ? chip('hidden', tr('chipHidden')) : '',
     pending && !window.VB_MOBILE ? chip('pending', tr('chipPending'), ` <span class="badge">${pending}</span>`) : '',
@@ -306,6 +313,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-nav]');
   if (!b) return;
   S.nav = b.dataset.nav;
+  S.home = false;
   S.shown = 60;
   renderNav();
   renderList();
@@ -472,15 +480,6 @@ function refreshItem(id) {
   el.outerHTML = itemHtml(w);
 }
 
-// 홈 맨 위 '이어 듣기': 듣는 중인 작품을 가로로 보여줘요.
-function renderNowRow(statsMode) {
-  const el = $('nowRow');
-  const plain = !statsMode && S.nav === 'all' && !S.q.trim() && [S.actor, S.circle, S.tag, S.rating, S.wt].every((v) => v === '');
-  const now = plain ? S.works.filter((w) => w.status === '청취 중' && visible(w)).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))).slice(0, 20) : [];
-  el.hidden = !now.length;
-  if (!now.length) { el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="now-head">${L('이어 듣기')}<span>${now.length}</span></div><div class="now-scroll">${now.map((w) => `<button type="button" class="now-item" data-id="${esc(w.id)}">${thumbHtml(w)}<span class="now-title">${esc(splitTitle(displayTitle(w))[0])}</span><span class="now-sub">${esc(splitNames(w.actor).map(nameText)[0] || w.circle || '')}</span></button>`).join('')}</div>`;
-}
 // 위로 가기: 목록·상세를 많이 내리면 오른쪽 아래에 ↑ 버튼이 떠요. (아이폰 상단 톡톡은 이 앱 구조에선 동작하지 않아서)
 const toTopBtn = document.createElement('button');
 toTopBtn.type = 'button'; toTopBtn.className = 'to-top'; toTopBtn.hidden = true;
@@ -502,10 +501,89 @@ $('detail').addEventListener('scroll', updateToTop, { passive: true });
 toTopBtn.onclick = () => { scrollTarget().scrollTo({ top: 0, behavior: 'smooth' }); };
 // 상세 위쪽 줄의 빈 곳을 누르면 맨 위로
 $('detail').addEventListener('click', (e) => { if (e.target.classList?.contains('d-top') || e.target.classList?.contains('right')) $('detail').scrollTo({ top: 0, behavior: 'smooth' }); });
-$('nowRow').addEventListener('click', (e) => { const b = e.target.closest('.now-item'); if (b) select(b.dataset.id); });
+
+// 폰 홈: 인사 · 최근 산 작품 · 오늘의 한 작품 · 감상 쓸 작품 · 이번 달 요약
+const isHome = () => !!S.home && isPhone() && !S.searching;
+function goHome() {
+  S.home = true;
+  if (S.nav === 'stats') S.nav = 'all';
+  renderNav(); renderList();
+  $('main').scrollTop = 0;
+}
+let pickShift = 0;
+const dayHash = (str) => { let h = 7; for (const c of str) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+function boughtAgo(d) {
+  if (!d) return '';
+  const days = Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000);
+  if (!(days >= 0)) return '';
+  if (days < 1) return L('오늘 산 작품');
+  if (days < 31) return L('산 지 {n}일', { n: days });
+  if (days < 365) return L('산 지 {n}달', { n: Math.floor(days / 30.4) });
+  return L('산 지 {n}년', { n: Math.floor(days / 365) });
+}
+function renderHome() {
+  const el = $('home');
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const shown = S.works.filter((w) => !w.hidden);
+  const listened = S.works.filter((w) => !w.noStats && (w.lastPlayed || '').startsWith(ym)).length;
+  const dateText = now.toLocaleDateString(LOCALE(), { month: 'long', day: 'numeric', weekday: 'short' });
+  const head = `<div class="hm-hello"><h1>${L('오늘은 뭐 들을까')}</h1><p>${esc(dateText)} · ${listened ? L('이번 달 {n}개 들었어요', { n: listened }) : L('이번 달은 아직 들은 작품이 없어요')}</p></div>`;
+  if (!shown.length) {
+    el.innerHTML = head + `<div class="hm-card hm-empty"><strong>${L('아직 작품이 없어요')}</strong><span>${L('아래 ＋ 버튼으로 첫 작품을 넣어 보세요.')}</span></div>`;
+    return;
+  }
+  // 최근 산 작품 (구매일 → 등록일 순)
+  const recent = [...shown].sort((a, b) => (b.purchaseDate || '').localeCompare(a.purchaseDate || '') || (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 12);
+  const shelf = `<section class="hm-sec"><div class="hm-h"><h2>${L('최근 산 작품')}</h2><button type="button" class="link-btn" data-home="recent">${L('전체')} ›</button></div>
+    <div class="now-scroll hm-shelf">${recent.map((w) => `<button type="button" class="now-item" data-id="${esc(w.id)}">${thumbHtml(w)}<span class="now-title">${esc(splitTitle(displayTitle(w))[0])}</span><span class="now-sub">${esc(splitNames(w.actor).map(nameText)[0] || w.circle || '')}</span></button>`).join('')}</div></section>`;
+  // 오늘의 한 작품: 사 놓고 아직 안 들은 작품 중 하루에 하나 (↻로 바꾸기)
+  const pool = shown.filter((w) => w.status !== '청취 완료' && w.status !== '청취 중').sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  let pick = '';
+  if (pool.length) {
+    const w = pool[(dayHash(now.toDateString()) + pickShift) % pool.length];
+    const sub = [splitNames(w.actor).map(nameText)[0] || w.circle, boughtAgo(w.purchaseDate), L('아직 안 들음')].filter(Boolean).join(' · ');
+    pick = `<section class="hm-card"><div class="hm-h"><h2>${L('오늘의 한 작품')}</h2>${pool.length > 1 ? `<button type="button" class="link-btn" data-home="reroll">↻ ${L('다른 작품')}</button>` : ''}</div>
+      <button type="button" class="hm-pick" data-id="${esc(w.id)}">${thumbHtml(w)}<span><span class="hm-pick-t">${esc(displayTitle(w))}</span><span class="hm-pick-s">${esc(sub)}</span></span></button></section>`;
+  } else {
+    pick = `<section class="hm-card"><div class="hm-h"><h2>${L('오늘의 한 작품')}</h2></div><p class="hm-note">${L('안 들은 작품이 없어요. 다 들었어요!')}</p></section>`;
+  }
+  // 들었는데 감상이 비어 있는 작품
+  const toReview = shown.filter((w) => w.status === '청취 완료' && !w.review).length;
+  const review = toReview ? `<button type="button" class="hm-card hm-row" data-home="toreview"><span><span class="hm-row-t">${L('감상 안 쓴 작품')} <b>${toReview.toLocaleString()}</b></span><span class="hm-row-s">${L('들은 뒤 감상이 비어 있어요')}</span></span><span class="hm-go">${L('쓰기')} ›</span></button>` : '';
+  // 이번 달 요약 (지출은 음성 작품만, 가장 많이 쓴 통화로)
+  const monthBuys = S.works.filter((w) => (w.purchaseDate || '').startsWith(ym));
+  const curN = new Map();
+  for (const w of monthBuys) if ((w.paidPrice ?? w.listPrice) != null) curN.set(w.currency || 'JPY', (curN.get(w.currency || 'JPY') || 0) + 1);
+  const cur = [...curN].sort((a, b) => b[1] - a[1])[0]?.[0] || 'JPY';
+  const spend = monthBuys.filter((w) => (w.currency || 'JPY') === cur).reduce((a, w) => a + (w.paidPrice ?? w.listPrice ?? 0), 0);
+  const kpi = (key, label, value) => `<button type="button" class="hm-kpi" data-home="${key}"><span>${label}</span><b>${value}</b></button>`;
+  const month = `<section class="hm-sec"><div class="hm-h"><h2>${L('이번 달')}</h2></div><div class="hm-kpis">
+    ${kpi('spend', L('지출'), (CUR_SIGN[cur] || '') + spend.toLocaleString())}${kpi('recent', L('새로 산'), monthBuys.length.toLocaleString())}${kpi('listened', L('들음'), listened.toLocaleString())}</div></section>`;
+  el.innerHTML = head + shelf + pick + review + month;
+}
+$('home').addEventListener('click', (e) => {
+  const act = e.target.closest('[data-home]')?.dataset.home;
+  const leave = (nav, sort) => {
+    S.home = false; S.nav = nav; S.shown = 60;
+    if (sort) { S.sort = sort; $('fSort').value = sort; }
+    renderNav(); renderList(); $('main').scrollTop = 0;
+  };
+  if (act === 'reroll') { pickShift += 1 + Math.floor(Math.random() * 5); renderHome(); return; }
+  if (act === 'recent') { leave('all', 'bought'); return; }
+  if (act === 'listened') { leave('played', 'played'); return; }
+  if (act === 'toreview') { leave('toreview'); return; }
+  if (act === 'spend') { S.statKind = 'spend'; leave('stats'); return; }
+  const b = e.target.closest('[data-id]');
+  if (b) select(b.dataset.id);
+});
 
 let currentList = [];
 function renderList() {
+  const homeMode = isHome();
+  $('home').hidden = !homeMode;
+  document.body.classList.toggle('home-mode', homeMode);
+  if (homeMode) { $('stats').hidden = true; $('list').hidden = true; $('listMore').hidden = true; renderHome(); return; }
   const statsMode = S.nav === 'stats';
   $('stats').hidden = !statsMode;
   $('list').hidden = statsMode;
@@ -514,7 +592,6 @@ function renderList() {
   $('search').closest('.search-row').hidden = statsMode;
   $('navChips').hidden = statsMode;
   $('main').classList.toggle('stats-mode', statsMode);
-  renderNowRow(statsMode);
   document.body.classList.toggle('has-q', !!S.q.trim());
   if (statsMode) { $('viewTitle').textContent = menuText('stats-title'); $('viewCount').textContent = ''; renderStats(); return; }
   currentList = filtered();
@@ -1160,7 +1237,7 @@ async function save(id, patch, { quiet = true } = {}) {
     replaceWork(full);
     renderNav();
     refreshItem(id);
-    if ('status' in patch || 'hidden' in patch) renderNowRow(S.nav === 'stats');
+    if (isHome()) renderHome();
     if (S.selected === id) {
       const keepReview = $('reviewBox')?.value;
       renderDetail();
@@ -2455,18 +2532,21 @@ $('navFolders').addEventListener('contextmenu', async (e) => {
 // 폰 하단 탭
 function closeSidebar() { $('sidebar').classList.remove('open'); if ($('detail').hidden) $('scrim').hidden = true; }
 function updateTabbar() {
-  const cur = S.searching ? 'search' : S.nav === 'stats' ? 'stats' : 'list';
+  const cur = S.searching ? 'list' : isHome() ? 'home' : S.nav === 'stats' ? 'stats' : 'list';
   document.querySelectorAll('#tabbar [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === cur));
 }
 $('tabbar').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   const tab = b.dataset.tab;
-  if (tab === 'search') { enterSearch(); return; }
   if (tab === 'add') { openEditor(null); return; }
   if (tab === 'settings') { openSettings(); return; }
   if (S.searching) exitSearch(false);
+  if (tab === 'home') { goHome(); return; }
+  const wasHome = isHome();
+  S.home = false;
   if (tab === 'stats') { S.nav = 'stats'; S.shown = 60; renderNav(); renderList(); $('main').scrollTop = 0; }
+  if (tab === 'list' && (wasHome || S.nav === 'stats')) { if (S.nav === 'stats') { S.nav = 'all'; resetFilters(); } else { renderNav(); renderList(); } $('main').scrollTop = 0; return; }
   if (tab === 'list') {
     const home = S.nav === 'all' && !S.q && !S.actor && !S.circle && !S.tag && !S.rating;
     if (!home) { S.nav = 'all'; resetFilters(); }
@@ -2485,6 +2565,7 @@ function saveRecent(q) {
 let navBeforeSearch = 'all';
 function enterSearch() {
   if (!S.searching) {
+    S.home = false;
     S.searching = true;
     navBeforeSearch = S.nav;
     if (S.nav !== 'all') { S.nav = 'all'; renderNav(); renderList(); }
