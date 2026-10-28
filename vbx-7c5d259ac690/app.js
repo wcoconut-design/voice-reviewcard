@@ -9,7 +9,7 @@ const S = {
   folders: [],
   notion: {},
   nav: 'all',         // all | played | unplayed | fav | reviewed | unreviewed | hidden | pending | folder:이름
-  q: '', actor: '', circle: '', tag: '', rating: '', wt: '', sort: 'updated',
+  q: '', actor: '', circle: '', tag: '', rating: '', wt: '', sort: 'bought',
   shown: 60,          // 화면에 그린 개수 (스크롤하면 늘어남)
   selected: null,     // 선택한 작품 id
   detail: null,       // 선택한 작품 전체 데이터
@@ -377,7 +377,7 @@ function filtered() {
     dateOld: (a, b) => (a.date || '9999').localeCompare(b.date || '9999'),
     rating: (a, b) => b.rating - a.rating || (b.lastPlayed || '').localeCompare(a.lastPlayed || ''),
     played: (a, b) => (b.lastPlayed || '').localeCompare(a.lastPlayed || ''),
-    bought: (a, b) => (b.purchaseDate || '').localeCompare(a.purchaseDate || ''),
+    bought: (a, b) => (b.purchaseDate || '').localeCompare(a.purchaseDate || '') || (b.createdAt || '').localeCompare(a.createdAt || ''),
     title: (a, b) => displayTitle(a).localeCompare(displayTitle(b), 'ko'),
   }[S.sort];
   return list.sort(by);
