@@ -405,7 +405,7 @@ document.addEventListener('error', (e) => {
   img.replaceWith(div);
 }, true);
 
-const rowAttrs = (w, cls) => `class="row ${cls}${S.selected === w.id ? ' on' : ''}${w.hidden ? ' is-hidden' : ''}" role="listitem" tabindex="0" data-id="${esc(w.id)}"`;
+const rowAttrs = (w, cls) => `class="row ${cls}${S.selected === w.id ? ' on' : ''}${w.hidden ? ' is-hidden' : ''}${S.selectMode && S.picked.has(w.id) ? ' picked' : ''}" role="listitem" tabindex="0" data-id="${esc(w.id)}"`;
 const marks = (w) => (w.hidden ? `<span class="tag-hidden">${L("숨김")}</span>` : '') + (pendingTest(w) ? `<span class="dot-pending" title="${L("노션 반영 대기")}"></span>` : '');
 const starsHtml = (w) => (w.rating ? `<span class="stars-sm" aria-label="${L('별점')} ${w.rating}">${'★'.repeat(w.rating)}</span>` : '');
 const starNum = (w) => (w.rating ? `<span class="stars-num" aria-label="${L('별점')} ${w.rating}">★ ${w.rating}</span>` : '');
@@ -578,6 +578,124 @@ $('home').addEventListener('click', (e) => {
   if (b) select(b.dataset.id);
 });
 
+// ===== 여러 개 선택: 목록에서 체크해서 한꺼번에 지우거나 숨기기 =====
+S.selectMode = false; S.picked = new Set();
+const selBar = document.createElement('div');
+selBar.className = 'sel-bar'; selBar.hidden = true;
+document.body.appendChild(selBar);
+function renderSelBar() {
+  selBar.hidden = !S.selectMode;
+  document.body.classList.toggle('select-mode', S.selectMode);
+  if (!S.selectMode) return;
+  const n = S.picked.size;
+  const all = currentList.length && currentList.every((w) => S.picked.has(w.id));
+  selBar.innerHTML = `<span class="sel-n">${L('{n}개 선택', { n: n.toLocaleString() })}</span>
+    <button type="button" class="ghost-btn" data-sel="all">${all ? L('선택 해제') : L('모두 선택')}</button>
+    <span class="spacer"></span>
+    <button type="button" class="ghost-btn" data-sel="hide"${n ? '' : ' disabled'}>${L('숨기기')}</button>
+    <button type="button" class="ghost-btn danger-btn" data-sel="del"${n ? '' : ' disabled'}>${L('지우기')}</button>
+    <button type="button" class="primary-btn" data-sel="done">${L('완료')}</button>`;
+}
+function startSelect() { S.selectMode = true; S.picked = new Set(); if (isHome()) { S.home = false; renderNav(); } renderList(); renderSelBar(); toast(L('작품을 눌러서 고르세요.')); }
+function endSelect() { S.selectMode = false; S.picked.clear(); renderList(); renderSelBar(); }
+function togglePick(id, el) {
+  if (S.picked.has(id)) S.picked.delete(id); else S.picked.add(id);
+  el?.classList.toggle('picked', S.picked.has(id));
+  renderSelBar();
+}
+selBar.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-sel]'); if (!b) return;
+  const act = b.dataset.sel;
+  if (act === 'done') return endSelect();
+  if (act === 'all') {
+    const all = currentList.every((w) => S.picked.has(w.id));
+    if (all) S.picked.clear(); else for (const w of currentList) S.picked.add(w.id);
+    renderList(); renderSelBar(); return;
+  }
+  const ids = [...S.picked];
+  if (!ids.length) return;
+  if (act === 'del' && !confirm(L('작품 {n}개를 지울까요? 설정 → 백업 → 되돌리기에서 되살릴 수 있어요.', { n: ids.length.toLocaleString() }))) return;
+  b.disabled = true; b.textContent = L('처리 중…');
+  try {
+    for (const id of ids) {
+      if (act === 'del') await api('api/works/' + encodeURIComponent(id), { method: 'DELETE' });
+      else await api('api/works/' + encodeURIComponent(id), { method: 'PATCH', body: { hidden: true } });
+    }
+    toast(act === 'del' ? L('작품 {n}개를 지웠어요.', { n: ids.length.toLocaleString() }) : L('작품 {n}개를 숨겼어요.', { n: ids.length.toLocaleString() }));
+  } catch (err) { fail(err); }
+  S.picked.clear(); S.selectMode = false;
+  await load(); renderSelBar();
+});
+
+// ===== 중복 작품 합치기: 같은 작품 코드가 여러 개면 하나만 남기고, 구매 정보는 남길 작품으로 옮겨요 =====
+const BUY_FIELDS = ['purchaseDate', 'store', 'salePrice', 'paidPrice', 'currency', 'couponType', 'couponValue', 'couponMemo', 'discountNote', 'paidManual', 'orderId', 'orderType', 'orderValue', 'orderTotal', 'orderCount', 'orderNo', 'pointsUsed', 'packCode', 'packTitle'];
+function findDupes() {
+  const by = new Map();
+  for (const w of S.works) { const c = (w.code || '').trim().toUpperCase(); if (!c) continue; if (!by.has(c)) by.set(c, []); by.get(c).push(w); }
+  const score = (w) => (w.notionPageId ? 100 : 0) + (w.review || w.hasReview ? 20 : 0) + (w.rating ? 10 : 0) + (w.status ? 5 : 0) + (w.favorite ? 5 : 0) + (w.tags?.length ? 3 : 0) + (w.actor ? 2 : 0) + (w.images?.length ? 2 : 0);
+  const out = [];
+  for (const [code, list] of by) {
+    if (list.length < 2) continue;
+    const sorted = [...list].sort((a, b) => score(b) - score(a) || String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+    const keep = sorted[0], drop = sorted.slice(1);
+    const patch = {};
+    const src = !keep.purchaseDate && !keep.orderNo ? drop.find((w) => w.purchaseDate || w.orderNo) : null;
+    if (src) for (const k of BUY_FIELDS) if (src[k] != null && src[k] !== '' && !(Array.isArray(src[k]) && !src[k].length)) patch[k] = src[k];
+    const lp = drop.find((w) => w.listPrice != null)?.listPrice;
+    if (keep.listPrice == null && lp != null) patch.listPrice = lp;
+    const img = drop.find((w) => w.images?.length)?.images;
+    if (!keep.images?.length && img) patch.images = img;
+    // 제목이 같은지(괄호 부분·기호를 빼고 한쪽이 다른 쪽을 포함) · 영수증으로 새로 생긴 중복인지
+    const norm = (t) => String(t || '').replace(/[【\[(（〔「『].*?[】\])）〕」』]/g, '').replace(/[\s\u3000・･·♡♥!！?？~～〜、。,.\-ー―_*※☆★]/g, '').toLowerCase();
+    const kt = norm(keep.title) || norm(keep.titleKo);
+    const sameTitle = drop.every((d) => { const dt = norm(d.title); return !kt || !dt || kt.includes(dt) || dt.includes(kt); });
+    const fromReceipt = drop.every((d) => d.orderNo && !d.notionPageId);
+    out.push({ code, keep, drop, patch, moved: !!src, sameTitle, on: sameTitle || fromReceipt });
+  }
+  return out;
+}
+function openDupes() {
+  const groups = findDupes();
+  const dlg = document.createElement('dialog');
+  dlg.className = 'modal dup-dlg';
+  document.body.appendChild(dlg);
+  const counts = () => { const on = groups.filter((g) => g.on); return { dropN: on.reduce((a, g) => a + g.drop.length, 0), movedN: on.filter((g) => g.moved).length }; };
+  let { dropN, movedN } = counts();
+  dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2 tabindex="-1" autofocus>${L('중복 작품 합치기')}</h2><button type="button" class="close" data-close aria-label="${L('닫기')}">×</button></div>
+    <div class="m-body">${groups.length ? `<div class="rc-sum">${L('같은 코드 {g}묶음 · 지울 중복 {d}개 · 구매 정보 옮김 {m}개', { g: groups.length.toLocaleString(), d: dropN.toLocaleString(), m: movedN.toLocaleString() })}</div>
+      <p class="note">${L('감상·별점·노션 연결이 있는 쪽을 남겨요. 제목이 다른 묶음은 코드가 잘못 들어갔을 수 있어서 체크하지 않았어요. 지운 중복은 설정 → 백업 → 되돌리기에서 되살릴 수 있어요.')}</p>
+      <div class="set-group">${groups.map((g, gi) => `<label class="set-item dup-row"><input type="checkbox" data-dup="${gi}"${g.on ? ' checked' : ''}><div class="si-label">${esc(displayTitle(g.keep).slice(0, 40))}<small>${esc(g.code)} · ${L('중복')} ${g.drop.length}${L('개')}${g.moved ? ` · <b class="dup-moved">${L('구매 정보 옮김')}</b>` : ''}${g.sameTitle ? '' : ` · <b class="dup-warn">${L('제목이 달라요')}: ${esc(String(g.drop[0].title || '').slice(0, 30))}</b>`}</small></div></label>`).join('')}</div>`
+      : `<p class="note">${L('같은 작품 코드로 두 번 들어간 작품이 없어요.')}</p>`}</div>
+    <div class="m-foot"><span class="dup-state muted"></span><span class="spacer"></span>${groups.length ? `<button type="button" class="primary-btn" id="dupGo">${L('{n}개 합치기', { n: dropN.toLocaleString() })}</button>` : ''}</div></div>`;
+  dlg.querySelector('[data-close]').onclick = () => dlg.close();
+  const go = dlg.querySelector('#dupGo');
+  dlg.addEventListener('change', (e) => {
+    const c = e.target.closest('[data-dup]'); if (!c) return;
+    groups[c.dataset.dup].on = c.checked;
+    ({ dropN, movedN } = counts());
+    go.textContent = L('{n}개 합치기', { n: dropN.toLocaleString() }); go.disabled = !dropN;
+    dlg.querySelector('.rc-sum').textContent = L('같은 코드 {g}묶음 · 지울 중복 {d}개 · 구매 정보 옮김 {m}개', { g: groups.length.toLocaleString(), d: dropN.toLocaleString(), m: movedN.toLocaleString() });
+  });
+  if (go) go.onclick = async () => {
+    go.disabled = true;
+    const st = dlg.querySelector('.dup-state');
+    let i = 0;
+    try {
+      const todo = groups.filter((g) => g.on);
+      for (const g of todo) {
+        st.textContent = `${++i}/${todo.length}`;
+        if (Object.keys(g.patch).length) await api('api/works/' + encodeURIComponent(g.keep.id), { method: 'PATCH', body: g.patch });
+        for (const d of g.drop) await api('api/works/' + encodeURIComponent(d.id), { method: 'DELETE' });
+      }
+      dlg.close();
+      toast(L('중복 {d}개를 합쳤어요. 구매 정보 옮김 {m}개', { d: dropN.toLocaleString(), m: movedN.toLocaleString() }));
+    } catch (e) { fail(e); go.disabled = false; }
+    await load();
+  };
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
 let currentList = [];
 function renderList() {
   const homeMode = isHome();
@@ -642,6 +760,7 @@ new ResizeObserver(() => {
 }).observe($('main'));
 
 $('list').addEventListener('click', (e) => {
+  if (S.selectMode) { const r = e.target.closest('.row'); if (r) { e.preventDefault(); togglePick(r.dataset.id, r); } return; }
   if (e.target.closest('select')) return;
   const q = e.target.closest('[data-quick="fav"]');
   const r = e.target.closest('.row');
@@ -710,6 +829,7 @@ function openViewSheet() {
       <div class="opt-sec"><div class="opt-label">${L("구분")}</div><div class="seg opt-wt">${[['', L('전체')], ['동인', L('동인')], ['상업', L('상업')]].map(([v, l]) => `<button type="button" data-wt="${v}" class="${S.wt === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <div class="opt-sec"><div class="opt-label">${L("필터")}</div><div class="filter-body"></div></div>
       <div class="opt-sec opt-switches">${sw('blur', S.coverBlur, L('표지 가리기'))}</div>
+      <div class="opt-sec"><button type="button" class="ghost-btn opt-select" id="sheetSelect">${L('여러 개 선택해서 지우기·숨기기')}</button></div>
     </div>
     <div class="m-foot"><button type="button" class="link-btn" id="sheetReset">${L("초기화")}</button><span class="spacer"></span><button type="button" class="primary-btn" data-close>${L("적용")}</button></div></div>`;
   const moved = [...FILTER_IDS, 'fSort'].map((id) => { const el = $(id); return [el, el.parentNode, el.nextSibling]; });
@@ -725,6 +845,7 @@ function openViewSheet() {
     b.setAttribute('aria-checked', String(on)); b.querySelector('.switch').classList.toggle('on', on);
   };
   dlg.querySelector('.opt-wt').onclick = (e) => { const b = e.target.closest('[data-wt]'); if (!b) return; S.wt = b.dataset.wt; $('fWorkType').value = S.wt; S.shown = 60; renderList(); dlg.querySelectorAll('.opt-wt button').forEach((x) => x.classList.toggle('on', x === b)); };
+  $('sheetSelect').onclick = () => { dlg.close(); startSelect(); };
   $('sheetReset').onclick = () => { resetFilters(); dlg.querySelectorAll('.opt-wt button').forEach((x) => x.classList.toggle('on', x.dataset.wt === '')); };
   dlg.onclose = () => { for (const [el, parent, next] of moved.reverse()) parent.insertBefore(el, next && next.parentNode === parent ? next : null); };
   dlg.showModal();
@@ -2411,6 +2532,7 @@ async function openSettings() {
       <div class="set-group-title">${L("정리")}</div>
       <div class="set-group">
         <button type="button" class="set-item set-link" id="openReceipts"><div class="si-label">${L("영수증 메일 가져오기")}<small>${L("DLsite 구매 명세로 구매 정보를 한 번에 넣어요")}</small></div><span class="si-go">›</span></button>
+        <button type="button" class="set-item set-link" id="openDupes"><div class="si-label">${L("중복 작품 합치기")}<small>${L("같은 작품 코드가 두 번 있으면 구매 정보는 옮기고 하나로 합쳐요")}</small></div><span class="si-go">›</span></button>
         <button type="button" class="set-item set-link" id="openNames"><div class="si-label">${L("성우·서클 이름 정리")}<small>${L("한글 읽기를 한 번에 붙이거나 고쳐요")}</small></div><span class="si-go">›</span></button>
       </div>
       <div class="set-group-title">${L("백업")}</div>
@@ -2463,6 +2585,7 @@ async function openSettings() {
   $('imgCovers').onclick = () => startImages(true);
   $('imgAll').onclick = () => startImages(false);
   $('openNames').onclick = () => openNames('missing');
+  $('openDupes').onclick = () => { $('settings').close(); openDupes(); };
   $('openReceipts').onclick = () => openReceiptImport();
   $('openRecover').onclick = () => openRecover();
   $('srvGuide') && ($('srvGuide').onclick = openServerGuide);
@@ -2620,6 +2743,7 @@ $('tabbar').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   const tab = b.dataset.tab;
+  if (S.selectMode && tab !== 'list') endSelect();
   if (tab === 'add') { openEditor(null); return; }
   if (tab === 'settings') { openSettings(); return; }
   if (S.searching) exitSearch(false);

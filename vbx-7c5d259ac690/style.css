@@ -1069,3 +1069,28 @@ body.home-mode .main-head { display: none; }
 .rcv-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .rcv-row .si-label b { font-weight: 600; color: var(--accent); }
 .rcv-row .ghost-btn { flex: none; }
+
+/* ===== v2.1.1 여러 개 선택 · 중복 합치기 ===== */
+.sel-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; z-index: 30; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: min(720px, calc(100% - 24px)); padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 8px 28px rgba(0,0,0,.16); }
+.sel-bar[hidden] { display: none; }
+.sel-bar .sel-n { font-weight: 600; font-size: 14px; }
+.sel-bar .ghost-btn, .sel-bar .primary-btn { height: 34px; padding: 0 11px; font-size: 13px; }
+.select-mode .row { position: relative; }
+.select-mode .row::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); box-sizing: border-box; }
+.select-mode .row.card::after { top: 10px; transform: none; }
+.select-mode .row.picked { background: var(--chip); }
+.select-mode .row.picked::after { content: '✓'; background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.select-mode .row .quick, .select-mode .row .heart-btn { visibility: hidden; }
+.select-mode .list-more { padding-bottom: 150px; }
+@media (max-width: 760px) { .sel-bar { bottom: calc(72px + env(safe-area-inset-bottom)); } }
+.opt-select { width: 100%; }
+.dup-moved { color: var(--accent); font-weight: 600; }
+.dup-row { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.dup-row input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--accent); }
+.dup-warn { color: var(--danger); font-weight: 600; }
+.set-item.dup-row { flex-direction: row !important; align-items: flex-start; }
+.dup-row .si-label { flex: 1; min-width: 0; }
+.select-mode .row { padding-right: 44px; }
+.sel-bar { flex-wrap: nowrap; }
+.sel-bar .ghost-btn, .sel-bar .primary-btn { white-space: nowrap; }
+.sel-bar .sel-n { white-space: nowrap; margin-right: auto; } .sel-bar .spacer { display: none; } .sel-bar { gap: 6px; }
