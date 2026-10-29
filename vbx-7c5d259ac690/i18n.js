@@ -658,4 +658,5 @@ window.VB_I18N = {
   "제목이 달라요": ["Different title", "タイトルが違います"],
   "감상·별점·노션 연결이 있는 쪽을 남겨요. 제목이 다른 묶음은 코드가 잘못 들어갔을 수 있어서 체크하지 않았어요. 지운 중복은 설정 → 백업 → 되돌리기에서 되살릴 수 있어요.": ["The copy with a review, rating or Notion link is kept. Groups with different titles may have a wrong code, so they are left unchecked. Removed duplicates can be restored in Settings → Backup → Undo.", "感想・評価・Notion連携がある方を残します。タイトルが違う組はコードの入力ミスかもしれないのでチェックしていません。削除した重複は設定 → バックアップ → 元に戻すで復元できます。"],
   "모두 선택": ["Select all", "すべて選択"],
+  "작품 코드도 링크에 맞춰 {c}(으)로 바꿨어요.": ["Changed the work code to {c} to match the link.", "作品コードもリンクに合わせて{c}に変更しました。"],
 };

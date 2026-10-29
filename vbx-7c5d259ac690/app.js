@@ -1472,7 +1472,7 @@ function openEditor(work) {
   bindEditor();
 }
 function readEdForm() {
-  ED.url = $('edUrl').value.trim();
+  ED.url = normSaleUrl($('edUrl').value);
   ED.titleKo = $('edTitleKo').value.trim();
   ED.title = $('edTitle').value.trim();
   flushActorInput();
@@ -1631,6 +1631,14 @@ function renderEdIntro() {
   $('edIntro').value = ED[ED.introTab] || '';
   $('edIntroLabel').textContent = ED.introTab === 'promo' ? L('판매 페이지의 소개글을 그대로 붙여넣어요') : L('번역문 · 직접 고칠 수 있어요');
 }
+// 판매 링크 다듬기: dlsharing.com(공유 링크)은 DLsite 주소로, 끝의 '/#…' 같은 꼬리는 떼요.
+function normSaleUrl(u) {
+  let v = String(u || '').trim();
+  v = v.replace(/^https?:\/\/(www\.)?dlsharing\.com\//i, 'https://www.dlsite.com/');
+  v = v.replace(/(\.html)\/?#.*$/i, '$1').replace(/(\.html)\/$/i, '$1');
+  return v;
+}
+const urlCode = (u) => (String(u || '').match(/(?:RJ|BJ|VJ)\d{6,}/i) || [''])[0].toUpperCase();
 function checkDuplicate() {
   const code = $('edCode').value.trim().toUpperCase();
   const url = $('edUrl').value.trim();
@@ -1665,9 +1673,12 @@ function bindEditor() {
   const dlg = $('editor');
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
   $('edCode').addEventListener('input', checkDuplicate);
+  // 링크를 바꾸면 작품 코드도 링크에 맞춰요. (코드가 비어 있거나 다를 때)
   $('edUrl').addEventListener('change', () => {
-    const m = $('edUrl').value.match(/(?:RJ|BJ|VJ)\d{6,}/i);
-    if (m && !$('edCode').value) $('edCode').value = m[0].toUpperCase();
+    const v = normSaleUrl($('edUrl').value);
+    if (v !== $('edUrl').value.trim()) $('edUrl').value = v;
+    const c = urlCode(v), cur = $('edCode').value.trim().toUpperCase();
+    if (c && c !== cur) { $('edCode').value = c; if (cur) toast(L('작품 코드도 링크에 맞춰 {c}(으)로 바꿨어요.', { c })); }
     checkDuplicate();
   });
   dlg.addEventListener('click', (e) => {
@@ -1714,8 +1725,9 @@ function bindEditor() {
   });
 
   $('edFetch').onclick = async () => {
-    const url = $('edUrl').value.trim();
+    const url = normSaleUrl($('edUrl').value);
     if (!url) return toast(L('판매 페이지 링크를 먼저 넣어 주세요.'), true);
+    $('edUrl').value = url;
     const btn = $('edFetch');
     btn.disabled = true; btn.textContent = L('가져오는 중…');
     try {
@@ -1729,6 +1741,8 @@ function bindEditor() {
       fill('circle', 'edCircle', info.circle);
       fill('date', 'edDate', info.date);
       fill('code', 'edCode', info.code);
+      // 링크의 코드와 가져온 코드가 같은데 칸의 코드가 다르면, 링크 쪽이 맞아요.
+      if (info.code && info.code.toUpperCase() === urlCode(url) && ED.code.toUpperCase() !== info.code.toUpperCase()) { ED.code = info.code.toUpperCase(); $('edCode').value = ED.code; filled.push('code'); }
       fill('store', 'edStore', info.store);
       if (!ED.workType) { const t = info.workType || guessWorkType({ code: ED.code || info.code, url }); if (t) { setEdWorkType(t); filled.push('workType'); } }
       if (info.listPrice && !ED.listPrice) { ED.listPrice = info.listPrice; $('edListPrice').value = info.listPrice; filled.push('listPrice'); if (info.currency) $('edCurrency').value = info.currency; recalcPrice(); }
