@@ -1066,3 +1066,6 @@ body.home-mode .main-head { display: none; }
 .rc-bulk { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 13.5px; }
 .rc-bulk-btns { display: flex; gap: 6px; flex-wrap: wrap; }
 .rc-bulk-btns .ghost-btn { padding: 6px 11px; font-size: 13px; }
+.rcv-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rcv-row .si-label b { font-weight: 600; color: var(--accent); }
+.rcv-row .ghost-btn { flex: none; }

@@ -163,3 +163,28 @@ export function sameIgnoringReading(a, b) {
 export function same(a, b) {
   return JSON.stringify(a ?? '') === JSON.stringify(b ?? '');
 }
+
+// ===== 되돌리기: 기록 내역(history)을 '한 번에 일어난 일' 묶음으로 나눠요 =====
+// kinds: { 이유: 'deleted' | 'changed' }  deleted = 지워진 작품 전체가 남아 있음, changed = 바뀌기 전 값이 남아 있음
+// 같은 이유로 3분 안에 이어서 일어난 기록을 한 묶음으로 봐요.
+export function groupHistory(entries, kinds, hasWork, titleOf = () => '') {
+  const list = entries.filter((h) => h && kinds[h.reason] && h.id && h.id !== '*' && h.data && typeof h.data === 'object')
+    .sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  const groups = [];
+  let cur = null;
+  for (const h of list) {
+    const t = Date.parse(h.at) || 0;
+    if (!cur || cur.reason !== h.reason || t - cur.lastT > 3 * 60 * 1000) {
+      cur = { key: `${h.reason}|${h.at}`, reason: h.reason, kind: kinds[h.reason], at: h.at, to: h.at, lastT: t, items: new Map() };
+      groups.push(cur);
+    }
+    cur.to = h.at; cur.lastT = t;
+    if (!cur.items.has(h.id)) cur.items.set(h.id, h); // 같은 작품이 여러 번이면 처음(가장 이전) 상태를 써요
+  }
+  return groups.reverse().slice(0, 40).map((g) => {
+    const items = [...g.items.values()];
+    const ok = items.filter((h) => (g.kind === 'deleted' ? !hasWork(h.id) : hasWork(h.id)));
+    return { key: g.key, reason: g.reason, kind: g.kind, at: g.at, to: g.to, n: items.length, restorable: ok.length,
+      sample: ok.slice(0, 3).map((h) => h.data.titleKo || h.data.title || titleOf(h.id) || h.id), items: ok };
+  });
+}

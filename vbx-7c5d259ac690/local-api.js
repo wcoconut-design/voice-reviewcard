@@ -1,7 +1,7 @@
 // VOICE BOX 폰 앱: 서버 없이 이 기기 안에서 데이터를 저장하고 처리합니다.
 // 화면 코드(app.js)가 'api/...'로 요청하면 여기서 가로채서 IndexedDB(기기 안 저장소)로 답해요.
 // 기록은 이 기기 안에만 있어요. 다른 기기로 옮길 때는 '복원용 백업(JSON)'을 쓰세요.
-import { normalizeWork, guessWorkType, renameInList } from './model.js';
+import { normalizeWork, guessWorkType, renameInList, groupHistory } from './model.js';
 import { toCsv, toXlsx, reviewsHtml } from './export-core.js';
 import { syncOnce, decide } from './sync-core.js';
 
@@ -56,6 +56,35 @@ const saveWorks = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => 
 const flushWorks = () => { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; writeNow(); } return writing; };
 addEventListener('pagehide', () => { flushWorks(); });
 const saveSettings = () => kvSet('settings', settings);
+/* ---------- 자동 백업 (이 기기 안에 최근 5개) ---------- */
+// 하루 한 번, 동기화·백업 복원·초기화 전에 작품 전체를 통째로 저장해 둬요. '백업·되돌리기'에서 그 시점으로 되돌릴 수 있어요.
+const SNAP_MAX = 5;
+async function snapshot(reason, minGapMin = 0) {
+  await ready;
+  if (!works.length) return;
+  const list = (await kvGet('snaps')) || [];
+  if (minGapMin && list[0] && Date.now() - Date.parse(list[0].at) < minGapMin * 60000) return;
+  const at = new Date().toISOString();
+  await kvSet('snap:' + at, works);
+  list.unshift({ at, n: works.length, reason });
+  for (const old of list.slice(SNAP_MAX)) await tx('kv', 'readwrite', (st) => st.delete('snap:' + old.at));
+  await kvSet('snaps', list.slice(0, SNAP_MAX));
+}
+const allHistory = () => tx('history', 'readonly', (st) => st.getAll());
+const HISTORY_KINDS = { '아이맥에서 삭제': 'deleted', '작품 삭제': 'deleted', '아이맥에서 동기화': 'changed', '백업 합치기 전': 'changed', '되돌리기 전': 'changed' };
+const untomb = (ids) => { const set = new Set(ids); const before = (settings.tombstones || []).length; settings.tombstones = (settings.tombstones || []).filter((t) => !set.has(t.id)); if (settings.tombstones.length !== before) saveSettings(); };
+// 되살린 작품은 지금 시각으로 고친 것으로 해서, 동기화하면 다른 기기에도 다시 퍼져요.
+function revive(data) {
+  const now = new Date().toISOString();
+  const cur = works.find((w) => w.id === data.id);
+  const next = normalizeWork({ ...data, updatedAt: now });
+  if (!cur) { works.unshift(next); return 'added'; }
+  const { updatedAt, ...a } = cur; const { updatedAt: _u, ...b } = next;
+  if (same(a, b)) return 'same';
+  addHistory(cur.id, '되돌리기 전', { ...cur });
+  Object.assign(cur, next, { notionPageId: cur.notionPageId || next.notionPageId });
+  return 'updated';
+}
 const addHistory = (id, reason, data) => tx('history', 'readwrite', (s) => s.add({ at: new Date().toISOString(), id, reason, data }));
 const historyOf = async (id) => {
   const db = await dbReady;
@@ -117,13 +146,14 @@ async function saveUpload(workId, blob) {
 
 /* ---------- 동기화 상자 (아이맥과 주고받기) ---------- */
 // 정보 채우기 서버(같은 Cloudflare Worker)에 동기화 보관함을 붙여서 써요. 설정에서 켜고 꺼요.
-const syncOn = () => { try { return !!JSON.parse(localStorage.getItem('voicebox.sync') || '{}').on; } catch { return false; } };
+// 자동 동기화는 기본으로 꺼져 있어요. ('자동으로 동기화'를 직접 켠 경우만, v2부터)
+const syncOn = () => { try { const v = JSON.parse(localStorage.getItem('voicebox.sync') || '{}'); return !!v.on && v.v === 2; } catch { return false; } };
 const sync = { running: false, error: '', last: null };
 let syncTimer;
 function syncSoon(ms = 5000) { if (!syncOn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => runSync().catch(() => {}), ms); }
 function noteDeleted(id) { settings.tombstones = [...(settings.tombstones || []), { id, at: new Date().toISOString() }]; saveSettings(); }
 async function syncStatus() { const st = (await kvGet('syncState')) || {}; return { ...sync, on: syncOn(), configured: !!relayConfig()?.url, lastSync: st.lastSync || null }; }
-async function runSync(manual = false) {
+async function runSync(manual = false, opts = {}) {
   await ready;
   const cfg = relayConfig();
   if (!cfg?.url || !cfg?.key) throw new ApiError(msg('먼저 정보 채우기 서버를 연결해 주세요.', 'Connect the info server first.', '先に情報取得サーバーを接続してください。'));
@@ -132,9 +162,11 @@ async function runSync(manual = false) {
   sync.running = true;
   sync.promise = (async () => {
   try {
+    await snapshot('동기화 전', 30);
     const cache = await caches.open(IMAGE_CACHE);
     const r = await syncOnce({
       url: cfg.url, key: cfg.key, device: 'phone', fetch: realFetch,
+      guardDeletes: opts.allowDelete ? 0 : 10, has: (id) => works.some((w) => w.id === id),
       getState: async () => (await kvGet('syncState')) || {},
       setState: (st) => kvSet('syncState', st),
       applyIncoming: (items) => {
@@ -165,13 +197,14 @@ async function runSync(manual = false) {
     if (r.changed) { await new Promise((ok) => setTimeout(ok, 300)); window.dispatchEvent(new CustomEvent('vb:reload')); }
     return { ...r, ...(await syncStatus()) };
   } catch (e) {
+    if (e.code === 'MASS_DELETE') { const err = new ApiError(msg(`다른 기기에서 지운 작품 ${e.count}개 이상이 이 기기에서도 지워져요.`, `${e.count}+ works deleted on another device will also be deleted here.`, `他の端末で削除した作品${e.count}件以上がこの端末でも削除されます。`), 409); err.code = e.code; err.count = e.count; throw err; }
     sync.error = e.message;
     throw e instanceof ApiError ? e : new ApiError(e.message, 502);
   } finally { sync.running = false; sync.promise = null; }
   })();
   return sync.promise;
 }
-ready.then(() => syncSoon(1500));
+ready.then(() => { snapshot('자동 (하루 한 번)', 20 * 60).catch(() => {}); syncSoon(1500); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncSoon(800); });
 window.addEventListener('online', () => syncSoon(800));
 
@@ -234,8 +267,47 @@ async function handle(method, path, url, body) {
   }
   if (method === 'POST' && path === 'upload') return { src: await saveUpload(url.searchParams.get('work'), body) };
   if (method === 'GET' && path === 'sync/status') return syncStatus();
-  if (method === 'POST' && path === 'sync/config') { const b = JSON.parse(body || '{}'); localStorage.setItem('voicebox.sync', JSON.stringify({ on: !!b.on })); return syncStatus(); }
-  if (method === 'POST' && path === 'sync/run') return await runSync(true);
+  if (method === 'POST' && path === 'sync/config') { const b = JSON.parse(body || '{}'); localStorage.setItem('voicebox.sync', JSON.stringify({ on: !!b.on, v: 2 })); return syncStatus(); }
+  if (method === 'POST' && path === 'sync/run') return await runSync(true, JSON.parse(body || '{}'));
+  // 백업·되돌리기
+  if (method === 'GET' && path === 'recover') {
+    const ids = new Set(works.map((w) => w.id));
+    const groups = groupHistory(await allHistory(), HISTORY_KINDS, (id) => ids.has(id), (id) => works.find((w) => w.id === id)?.title);
+    return { snapshots: (await kvGet('snaps')) || [], groups: groups.map(({ items, ...g }) => g), device: true };
+  }
+  if (method === 'POST' && path === 'recover') {
+    const b = JSON.parse(body || '{}');
+    let added = 0, updated = 0;
+    if (b.snapshot) {
+      const snap = await kvGet('snap:' + b.snapshot);
+      if (!Array.isArray(snap)) throw new ApiError(msg('그 백업을 찾지 못했어요.', 'That backup was not found.', 'そのバックアップが見つかりません。'), 404);
+      await snapshot('되돌리기 전');
+      for (const w of snap) { const r = revive(w); if (r === 'added') added++; else if (r === 'updated') updated++; }
+      untomb(snap.map((w) => w.id));
+    } else if (b.group) {
+      const ids = new Set(works.map((w) => w.id));
+      const g = groupHistory(await allHistory(), HISTORY_KINDS, (id) => ids.has(id)).find((x) => x.key === b.group);
+      if (!g) throw new ApiError(msg('그 기록을 찾지 못했어요.', 'That record was not found.', 'その記録が見つかりません。'), 404);
+      await snapshot('되돌리기 전');
+      for (const h of g.items) {
+        const cur = works.find((w) => w.id === h.id);
+        const data = g.kind === 'deleted' ? { ...h.data, id: h.id } : { ...(cur || {}), ...h.data, id: h.id };
+        const r = revive(data); if (r === 'added') added++; else if (r === 'updated') updated++;
+      }
+      untomb(g.items.map((h) => h.id));
+    }
+    saveWorks();
+    return { ok: true, added, updated };
+  }
+  // 이 기기 초기화: 작품을 비우고 서버 연결도 풀어요. (지운 기록은 다른 기기로 보내지 않아요)
+  if (method === 'POST' && path === 'reset') {
+    await snapshot('초기화 전');
+    works = []; settings = { folders: [], workTypeFilled: true, tombstones: [] };
+    await kvSet('works', works); await saveSettings();
+    await tx('kv', 'readwrite', (st) => st.delete('syncState'));
+    for (const k of ['voicebox.sync', 'voicebox.relay', 'voicebox.started']) { try { localStorage.removeItem(k); } catch {} }
+    return { ok: true };
+  }
   if (method === 'POST' && path === 'info') return relayInfo(typeof body === 'string' ? JSON.parse(body || '{}') : body || {});
   if (method === 'POST' && path === 'folders') {
     const n = String(JSON.parse(body || '{}').name || '').trim();
@@ -290,6 +362,7 @@ async function handle(method, path, url, body) {
     if (b.format !== 'voicebox-local' || !Array.isArray(b.works)) throw new ApiError('VOICE BOX 백업 파일이 아니에요.');
     // 예전 백업(동인/상업 칸 없음)은 작품 코드·판매 링크로 채워요.
     for (const w of b.works) if (w && !('workType' in w)) w.workType = guessWorkType(w);
+    await snapshot('백업 복원 전');
     if (b.merge) { const r = mergeWorks(b.works); return { ok: true, ...r }; }
     works = b.works.map(normalizeWork);
     if (b.settings?.folders) settings.folders = b.settings.folders;
@@ -311,7 +384,7 @@ window.fetch = async (input, init = {}) => {
     if (method !== 'GET' && /^(works|upload|restore|folders)/.test(path)) syncSoon();
     return out && out.__raw ? out.__raw : json(out);
   } catch (e) {
-    return json({ error: e.message || '처리하지 못했어요.' }, e.status || 500);
+    return json({ error: e.message || '처리하지 못했어요.', code: e.code, count: e.count }, e.status || 500);
   }
 };
 

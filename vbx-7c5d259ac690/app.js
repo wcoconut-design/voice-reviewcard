@@ -108,7 +108,7 @@ async function api(path, opts = {}) {
   }
   const r = await fetch(path, init);
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.error || L('요청을 처리하지 못했어요.'));
+  if (!r.ok) { const err = new Error(data.error || L('요청을 처리하지 못했어요.')); err.status = r.status; err.data = data; throw err; }
   return data;
 }
 
@@ -1821,7 +1821,7 @@ function serverBlockHtml(st) {
       <div class="set-row"><button type="button" class="ghost-btn" id="srvSave">${L('저장하고 연결 확인')}</button><button type="button" class="link-btn danger-link" id="srvOff">${L('연결 해제')}</button></div>
       <div class="note" id="srvState"></div>
     </div>
-    ${window.VB_MOBILE ? `<label class="check"><input type="checkbox" id="syncOn"${st.on ? ' checked' : ''}>${L('자동으로 동기화')}</label>` : ''}
+    <label class="check"><input type="checkbox" id="syncOn"${st.on ? ' checked' : ''}>${L('자동으로 동기화')} <small class="muted">${L('끄면 \'지금 동기화\'를 누를 때만 주고받아요')}</small></label>
     <div class="set-row"><button type="button" class="ghost-btn" id="syncNowBtn">${L('지금 동기화')}</button>${window.VB_MOBILE ? `<button type="button" class="ghost-btn" id="srvCopyKey">${L('열쇠 복사 (다른 기기용)')}</button>` : ''}</div>
     <div class="note" id="boxSyncState">${esc(boxSyncText(st))}</div>
     <div class="set-row"><button type="button" class="link-btn" id="srvGuide">${L('설정 방법 보기')}</button></div>`;
@@ -1853,13 +1853,11 @@ async function connectServer(rawUrl, key, stateEl) {
   } catch { say(L('서버에 연결하지 못했어요. 주소를 확인해 주세요.')); return false; }
   if (window.VB_MOBILE) {
     try { localStorage.setItem('voicebox.relay', JSON.stringify({ url, key })); } catch {}
-    if (st.sync) await api('api/sync/config', { body: { on: true } }).catch(() => {});
   } else {
     await api('api/sync/config', { body: { url, key } }).catch(fail);
   }
   try { localStorage.removeItem(NEW_KEY); } catch {}
-  say('✓ ' + L('연결했어요.') + ' ' + statusDots(st));
-  if (st.sync) runSyncNow();
+  say('✓ ' + L('연결했어요.') + ' ' + statusDots(st) + (st.sync ? `<br>${L("동기화는 '지금 동기화'를 누를 때만 해요. 처음 동기화하기 전에 '복원용 백업 받기'를 해 두면 안전해요.")}` : ''));
   return true;
 }
 // 설정 방법 안내창 (A안: Deploy to Cloudflare 버튼)
@@ -1891,14 +1889,73 @@ function openServerGuide() {
   dlg.addEventListener('close', () => dlg.remove());
   dlg.showModal();
 }
-async function runSyncNow() {
+async function runSyncNow(allowDelete = false) {
   const el = $('boxSyncState');
   if (el) el.textContent = L('동기화하는 중…');
   try {
-    const r = await api('api/sync/run', { body: {} });
+    const r = await api('api/sync/run', { body: { allowDelete } });
     if (el) el.textContent = '✓ ' + L('받은 작품 {a}개 · 바뀐 작품 {b}개 · 보낸 작품 {c}개', { a: r.pulled ?? 0, b: r.changed ?? 0, c: r.pushed ?? 0 });
     if (r.changed) await load();
-  } catch (e) { if (el) el.textContent = L('동기화 오류: ') + e.message; }
+  } catch (e) {
+    // 다른 기기에서 지운 작품이 많으면 멈추고 물어봐요.
+    if (e.data?.code === 'MASS_DELETE') {
+      if (el) el.textContent = L('동기화를 멈췄어요: ') + e.message;
+      if (confirm(e.message + '\n\n' + L('정말 이 기기에서도 지울까요? 취소하면 아무것도 바뀌지 않아요. (지우더라도 \'되돌리기\'에서 되살릴 수 있어요)'))) return runSyncNow(true);
+      return;
+    }
+    if (el) el.textContent = L('동기화 오류: ') + e.message;
+  }
+}
+// ===== 되돌리기: 자동 백업(폰) · 동기화나 삭제로 지워지거나 바뀐 작품 =====
+const RECOVER_LABEL = { '아이맥에서 삭제': '동기화로 지워짐', '폰에서 삭제': '동기화로 지워짐', '작품 삭제': '직접 지움', '아이맥에서 동기화': '동기화로 바뀜', '폰에서 동기화': '동기화로 바뀜', '백업 합치기 전': '백업 합치기로 바뀜', '되돌리기 전': '되돌리기 전 상태' };
+async function openRecover() {
+  const dlg = document.createElement('dialog');
+  dlg.className = 'modal rcv-dlg';
+  document.body.appendChild(dlg);
+  const when = (at) => new Date(at).toLocaleString(LOCALE(), { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  let data = { snapshots: [], groups: [] };
+  const render = () => {
+    const snaps = data.snapshots || [];
+    const groups = (data.groups || []).filter((g) => g.restorable > 0);
+    dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2 tabindex="-1" autofocus>${L('되돌리기')}</h2><button type="button" class="close" data-close aria-label="${L('닫기')}">×</button></div>
+      <div class="m-body">
+        ${window.VB_MOBILE ? `<div class="set-group-title">${L('자동 백업 (이 기기)')}</div>
+        <div class="set-group">${snaps.length ? snaps.map((sn) => `<div class="set-item rcv-row"><div class="si-label">${esc(when(sn.at))} · ${esc(L(sn.reason))}<small>${L('작품')} ${Number(sn.n).toLocaleString()}${L('개')}</small></div><button type="button" class="ghost-btn" data-snap="${esc(sn.at)}">${L('이 시점으로')}</button></div>`).join('') : `<div class="set-item"><div class="si-label"><small>${L('아직 자동 백업이 없어요.')}</small></div></div>`}</div>
+        <p class="note">${L('하루 한 번, 그리고 동기화·백업 복원·초기화 전에 이 기기 안에 자동으로 저장해요. (최근 5개)')}</p>` : ''}
+        <div class="set-group-title">${L('지워지거나 바뀐 작품')}</div>
+        <div class="set-group">${groups.length ? groups.map((g) => `<div class="set-item rcv-row"><div class="si-label">${esc(when(g.at))} · ${esc(L(RECOVER_LABEL[g.reason] || g.reason))} <b>${g.restorable.toLocaleString()}${L('개')}</b><small>${g.sample.map((x) => esc(String(x).length > 28 ? String(x).slice(0, 28) + '…' : x)).join(' · ')}${g.restorable > g.sample.length ? ` ${L('외')} ${(g.restorable - g.sample.length).toLocaleString()}${L('개')}` : ''}</small></div><button type="button" class="ghost-btn" data-group="${esc(g.key)}">${g.kind === 'deleted' ? L('되살리기') : L('그 전으로')}</button></div>`).join('') : `<div class="set-item"><div class="si-label"><small>${L('되살릴 작품이 없어요.')}</small></div></div>`}</div>
+        <p class="note">${L('되돌린 작품은 지금 고친 것으로 저장돼요. 다른 기기에도 되돌리려면 되돌린 뒤 \'지금 동기화\'를 누르세요.')}</p>
+        ${window.VB_MOBILE ? `<div class="set-group-title">${L('이 기기 초기화')}</div>
+        <div class="set-group set-pad"><p class="note">${L('이 기기의 작품을 모두 비우고 서버 연결도 풀어요. 다른 기기의 기록은 지워지지 않아요. 비우기 전 상태는 자동 백업에 남아요.')}</p><div class="set-row"><button type="button" class="ghost-btn danger-btn" id="rcvReset">${L('이 기기 초기화')}</button></div></div>` : ''}
+      </div></div>`;
+  };
+  const reload = async () => { try { data = await api('api/recover'); } catch (e) { fail(e); } render(); };
+  dlg.addEventListener('click', async (e) => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.matches('[data-close]')) return dlg.close();
+    try {
+      if (t.dataset.snap) {
+        const sn = data.snapshots.find((x) => x.at === t.dataset.snap);
+        if (!confirm(L('{at} 상태로 되돌릴까요? 그 뒤에 새로 넣은 작품은 그대로 남아요.', { at: when(sn.at) }))) return;
+        const r = await api('api/recover', { body: { snapshot: sn.at } });
+        toast(L('되살린 작품 {a}개 · 되돌린 작품 {b}개', { a: r.added, b: r.updated })); await load(); await reload();
+      }
+      if (t.dataset.group) {
+        const g = data.groups.find((x) => x.key === t.dataset.group);
+        if (!confirm(g.kind === 'deleted' ? L('작품 {n}개를 되살릴까요?', { n: g.restorable }) : L('작품 {n}개를 바뀌기 전 내용으로 되돌릴까요?', { n: g.restorable }))) return;
+        const r = await api('api/recover', { body: { group: g.key } });
+        toast(L('되살린 작품 {a}개 · 되돌린 작품 {b}개', { a: r.added, b: r.updated })); await load(); await reload();
+      }
+      if (t.id === 'rcvReset') {
+        if (!confirm(L('이 기기의 작품을 모두 비우고 처음 화면으로 돌아갈까요? 다른 기기의 기록은 그대로예요.'))) return;
+        await api('api/reset', { body: {} });
+        location.reload();
+      }
+    } catch (err) { fail(err); }
+  });
+  dlg.addEventListener('close', () => dlg.remove());
+  render(); dlg.showModal();
+  reload();
 }
 // ===== 이름 정리: 성우·서클 이름(한글 읽기)을 모든 작품에서 한 번에 바꿔요 =====
 function nameStats(field) {
@@ -2360,6 +2417,7 @@ async function openSettings() {
       <div class="set-group">
         <a class="set-item set-link" href="api/backup" download><div class="si-label">${L("복원용 백업 받기")}<small>${window.VB_MOBILE ? L('복원하거나 다른 기기로 옮길 때 써요. 가끔 받아 두세요.') : L('앱을 되돌릴 때 써요. 노션 키는 들어가지 않아요.')}</small></div><span class="si-go">›</span></a>
         <label class="set-item set-link"><div class="si-label">${L("백업에서 복원")}</div><span class="si-go">›</span><input type="file" id="restoreFile" accept=".json,application/json" hidden></label>
+        <button type="button" class="set-item set-link" id="openRecover"><div class="si-label">${L("되돌리기 · 지워진 작품 되살리기")}<small>${window.VB_MOBILE ? L('자동 백업이나 동기화 전 상태로 되돌려요') : L('동기화나 삭제로 지워진 작품을 되살려요')}</small></div><span class="si-go">›</span></button>
         <div class="set-item"><div class="si-label">${L("보기 좋은 백업")}<small>${L("보관·열람용이에요. 복원에는 쓸 수 없어요.")}</small></div>
           <div class="si-ctl set-row"><a class="ghost-btn" href="api/export/works.xlsx" download>${L("엑셀 (.xlsx)")}</a><a class="ghost-btn" href="api/export/works.csv" download>CSV</a><a class="ghost-btn" href="api/export/reviews.html" target="_blank" rel="noopener">${L("감상 모음 문서 ↗")}</a></div></div>
       </div>
@@ -2406,6 +2464,7 @@ async function openSettings() {
   $('imgAll').onclick = () => startImages(false);
   $('openNames').onclick = () => openNames('missing');
   $('openReceipts').onclick = () => openReceiptImport();
+  $('openRecover').onclick = () => openRecover();
   $('srvGuide') && ($('srvGuide').onclick = openServerGuide);
   dlg.querySelectorAll('[data-eye]').forEach((b) => (b.onclick = () => { const i = $(b.dataset.eye); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.textContent = show ? L('가리기') : L('보기'); }));
   $('srvManualOpen') && ($('srvManualOpen').onclick = () => { $('srvManual').hidden = false; $('srvManualOpen').hidden = true; $('srvUrl').focus(); });

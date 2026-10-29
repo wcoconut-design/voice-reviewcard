@@ -12,6 +12,7 @@ export const filePaths = (w) => [...(w.images || []), ...(w.reviewCard || [])]
 //   applyIncoming(items) → 바뀐 작품 수   (items: [{id, deleted, at, work}])
 //   changedSince(pushedAt) → [work], takeTombstones() → [{id, at}], doneTombstones(list)
 //   hasFile(path), readFile(path) → {body, type} | null, writeFile(path, blob)
+//   guardDeletes(선택): 지울 작품이 이 개수보다 많으면 MASS_DELETE 오류로 멈춰요. has(id) → 이 기기에 있는 작품인지
 // }
 export async function syncOnce(ctx) {
   const base = ctx.url.replace(/\/+$/, '');
@@ -24,7 +25,7 @@ export async function syncOnce(ctx) {
   };
   const st = { rev: 0, pushedAt: '', uploaded: [], ...(await ctx.getState()) };
   const uploaded = new Set(st.uploaded || []);
-  let pulled = 0, changed = 0, pushed = 0, files = 0;
+  let pulled = 0, changed = 0, pushed = 0, files = 0, deletes = 0;
   const serverAt = new Map(); // 이번에 받은 작품의 서버 쪽 수정 시각 (같거나 오래된 건 다시 올리지 않아요)
 
   // 1) 받아오기
@@ -32,6 +33,11 @@ export async function syncOnce(ctx) {
   while (more) {
     const r = await (await call('/sync/pull?since=' + st.rev)).json();
     for (const it of r.works) serverAt.set(it.id, it.at || it.work?.updatedAt || '');
+    // 다른 기기에서 지운 작품이 한꺼번에 많이 오면 멈추고 물어봐요. (ctx.guardDeletes: 허용 개수, 0이면 묻지 않음)
+    if (ctx.guardDeletes && r.works.length) {
+      deletes += r.works.filter((it) => it.deleted && ctx.has(it.id)).length;
+      if (deletes > ctx.guardDeletes) { const e = new Error('MASS_DELETE'); e.code = 'MASS_DELETE'; e.count = deletes; throw e; }
+    }
     if (r.works.length) {
       changed += await ctx.applyIncoming(r.works);
       pulled += r.works.length;
