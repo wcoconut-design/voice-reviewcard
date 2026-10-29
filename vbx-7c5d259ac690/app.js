@@ -2053,14 +2053,24 @@ async function openReceiptImport() {
         it.target = w ? (it.hasBuy ? 'skip' : 'work') : 'ask';
       }
     }
+    guessTargets();
+  };
+  // 앱에 없는 작품: 종류를 확인하기 전에도 미리 골라 둬요. (BJ 코드는 책·만화 → 기타 구매, 나머지는 새 음성 작품)
+  // DLsite에서 종류를 확인하면 그 결과로 바뀌어요.
+  const guessTargets = () => {
+    for (const o of st.orders) for (const it of o.items) {
+      if (it.workId || it.target !== 'ask' || st.look.get(it.code)?.workKind) continue;
+      it.target = /^BJ/i.test(it.code) ? 'other' : 'new';
+      it.guess = true;
+    }
   };
   const applyLookups = () => {
     for (const o of st.orders) for (const it of o.items) {
       const r = st.look.get(it.code);
-      if (!r || it.workId || it.target !== 'ask') continue;
+      if (!r || it.workId || !(it.target === 'ask' || it.guess)) continue;
       it.kind = r.workKind || '';
-      if (r.workKind === '음성') it.target = 'new';
-      else if (r.workKind) it.target = 'other';
+      if (r.workKind === '음성') { it.target = 'new'; it.guess = false; }
+      else if (r.workKind) { it.target = 'other'; it.guess = false; }
     }
   };
   const needLook = () => {
@@ -2131,6 +2141,7 @@ async function openReceiptImport() {
           <label class="check"><input type="checkbox" id="rcPrice"${st.fetchPrice ? ' checked' : ''}>${L('정가 비어 있는 작품은 DLsite에서 정가 가져오기')}</label>
           ${nl.length ? `<button type="button" class="ghost-btn" id="rcLook"${st.busy ? ' disabled' : ''}>${st.busy ? esc(st.msg) : `${L('DLsite에서 종류·정가 확인')} (${nl.length})`}</button>` : ''}
           ${!st.busy && st.msg ? `<p class="note rc-msg">${st.msg}</p>` : ''}
+          ${c.missing ? `<div class="rc-bulk"><span>${L('앱에 없는 작품 {n}개 한꺼번에', { n: c.missing })}</span><div class="rc-bulk-btns"><button type="button" class="ghost-btn" data-bulk="new">${L('새 음성 작품')}</button><button type="button" class="ghost-btn" data-bulk="other">${L('기타 구매')}</button><button type="button" class="ghost-btn" data-bulk="skip">${L('건너뛰기')}</button></div></div>` : ''}
         </div>
         ${st.orders.map((o, oi) => {
           if (o.kind === 'points') return `<div class="rc-order rc-points${o.done ? ' is-done' : ''}"><label class="check"><input type="checkbox" data-inc="${oi}"${o.include ? ' checked' : ''}${o.done ? ' disabled' : ''}>${esc(o.date)} · ${L('포인트 충전')} <strong>${money(o.pointAmount, 'JPY')}</strong></label>${o.done ? `<span class="muted">${L('이미 넣음')}</span>` : ''}</div>`;
@@ -2138,7 +2149,7 @@ async function openReceiptImport() {
             <div class="rc-head"><label class="check"><input type="checkbox" data-inc="${oi}"${o.include ? ' checked' : ''}${o.done ? ' disabled' : ''}><strong>${esc(o.date)}</strong> <span class="muted">${esc(o.orderNo)}</span></label>
               <span class="rc-tot">${money(o.subtotal, 'JPY')}${o.coupon ? ` − ${o.pct.text} ${L('쿠폰')} ${money(o.coupon, 'JPY')}` : ''} = <strong>${money(o.paid, 'JPY')}</strong>${o.points ? ` <span class="muted">(${L('포인트')} ${money(o.points, 'JPY')})</span>` : ''}</span></div>
             ${o.done ? `<p class="note">${L('이미 넣은 주문이에요.')}</p>` : o.items.map((it, ii) => `<div class="rc-item${it.target === 'skip' ? ' is-skip' : ''}">
-                <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}` : ''}</small>${it.target === 'pack' && it.pack?.length ? `<small class="rc-link">↳ ${L('팩')} → ${it.pack.length}${L('개 작품')}</small>` : ''}${(it.edition || it.picked) && it.workId ? `<small class="rc-link">↳ ${it.edition ? `${esc(it.edition)} → ${L('일본판')}: ` : ''}${esc(it.workTitle)}</small>` : ''}</span>
+                <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : it.guess ? ` · ${L('자동 선택')}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}` : ''}</small>${it.target === 'pack' && it.pack?.length ? `<small class="rc-link">↳ ${L('팩')} → ${it.pack.length}${L('개 작품')}</small>` : ''}${(it.edition || it.picked) && it.workId ? `<small class="rc-link">↳ ${it.edition ? `${esc(it.edition)} → ${L('일본판')}: ` : ''}${esc(it.workTitle)}</small>` : ''}</span>
                 <span class="rc-price">${money(it.price, 'JPY')} → <strong>${money(o.shares[ii], 'JPY')}</strong></span>
                 ${tSel(oi, ii, it)}</div>`).join('')}
           </div>`;
@@ -2154,18 +2165,22 @@ async function openReceiptImport() {
   async function lookup() {
     const codes = needLook();
     if (!codes.length) return;
-    st.busy = true; let ok = 0, noKind = 0, fail = 0;
+    st.busy = true; let ok = 0, noKind = 0, fail = 0, serverMsg = '';
     for (let i = 0; i < codes.length; i++) {
       st.msg = `${L('확인 중')} ${i + 1}/${codes.length}`; render();
       try {
         const r = await api('api/info', { body: { url: dlUrl(codes[i]), quick: true } });
         st.look.set(codes[i], r); ok++;
         if (!r.workKind) noKind++;
-      } catch (e) { fail++; st.look.set(codes[i], {}); if (i === 0 && /서버|server|サーバー/i.test(e.message)) { st.msg = e.message; break; } }
+      } catch (e) { if (i === 0 && /서버|server|サーバー/i.test(e.message)) { serverMsg = e.message; break; } fail++; st.look.set(codes[i], {}); }
       await new Promise((res) => setTimeout(res, 500));
     }
     st.busy = false;
     applyLookups();
+    if (serverMsg) {
+      st.msg = esc(L('정보 채우기 서버가 연결되지 않아 작품 종류를 확인하지 못했어요. 앱에 없는 작품은 새 음성 작품으로 골라 두었어요. 만화 등이 섞여 있으면 바꿔 주세요.'));
+      return render();
+    }
     // 조회하는 동안 새로 더한 작품(팩 등)이 있으면 이어서 조회
     if (needLook().length) return lookup();
     st.msg = [fail ? L('{n}개는 확인하지 못했어요.', { n: fail }) : '', noKind ? L('서버가 작품 종류를 알려주지 않아요. 설정 → 고급에서 서버 코드를 새로 고치면 돼요.') : ''].filter(Boolean).join(' ') || (ok ? '✓ ' + L('확인했어요.') : st.msg);
@@ -2234,6 +2249,13 @@ async function openReceiptImport() {
     }
     if (t.id === 'rcBack') { st.step = 'paste'; st.msg = ''; return render(); }
     if (t.id === 'rcLook') return lookup();
+    if (t.dataset.bulk) {
+      for (const o of st.orders) if (o.include && !o.done && o.kind !== 'points') for (const it of o.items) {
+        if (it.workId || (it.target === 'pack' && it.pack?.length)) continue;
+        it.target = t.dataset.bulk; it.guess = false;
+      }
+      return render();
+    }
     if (t.dataset.packadd || t.dataset.packrm) {
       const it = st.orders[t.dataset.o].items[t.dataset.i];
       it.pack = it.pack || [];
@@ -2265,7 +2287,7 @@ async function openReceiptImport() {
     if (t.classList.contains('rc-sel')) {
       const it = st.orders[t.dataset.o].items[t.dataset.i];
       if (t.value === 'unlink') { it.workId = ''; it.edition = ''; it.picked = false; it.workTitle = ''; it.target = 'ask'; it.noAuto = true; return render(); }
-      it.target = t.value; return render();
+      it.target = t.value; it.guess = false; return render();
     }
     if (t.dataset.inc != null) { st.orders[t.dataset.inc].include = t.checked; return render(); }
     if (t.id === 'rcPrice') { st.fetchPrice = t.checked; return render(); }

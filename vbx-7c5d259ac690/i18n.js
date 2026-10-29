@@ -596,4 +596,9 @@ window.VB_I18N = {
   '쓰기': ['Write', '書く'],
   '이번 달': ['This month', '今月'],
   '새로 산': ['Bought', '購入'],
+  '정보 채우기 서버가 연결되지 않아 작품 종류를 확인하지 못했어요. 앱에 없는 작품은 새 음성 작품으로 골라 두었어요. 만화 등이 섞여 있으면 바꿔 주세요.': ["The info server isn't connected, so the work types couldn't be checked. Works not in the app are set to new voice works. Change any manga or other items.", '情報取得サーバーが未接続のため作品の種類を確認できませんでした。アプリにない作品は新しい音声作品にしてあります。漫画などが混ざっていれば変更してください。'],
+  '앱에 없는 작품 {n}개 한꺼번에': ['All {n} works not in the app', 'アプリにない作品{n}件をまとめて'],
+  '새 음성 작품': ['New voice works', '新しい音声作品'],
+  '자동 선택': ['auto', '自動選択'],
+  '기타 구매': ['Other purchase', 'その他の購入'],
 };
