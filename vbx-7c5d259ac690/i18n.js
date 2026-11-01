@@ -659,4 +659,13 @@ window.VB_I18N = {
   "감상·별점·노션 연결이 있는 쪽을 남겨요. 제목이 다른 묶음은 코드가 잘못 들어갔을 수 있어서 체크하지 않았어요. 지운 중복은 설정 → 백업 → 되돌리기에서 되살릴 수 있어요.": ["The copy with a review, rating or Notion link is kept. Groups with different titles may have a wrong code, so they are left unchecked. Removed duplicates can be restored in Settings → Backup → Undo.", "感想・評価・Notion連携がある方を残します。タイトルが違う組はコードの入力ミスかもしれないのでチェックしていません。削除した重複は設定 → バックアップ → 元に戻すで復元できます。"],
   "모두 선택": ["Select all", "すべて選択"],
   "작품 코드도 링크에 맞춰 {c}(으)로 바꿨어요.": ["Changed the work code to {c} to match the link.", "作品コードもリンクに合わせて{c}に変更しました。"],
+  "자동": ["Auto", "自動"],
+  "일본어 + 영어": ["Japanese + English", "日本語 + 英語"],
+  "영어만": ["English only", "英語のみ"],
+  "자동: 메뉴 언어가 한국어면 일본어 + 한국어, 일본어면 일본어만, 영어면 일본어 + 영어 표기": ["Auto: Korean menu → Japanese + Korean, Japanese menu → Japanese only, English menu → Japanese + English", "自動：メニューが韓国語なら日本語 + 韓国語、日本語なら日本語のみ、英語なら日本語 + 英語表記"],
+  "일본어만 적힌 이름 {n}개는 다른 작품에 한국어 읽기가 있어요. (작품 {m}개)": ["{n} Japanese-only names have a Korean reading in other works. ({m} works)", "日本語のみの名前{n}件は、他の作品に韓国語の読みがあります。（作品{m}件）"],
+  "한꺼번에 붙이기": ["Add all", "まとめて付ける"],
+  "영어 표기": ["English", "英語表記"],
+  "영어 표기를 쓰고 Enter → 이름 표시가 '일본어 + 영어'나 '영어만'일 때 보여요. (이 기기에 저장)": ["Type the English name and press Enter. Shown when name display is 'Japanese + English' or 'English only'. (Saved on this device)", "英語表記を入力してEnter → 名前の表示が「日本語 + 英語」か「英語のみ」のときに表示されます。（この端末に保存）"],
+  "작품 {n}개에 한국어 읽기를 붙였어요.": ["Added Korean readings to {n} works.", "作品{n}件に韓国語の読みを付けました。"],
 };

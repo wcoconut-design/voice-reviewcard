@@ -1094,3 +1094,6 @@ body.home-mode .main-head { display: none; }
 .sel-bar { flex-wrap: nowrap; }
 .sel-bar .ghost-btn, .sel-bar .primary-btn { white-space: nowrap; }
 .sel-bar .sel-n { white-space: nowrap; margin-right: auto; } .sel-bar .spacer { display: none; } .sel-bar { gap: 6px; }
+.set-seg:has([data-name-mode]) { flex-wrap: wrap; }
+.set-seg:has([data-name-mode]) button { flex: 1 1 30%; justify-content: center; }
+.nm-mode-note { display: block; margin-top: 6px; font-size: 12px; line-height: 1.45; }

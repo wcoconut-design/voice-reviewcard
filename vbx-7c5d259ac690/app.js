@@ -16,7 +16,7 @@ const S = {
   introMode: 'translation',
   view: 'list',       // list | grid (표지 보기)
   showHidden: false,  // 숨긴 작품도 목록에 보기
-  nameMode: 'both',   // 성우 이름: both | ja | ko
+  nameMode: 'auto',   // 성우 이름: auto(메뉴 언어 따라) | both | ja | ko | jaen | en
   menuLang: 'ko',     // 메뉴 이름: ko | en | ja
   theme: 'system',    // 화면 모드: system | light | dark
   palette: 'indigo',  // 색 테마: indigo | green | mono
@@ -31,7 +31,7 @@ try {
   const p = JSON.parse(localStorage.getItem('voicebox.view') || '{}');
   if (p.view) S.view = p.view;
   S.showHidden = !!p.showHidden;
-  if (['both', 'ja', 'ko'].includes(p.nameMode)) S.nameMode = p.nameMode;
+  if (['auto', 'both', 'ja', 'ko', 'jaen', 'en'].includes(p.nameMode)) S.nameMode = p.nameMode;
   if (['en', 'ja'].includes(p.menuLang)) S.menuLang = p.menuLang;
   if (['light', 'dark'].includes(p.theme)) S.theme = p.theme;
   if (['green', 'mono'].includes(p.palette)) S.palette = p.palette;
@@ -84,19 +84,54 @@ function parseName(s) {
   if (i === 0) return { ja: '', ko: s.trim() };
   return { ja: s.slice(0, i).trim(), ko: s.slice(i).trim() };
 }
-// 글자로 (목록의 한 줄, 칩)
-function nameText(s) {
-  const { ja, ko } = parseName(s);
-  if (S.nameMode === 'ja') return ja || ko;
-  if (S.nameMode === 'ko') return ko || ja;
-  return [ja, ko].filter(Boolean).join(' ');
+// 성우 이름 사전: 기록된 이름 중 '일본어 한국어'가 붙은 것으로 자동으로 만들어요. (月山岳 → 츠키야마 가쿠)
+// 영수증·링크로 일본어만 들어와도 사전에 읽기가 있으면 한국어가 같이 보이고, 통계·필터에서도 한 사람으로 묶여요.
+// 영어 표기는 '이름 정리 → 영어 표기'에서 직접 적은 것만 써요. (이 기기에 저장)
+const actorKey = (s) => String(s || '').replace(/[\s\u3000・･·]/g, '').toLowerCase();
+let koDictFor = null, koDictLen = -1, koDict = new Map();
+function nameDict() {
+  if (koDictFor !== S.works || koDictLen !== S.works.length) {
+    const m = new Map(), cnt = new Map();
+    for (const w of S.works) for (const n of String(w.actor || '').split(',')) {
+      const { ja, ko } = parseName(n.trim());
+      if (!ja || !ko) continue;
+      const k = actorKey(ja), c = (cnt.get(k + '|' + ko) || 0) + 1;
+      cnt.set(k + '|' + ko, c);
+      if (!m.has(k) || c > m.get(k).c) m.set(k, { ko, c });
+    }
+    koDict = new Map([...m].map(([k, v]) => [k, v.ko]));
+    koDictFor = S.works; koDictLen = S.works.length;
+  }
+  return koDict;
 }
-// 일본어는 진하게, 한국어는 흐리게
+let actorEn = {};
+try { actorEn = JSON.parse(localStorage.getItem('voicebox.actorEn') || '{}') || {}; } catch {}
+const saveActorEn = () => { try { localStorage.setItem('voicebox.actorEn', JSON.stringify(actorEn)); } catch {} };
+function nameParts(s) {
+  const { ja, ko } = parseName(String(s || '').trim());
+  const k = actorKey(ja);
+  return { ja, ko: ko || (ja ? nameDict().get(k) || '' : ''), en: ja ? actorEn[k] || '' : '' };
+}
+// 같은 사람을 한 이름으로: 일본어 + (사전의) 한국어
+function canonActor(n) { const { ja, ko } = nameParts(n); return ja ? (ko ? `${ja} ${ko}` : ja) : String(n || '').trim(); }
+const actorsOf = (w) => [...new Set(splitNames(w.actor).map(canonActor))];
+// 표시 방식: 자동이면 메뉴 언어를 따라요 (한국어 → 일본어+한국어, 일본어 → 일본어, 영어 → 일본어+영어)
+const nameModeNow = () => (S.nameMode !== 'auto' ? S.nameMode : S.menuLang === 'ja' ? 'ja' : S.menuLang === 'en' ? 'jaen' : 'both');
+function namePair(s) {
+  const { ja, ko, en } = nameParts(s);
+  const m = nameModeNow();
+  if (m === 'ja') return [ja || ko, ''];
+  if (m === 'ko') return [ko || ja, ''];
+  if (m === 'en') return [en || ja || ko, ''];
+  if (m === 'jaen') return [ja || ko, en];
+  return [ja || ko, ja ? ko : ''];
+}
+// 글자로 (목록의 한 줄, 칩)
+function nameText(s) { return namePair(s).filter(Boolean).join(' '); }
+// 일본어는 진하게, 읽기는 흐리게
 function nameHtml(s) {
-  const { ja, ko } = parseName(s);
-  if (S.nameMode === 'ja') return `<span class="nm-ja">${esc(ja || ko)}</span>`;
-  if (S.nameMode === 'ko') return `<span class="nm-ja">${esc(ko || ja)}</span>`;
-  return (ja ? `<span class="nm-ja">${esc(ja)}</span>` : '') + (ko ? `<span class="nm-ko">${esc(ko)}</span>` : '');
+  const [a, b] = namePair(s);
+  return (a ? `<span class="nm-ja">${esc(a)}</span>` : '') + (b ? `<span class="nm-ko">${esc(b)}</span>` : '');
 }
 
 /* ================= 서버 요청 ================= */
@@ -350,7 +385,7 @@ function fillFilterOptions() {
     el.innerHTML = `<option value="">${label} ${L("· 전체")}</option>` +
       entries.map(([v, n]) => `<option value="${esc(v)}"${v === current ? ' selected' : ''}>${esc(show(v))} (${n})</option>`).join('');
   };
-  fill($('fActor'), L('성우'), count((w) => splitNames(w.actor)), S.actor, nameText);
+  fill($('fActor'), L('성우'), count((w) => actorsOf(w)), S.actor, nameText);
   fill($('fCircle'), L('서클'), count((w) => splitNames(w.circle)), S.circle);
   fill($('fTag'), L('장르'), count((w) => w.tags), S.tag);
 }
@@ -361,11 +396,11 @@ function filtered() {
   if (q) {
     const terms = q.split(/\s+/);
     list = list.filter((w) => {
-      const hay = [w.title, w.titleKo, w.actor, w.circle, w.tags.join(' '), w.code, w.review, w.folder, w.date, w.store].join(' ').toLowerCase();
+      const hay = [w.title, w.titleKo, w.actor, actorsOf(w).map((n) => n + ' ' + (nameParts(n).en || '')).join(' '), w.circle, w.tags.join(' '), w.code, w.review, w.folder, w.date, w.store].join(' ').toLowerCase();
       return terms.every((t) => hay.includes(t));
     });
   }
-  if (S.actor) list = list.filter((w) => splitNames(w.actor).includes(S.actor));
+  if (S.actor) list = list.filter((w) => actorsOf(w).includes(S.actor));
   if (S.circle) list = list.filter((w) => splitNames(w.circle).includes(S.circle));
   if (S.tag) list = list.filter((w) => w.tags.includes(S.tag));
   if (S.wt) list = list.filter((w) => w.workType === S.wt);
@@ -1522,6 +1557,7 @@ function knownNames(field) {
   return m;
 }
 function withKnownNames(list, field) {
+  if (field === 'actor') return list.map((n) => (parseName(n).ko ? n : canonActor(n)));
   const m = knownNames(field);
   return list.map((n) => (parseName(n).ko ? n : m.get(nameKey(n)) || n));
 }
@@ -2108,19 +2144,23 @@ async function openNames(tab = 'missing') {
   if (!window.VB_MOBILE && S.notion?.connected) fix = (await api('api/names/notion-fix').catch(() => ({ items: [] }))).items || [];
   const field = () => (tab === 'circle' ? 'circle' : 'actor');
   const render = () => {
-    const all = nameStats(field());
+    const all = tab === 'en' ? nameStats('actor').filter((x, i, arr) => x.ja && arr.findIndex((y) => actorKey(y.ja) === actorKey(x.ja)) === i) : nameStats(field());
     const missingN = nameStats('actor').filter((x) => !x.ko).length;
+    // 일본어만 적혔지만 다른 작품에서 한국어 읽기를 아는 이름 → 한꺼번에 붙이기
+    const known = nameStats('actor').filter((x) => !x.ko && x.ja && nameDict().get(actorKey(x.ja)));
     let list = tab === 'missing' ? all.filter((x) => !x.ko || done.has(x.name)) : all;
     if (q) { const k = nameKey(q); list = list.filter((x) => nameKey(x.name).includes(k)); }
     const shown = list.slice(0, 200);
     dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2 tabindex="-1" autofocus>${L('이름 정리')}</h2><button type="button" class="close" data-close aria-label="${L('닫기')}">×</button></div>
       <div class="m-body">
         ${fix.length ? `<div class="nm-fix"><span>${L('노션의 성우·서클 이름 {n}개를 앱과 맞출 수 있어요.', { n: fix.length })}</span><button type="button" class="primary-btn" id="nmFix">${L('맞추기')}</button></div>` : ''}
-        <div class="seg nm-tabs">${[['missing', L('한글 없음') + ' ' + missingN], ['actor', L('성우 전체')], ['circle', L('서클')]].map(([k, l]) => `<button type="button" data-nmtab="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        ${tab === 'missing' && known.length ? `<div class="nm-fix"><span>${L('일본어만 적힌 이름 {n}개는 다른 작품에 한국어 읽기가 있어요. (작품 {m}개)', { n: known.length, m: known.reduce((a, x) => a + x.n, 0) })}</span><button type="button" class="primary-btn" id="nmKnown">${L('한꺼번에 붙이기')}</button></div>` : ''}
+        <div class="seg nm-tabs">${[['missing', L('한글 없음') + ' ' + missingN], ['actor', L('성우 전체')], ['en', L('영어 표기')], ['circle', L('서클')]].map(([k, l]) => `<button type="button" data-nmtab="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <input class="input" id="nmSearch" placeholder="${L('이름 찾기')}" value="${esc(q)}" autocomplete="off">
-        <p class="note">${tab === 'missing' ? L('한글 읽기를 쓰고 Enter → 그 이름이 들어간 작품이 모두 바뀌어요.') : L('이름을 고치고 Enter → 그 이름이 들어간 작품이 모두 바뀌어요.')}</p>
+        <p class="note">${tab === 'missing' ? L('한글 읽기를 쓰고 Enter → 그 이름이 들어간 작품이 모두 바뀌어요.') : tab === 'en' ? L('영어 표기를 쓰고 Enter → 이름 표시가 \'일본어 + 영어\'나 \'영어만\'일 때 보여요. (이 기기에 저장)') : L('이름을 고치고 Enter → 그 이름이 들어간 작품이 모두 바뀌어요.')}</p>
         <div class="nm-list">${shown.map((x) => `<div class="nm-row" data-name="${esc(x.name)}">
-            ${tab === 'missing' ? `<span class="nm-ja-cell">${esc(x.ja || x.name)}</span><input class="input nm-in" value="${esc(x.ko)}" placeholder="${L('한글 읽기')}" autocomplete="off">`
+            ${tab === 'en' ? `<span class="nm-ja-cell">${esc(x.ja)}</span><input class="input nm-in" value="${esc(actorEn[actorKey(x.ja)] || '')}" placeholder="English" autocomplete="off" autocapitalize="words">`
+              : tab === 'missing' ? `<span class="nm-ja-cell">${esc(x.ja || x.name)}</span><input class="input nm-in" value="${esc(x.ko)}" placeholder="${L('한글 읽기')}" autocomplete="off">`
               : `<input class="input nm-in nm-full" value="${esc(x.name)}" autocomplete="off">`}
             <span class="nm-n">${done.has(x.name) ? `<span class="nm-ok">✓ ${done.get(x.name)}${L('개')}</span>` : `${L('작품')} ${x.n}`}</span>
           </div>`).join('') || `<p class="note">${tab === 'missing' ? L('한글 읽기가 없는 성우가 없어요.') : L('찾는 이름이 없어요.')}</p>`}
@@ -2130,6 +2170,14 @@ async function openNames(tab = 'missing') {
   };
   const save = async (row, input) => {
     const from = row.dataset.name;
+    if (tab === 'en') {
+      const k = actorKey(parseName(from).ja || from), v = input.value.trim();
+      if (v) actorEn[k] = v; else delete actorEn[k];
+      saveActorEn(); done.set(from, '✓');
+      row.querySelector('.nm-n').innerHTML = `<span class="nm-ok">✓</span>`;
+      row.nextElementSibling?.querySelector('.nm-in')?.focus();
+      return;
+    }
     let to = input.value.trim();
     if (tab === 'missing') { const ja = parseName(from).ja || from; to = to ? ja + ' ' + to : ja; }
     if (!to || to === from) return;
@@ -2148,6 +2196,16 @@ async function openNames(tab = 'missing') {
   dlg.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-nmtab]');
     if (t) { tab = t.dataset.nmtab; render(); return; }
+    if (e.target.id === 'nmKnown') {
+      e.target.disabled = true;
+      const items = nameStats('actor').filter((x) => !x.ko && x.ja && nameDict().get(actorKey(x.ja)));
+      let n = 0;
+      try {
+        for (const x of items) { const r = await api('api/names/rename', { body: { field: 'actor', from: x.name, to: canonActor(x.name) } }); n += r.count || 0; }
+        toast(L('작품 {n}개에 한국어 읽기를 붙였어요.', { n })); await load(); render();
+      } catch (err) { fail(err); e.target.disabled = false; }
+      return;
+    }
     if (e.target.id === 'nmFix') {
       e.target.disabled = true;
       try { const r = await api('api/names/notion-fix', { body: {} }); toast(L('노션 이름 {n}개를 맞췄어요.', { n: r.fixed })); fix = []; render(); } catch (err) { fail(err); }
@@ -2157,7 +2215,7 @@ async function openNames(tab = 'missing') {
     if (e.key !== 'Enter' || e.isComposing || !e.target.classList.contains('nm-in')) return;
     e.preventDefault(); save(e.target.closest('.nm-row'), e.target);
   });
-  dlg.addEventListener('focusout', (e) => { if (e.target.classList?.contains('nm-in') && !e.target.disabled) { const row = e.target.closest('.nm-row'); const cur = tab === 'missing' ? parseName(row.dataset.name).ko : row.dataset.name; if (e.target.value.trim() && e.target.value.trim() !== cur) save(row, e.target); } });
+  dlg.addEventListener('focusout', (e) => { if (e.target.classList?.contains('nm-in') && !e.target.disabled) { const row = e.target.closest('.nm-row'); const cur = tab === 'en' ? actorEn[actorKey(parseName(row.dataset.name).ja)] || '' : tab === 'missing' ? parseName(row.dataset.name).ko : row.dataset.name; if (e.target.value.trim() !== cur && (tab === 'en' || e.target.value.trim())) save(row, e.target); } });
   let st;
   dlg.addEventListener('input', (e) => { if (e.target.id !== 'nmSearch') return; clearTimeout(st); st = setTimeout(() => { q = e.target.value; const pos = e.target.selectionStart; render(); const i = $('nmSearch'); i.focus(); i.setSelectionRange(pos, pos); }, 200); });
   dlg.addEventListener('close', () => { dlg.remove(); renderList(); if (S.detail) renderDetail(); });
@@ -2417,7 +2475,7 @@ async function openReceiptImport() {
             if (st.fetchPrice && w?.listPrice == null && look?.listPrice && (w?.code || '').toUpperCase() === it.code) body.listPrice = look.listPrice;
             await api('api/works/' + encodeURIComponent(it.workId), { method: 'PATCH', body }); n++;
           } else if (it.target === 'new') {
-            await api('api/works', { body: { ...body, title: look?.title || it.title, code: it.code, url: dlUrl(it.code), circle: look?.circle || '', actor: look?.actor || '', date: look?.date || '', images: look?.images || [], listPrice: look?.listPrice ?? null, workKind: look?.workKind || '' } }); n++; newN++;
+            await api('api/works', { body: { ...body, title: look?.title || it.title, code: it.code, url: dlUrl(it.code), circle: look?.circle || '', actor: withKnownNames(splitNames(look?.actor || ''), 'actor').join(', '), date: look?.date || '', images: look?.images || [], listPrice: look?.listPrice ?? null, workKind: look?.workKind || '' } }); n++; newN++;
           } else if (it.target === 'other') {
             await api('api/works', { body: { ...body, entryType: 'other', title: it.title, code: it.code, workKind: it.kind || look?.workKind || '', listPrice: look?.listPrice ?? null } }); otherN++;
           }
@@ -2524,7 +2582,7 @@ async function openSettings() {
         ${item(esc(tr('paletteNote')), seg('data-palette', S.palette, [['indigo', tr('palIndigo'), '<i class="pal-dot" style="background:#3443C4"></i>'], ['green', tr('palGreen'), '<i class="pal-dot" style="background:#2E5A4A"></i>'], ['mono', tr('palMono'), '<i class="pal-dot" style="background:#232323"></i>']]))}
         ${item(esc(tr('modeNote')), seg('data-theme-mode', S.theme, [['system', tr('modeSystem')], ['light', tr('modeLight')], ['dark', tr('modeDark')]]))}
         ${item(esc(tr('langNote')) + (S.menuLang === 'en' ? '' : ' · Language'), seg('data-menu-lang', S.menuLang, [['ko', '한국어'], ['en', 'English'], ['ja', '日本語']]))}
-        ${item(esc(tr('nameModeNote')), seg('data-name-mode', S.nameMode, [['both', tr('nameBoth')], ['ja', tr('nameJa')], ['ko', tr('nameKo')]]))}
+        ${item(esc(tr('nameModeNote')), seg('data-name-mode', S.nameMode, [['auto', L('자동')], ['both', tr('nameBoth')], ['ja', tr('nameJa')], ['ko', tr('nameKo')], ['jaen', L('일본어 + 영어')], ['en', L('영어만')]]) + `<small class="muted nm-mode-note">${L('자동: 메뉴 언어가 한국어면 일본어 + 한국어, 일본어면 일본어만, 영어면 일본어 + 영어 표기')}</small>`)}
         <button type="button" class="set-item set-switch" id="blurSwitch" role="switch" aria-checked="${S.coverBlur}"><div class="si-label">${L('표지 가리기')}<small>${L('표지를 흐리게 해요')}</small></div><span class="switch${S.coverBlur ? ' on' : ''}"></span></button>
       </div>
       ${n.unsupported ? '' : `<div class="set-group-title">${L("노션 연결")}</div><div class="set-group set-pad">
@@ -2817,7 +2875,7 @@ function renderSuggest() {
   const chips = (arr, show = (v) => v) => arr.map((v) => `<button type="button" class="nchip" data-suggest="${esc(v)}">${esc(show(v))}</button>`).join('');
   $('searchSuggest').innerHTML = (recent.length ? `<div class="sg-head"><span>${esc(tr('recent'))}</span><button type="button" class="link-btn" data-clear-recent>${esc(tr('clearRecent'))}</button></div>
       <div class="sg-recent">${recent.map((q) => `<button type="button" data-suggest="${esc(q)}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>${esc(q)}</span></button>`).join('')}</div>` : '') +
-    `<div class="sg-head"><span>${esc(tr('topActors'))}</span></div><div class="sg-chips">${chips(top((w) => splitNames(w.actor), 12), nameText)}</div>
+    `<div class="sg-head"><span>${esc(tr('topActors'))}</span></div><div class="sg-chips">${chips(top((w) => actorsOf(w), 12), nameText)}</div>
      <div class="sg-head"><span>${esc(tr('topCircles'))}</span></div><div class="sg-chips">${chips(top((w) => splitNames(w.circle), 8))}</div>
      <div class="sg-head"><span>${esc(tr('topTags'))}</span></div><div class="sg-chips">${chips(top((w) => w.tags, 14))}</div>`;
   $('searchSuggest').hidden = !S.searching;
@@ -2851,7 +2909,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) api(
 /* ================= 통계 ================= */
 // 성우별 / 서클별 / 장르별 / 발매 연도 / 별점 / 청취 상태로 골라 봐요. 조각이나 이름을 누르면 그 작품 목록으로 가요.
 const STAT_KINDS = [
-  ['actor', L('성우별'), (w) => splitNames(w.actor)],
+  ['actor', L('성우별'), (w) => actorsOf(w)],
   ['circle', L('서클별'), (w) => splitNames(w.circle)],
   ['tag', L('장르별'), (w) => w.tags],
   ['year', L('발매 연도'), (w) => (w.date ? [w.date.slice(0, 4)] : [])],
