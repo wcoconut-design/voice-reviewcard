@@ -1101,3 +1101,5 @@ body.home-mode .main-head { display: none; }
 .rc-need { color: var(--danger); font-size: 12px; }
 .buy-extra { margin-top: 4px; } .buy-extra .rec-label { color: var(--accent); } .buy-extra .od-rm { margin-left: auto; }
 .chip-extra { background: var(--accent); color: var(--on-accent); font-weight: 600; } @media (min-width: 761px) { .buy-extra .chip-extra { display: none; } }
+.rc-done { padding: 4px 2px 6px; }
+.rc-done ul { margin: 4px 0 10px; padding-left: 18px; font-size: 13.5px; line-height: 1.6; }

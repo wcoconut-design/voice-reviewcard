@@ -1401,6 +1401,10 @@ $('detail').addEventListener('click', async (e) => {
     case 'more': return openActions([
       { label: L('정보 수정'), run: () => openEditor(w) },
       { label: w.hidden ? L('숨김 해제') : L('목록에서 숨기기'), run: () => $('detail').querySelector('[data-act="hide"]').click() },
+      { label: L('기타 구매로 옮기기 (만화 등)'), run: async () => {
+        if (!confirm(L('이 작품을 목록·통계에서 빼고 기타 구매로 옮길까요? 지출 통계의 \'기타 구매 포함\'에서 볼 수 있고, 거기서 다시 되돌릴 수 있어요.'))) return;
+        try { await api('api/works/' + encodeURIComponent(w.id), { method: 'PATCH', body: { entryType: 'other', workKind: w.workKind && w.workKind !== '음성' ? w.workKind : '만화' } }); closeDetail(); await load(); toast(L('기타 구매로 옮겼어요.')); } catch (e) { fail(e); }
+      } },
       { label: w.noStats ? L('통계에 다시 넣기') : L('통계에서 빼기'), run: async () => { await save(w.id, { noStats: !w.noStats }); toast(w.noStats ? L('통계에 다시 넣었어요.') : L('통계에서 뺐어요. 지출 통계에는 그대로 있어요.')); } },
       ...(w.url ? [{ label: L('판매 페이지 ↗'), href: w.url }] : []),
       { label: L('수정 이력'), run: () => openHistory(w.id) },
@@ -2377,10 +2381,46 @@ async function openReceiptImport() {
   document.body.appendChild(dlg);
   const byCode = (code) => S.works.find((w) => (w.code || '').toUpperCase() === code);
   const doneOrder = (no) => S.works.some((w) => w.orderNo === no || String(w.discountNote || '').includes(`특전 주문 ${no}`)) || S.others.some((w) => w.orderNo === no);
+  // 이미 넣은 주문: 어디에 들어갔는지 보여주고, 다시 넣을 수 있게 해요.
+  const recordsOf = (no) => ({
+    works: S.works.filter((w) => w.orderNo === no),
+    extras: S.others.filter((w) => w.orderNo === no),
+    addons: S.works.filter((w) => String(w.discountNote || '').includes(`특전 주문 ${no}`)),
+  });
+  const doneHtml = (o, oi) => {
+    const r = recordsOf(o.orderNo);
+    const kind = (x) => (x.entryType === 'extra' ? L('추가 구매') : x.entryType === 'points' ? L('포인트 충전') : L('기타 구매'));
+    const rows = [...r.works.map((w) => `${esc(displayTitle(w).slice(0, 40))} <small class="muted">· ${L('작품의 구매 정보')}</small>`),
+      ...r.extras.map((w) => `${esc(String(w.title || '').slice(0, 40))} <small class="muted">· ${kind(w)}</small>`),
+      ...r.addons.map((w) => `${esc(displayTitle(w).slice(0, 40))} <small class="muted">· ${L('특전으로 더함')}</small>`)];
+    return `<div class="rc-done"><p class="note">${L('이미 넣은 주문이에요. 들어간 곳:')}</p><ul>${rows.map((x) => `<li>${x}</li>`).join('')}</ul>
+      <button type="button" class="ghost-btn" data-redo="${oi}">${L('다시 넣기')}</button></div>`;
+  };
+  async function redoOrder(o) {
+    const r = recordsOf(o.orderNo);
+    // 추가 구매·기타 구매·포인트 기록은 지우고, 특전으로 더한 금액은 빼요. 작품에 넣은 구매 정보는 다시 고른 대로 덮어써요.
+    for (const x of r.extras) await api('api/works/' + encodeURIComponent(x.id), { method: 'DELETE' });
+    for (const w of r.addons) {
+      const notes = String(w.discountNote || '').split(' · ');
+      const seg = notes.find((x) => x.includes(`특전 주문 ${o.orderNo}`)) || '';
+      const share = yenNum((seg.match(/[¥￥]\s*([\d,]+)\s*$/) || [])[1]);
+      const memos = String(w.couponMemo || '').split(' · ');
+      const mi = memos.findIndex((x) => x.startsWith('특전 ') && share && x.endsWith('→' + money(share, 'JPY')));
+      const price = mi >= 0 ? yenNum((memos[mi].match(/[¥￥]([\d,]+)→/) || [])[1]) : 0;
+      if (mi >= 0) memos.splice(mi, 1);
+      await api('api/works/' + encodeURIComponent(w.id), { method: 'PATCH', body: {
+        paidPrice: w.paidPrice != null ? Math.max(0, w.paidPrice - share) : w.paidPrice, salePrice: w.salePrice != null && price ? Math.max(0, w.salePrice - price) : w.salePrice,
+        couponMemo: memos.join(' · '), discountNote: notes.filter((x) => x !== seg).join(' · ') } });
+    }
+    await load();
+    o.redo = true; o.done = false; o.include = true;
+    for (const it of o.items) { delete it.target; it.picked = false; it.noAuto = false; it.pack = it.target === 'pack' ? it.pack : undefined; }
+  }
   const prepare = () => {
     for (const o of st.orders) {
-      o.done = doneOrder(o.orderNo);
-      o.include = !o.done;
+      const wasDone = o.done;
+      o.done = !o.redo && doneOrder(o.orderNo);
+      if (o.include === undefined || wasDone !== o.done) o.include = !o.done;
       o.paid = o.subtotal - o.coupon;
       o.shares = allocate(o.items.map((x) => x.price), o.paid);
       o.pct = couponPct(o.coupon, o.subtotal);
@@ -2515,7 +2555,7 @@ async function openReceiptImport() {
               ${o.needDate && !o.done && o.items.some((it) => it.target !== 'skip') ? `<label class="rc-date-row">${L('구매일')}<input type="date" class="input rc-date" data-date="${oi}" value="${esc(o.date)}">${o.date ? '' : `<small class="rc-need">${L('메일에 날짜가 없어요. 직접 넣어 주세요.')}</small>`}</label>` : ''}
               <span class="rc-tot">${money(o.subtotal, 'JPY')}${o.coupon ? ` − ${o.pct.text} ${L('쿠폰')} ${money(o.coupon, 'JPY')}` : ''} = <strong>${money(o.paid, 'JPY')}</strong>${o.points ? ` <span class="muted">(${L('포인트')} ${money(o.points, 'JPY')})</span>` : ''}</span></div>
             ${o.free && !o.done ? `<p class="note">${L('무료 주문이에요. 넣고 싶은 작품만 \'새 음성 작품으로 추가\'로 골라 주세요.')}</p>` : ''}
-            ${o.done ? `<p class="note">${L('이미 넣은 주문이에요.')}</p>` : o.items.map((it, ii) => `<div class="rc-item${it.target === 'skip' ? ' is-skip' : ''}">
+            ${o.done ? doneHtml(o, oi) : o.items.map((it, ii) => `<div class="rc-item${it.target === 'skip' ? ' is-skip' : ''}">
                 <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : it.guess ? ` · ${L('자동 선택')}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}${it.otherStore ? ` (${esc(S.works.find((x) => x.id === it.workId)?.store || '')})` : ''}` : ''}</small>${it.target === 'addon' && it.workTitle ? `<small class="rc-link">↳ ${L('특전')} → ${L('본편')}: ${esc(it.workTitle)}${it.addTo && !it.workId ? ` (${L('이번에 새로 넣는 작품')})` : ''}</small>` : ''}${it.target === 'pack' && it.pack?.length ? `<small class="rc-link">↳ ${L('팩')} → ${it.pack.length}${L('개 작품')}</small>` : ''}${(it.edition || it.picked) && it.workId ? `<small class="rc-link">↳ ${it.edition ? `${esc(it.edition)} → ${L('일본판')}: ` : ''}${esc(it.workTitle)}</small>` : ''}</span>
                 <span class="rc-price">${money(it.price, 'JPY')} → <strong>${money(o.shares[ii], 'JPY')}</strong></span>
                 ${tSel(oi, ii, it)}</div>`).join('')}
@@ -2636,6 +2676,13 @@ async function openReceiptImport() {
       return;
     }
     if (t.id === 'rcBack') { st.step = 'paste'; st.msg = ''; return render(); }
+    if (t.dataset.redo != null) {
+      const o = st.orders[t.dataset.redo];
+      if (!confirm(L('이 주문을 다시 넣을까요? 추가 구매·기타 구매로 넣었던 기록은 지우고, 특전으로 더한 금액은 빼요. 작품에 넣은 구매 정보는 새로 고른 대로 덮어써요.'))) return;
+      t.disabled = true;
+      redoOrder(o).then(() => { prepare(); render(); if (needLook().length) lookup(); }).catch(fail);
+      return;
+    }
     if (t.id === 'rcLook') return lookup();
     if (t.dataset.bulk) {
       for (const o of st.orders) if (o.include && !o.done && o.kind !== 'points') for (const it of o.items) {
@@ -3304,7 +3351,9 @@ $('stats').addEventListener('click', (e) => {
   const ot = e.target.closest('[data-other]');
   if (ot) {
     const w = S.others.find((x) => x.id === ot.dataset.other);
-    if (w) openActions([{ label: `${w.title} · ${money(w.paidPrice, 'JPY')}`, run: () => {} }, { label: L('이 기타 구매 지우기'), danger: true, run: async () => { if (!confirm(L('이 기록을 지울까요?'))) return; await api('api/works/' + encodeURIComponent(w.id), { method: 'DELETE' }).catch(fail); await load(); renderStats(); } }]);
+    if (w) openActions([{ label: `${w.title} · ${money(w.paidPrice, 'JPY')}`, run: () => {} },
+      { label: L('음성 작품으로 되돌리기'), run: async () => { try { await api('api/works/' + encodeURIComponent(w.id), { method: 'PATCH', body: { entryType: '', workKind: '음성' } }); await load(); renderStats(); toast(L('음성 작품 목록으로 되돌렸어요.')); } catch (e) { fail(e); } } },
+      { label: L('이 기타 구매 지우기'), danger: true, run: async () => { if (!confirm(L('이 기록을 지울까요?'))) return; await api('api/works/' + encodeURIComponent(w.id), { method: 'DELETE' }).catch(fail); await load(); renderStats(); } }]);
     return;
   }
   const oo = e.target.closest('[data-open-order]');
