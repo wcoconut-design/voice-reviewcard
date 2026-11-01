@@ -2254,30 +2254,34 @@ function parseReceipts(text) {
 // 포케도라(ポケットドラマCD)·애니메이트 주문 메일: ●ご注文番号 / 商品名 … 単価(포케도라) 또는 金額(애니메이트)
 // 작품 코드가 없어서 제목으로 찾고, 0円 트랙 목록은 빼요. 메일 본문에 날짜가 없으면 직접 넣어요.
 function parsePokedora(src) {
-  const starts = [...src.matchAll(/●\s*ご注文番号\s*\n\s*(\d{4,})/g)];
+  // 메일 앱에서 복사하면 전각 숫자·쉼표, 특수 공백, 줄 붙음이 생길 수 있어요.
+  src = src.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/，/g, ',').replace(/[\u00a0\u2007\u202f]/g, ' ');
+  const starts = [...src.matchAll(/ご注文番号\s*[：:]?\s*(\d{4,})/g)];
   const out = [];
   const dateIn = (t) => { const d = t.match(/(20\d{2})\s*[年\/.-]\s*(\d{1,2})\s*[月\/.-]\s*(\d{1,2})/); return d ? `${d[1]}-${d[2].padStart(2, '0')}-${d[3].padStart(2, '0')}` : ''; };
   starts.forEach((m, i) => {
     const block = src.slice(m.index, i + 1 < starts.length ? starts[i + 1].index : src.length);
     const before = src.slice(Math.max(0, (i ? starts[i - 1].index + 30 : 0), m.index - 800), m.index);
-    const animate = !/単価\s*[：:]/.test(block) && /金額\s*[：:]/.test(block);
+    const animate = !/単価\s*[：:]/.test(block) && /(?:^|[^支払])金額\s*[：:]/.test(block);
     const o = { orderNo: (animate ? 'AN-' : 'PD-') + m[1], date: dateIn(block) || dateIn(before), items: [], subtotal: 0, points: 0, coupon: 0, total: 0, pointAmount: 0, kind: 'works', store: animate ? '애니메이트' : '포케도라' };
     o.needDate = !o.date;
-    for (const it of block.matchAll(/商品名\s*[：:]\s*([^\n]+?)\s*\n\s*(?:単価|金額)\s*[：:]\s*([\d,]+)\s*円/g)) {
+    for (const it of block.matchAll(/商品名\s*[：:]\s*([\s\S]*?)\s*(?:単価|金額)\s*[：:]\s*([\d,]+)\s*円/g)) {
       const price = yenNum(it[2]);
-      if (!price) continue; // 0円 = 트랙 목록
       const raw = it[1].replace(/\s+/g, ' ').trim();
       const cv = raw.match(/【\s*(?:出演)?声優\s*[：:]\s*([^】]+)】/);
       const title = raw.replace(/\s*【\s*(?:出演)?声優\s*[：:][^】]*】\s*/g, ' ').trim();
       const bonus = BONUS_RE.test(title);
       o.items.push({ code: '', title, bonus, baseTitle: bonus ? title.replace(BONUS_RE, ' ').trim() : '', price, actor: cv ? cv[1].split(/[、,，\/／]/).map((x) => x.trim()).filter(Boolean).join(', ') : '' });
     }
+    // 0円 줄: 유료 상품이 있으면 트랙 목록이라 빼고, 전부 0円이면 무료 주문으로 남겨요. (기본은 건너뛰기)
+    if (o.items.some((x) => x.price > 0)) o.items = o.items.filter((x) => x.price > 0);
+    else if (o.items.length) o.free = true;
     const num = (re) => { const x = block.match(re); return x ? yenNum(x[1]) : 0; };
-    o.subtotal = num(/商品合計[^:\n：]*[：:]\s*([\d,]+)\s*円/) || o.items.reduce((a, x) => a + x.price, 0);
-    o.coupon = num(/クーポン(?:利用|割引)\s*[：:]\s*-?\s*([\d,]+)\s*円/);
-    o.points = num(/ポイント利用\s*[：:]\s*([\d,]+)\s*(?:ポイント|pt|円)/i);
+    o.subtotal = num(/商品合計[^:\n：\d]*[：:]?\s*([\d,]+)\s*円/) || o.items.reduce((a, x) => a + x.price, 0);
+    o.coupon = num(/クーポン(?:利用|割引)\s*[：:]?\s*[-−ー]?\s*([\d,]+)\s*円/);
+    o.points = num(/ポイント利用\s*[：:]?\s*([\d,]+)\s*(?:ポイント|pt|円)/i);
     // 애니메이트: 할인 줄이 따로 없어도 'お支払い金額'과 차이로 할인을 계산해요. (포인트로 낸 몫은 지출로 쳐요)
-    const pay = num(/お支払い?金額\s*[：:]\s*([\d,]+)\s*円/);
+    const pay = num(/お支払い?金額\s*[：:]?\s*([\d,]+)\s*円/);
     if (animate && pay && !o.coupon && pay + o.points < o.subtotal) o.coupon = o.subtotal - pay - o.points;
     if (o.items.length) out.push(o);
   });
@@ -2329,7 +2333,8 @@ async function openReceiptImport() {
       o.shares = allocate(o.items.map((x) => x.price), o.paid);
       o.pct = couponPct(o.coupon, o.subtotal);
       for (const it of o.items) {
-        if (it.bonus && !it.picked && !it.noAuto) {
+        if (o.free && !it.target) it.target = 'skip';
+        if (it.bonus && !it.picked && !it.noAuto && !o.free) {
           // 특전: 본편을 앱에서 찾고, 없으면 같이 붙여넣은 주문의 본편과 이어요.
           const base = findByTitle(it.baseTitle, o.store);
           it.addTo = null;
@@ -2391,7 +2396,7 @@ async function openReceiptImport() {
       if (o.done) { done++; continue; }
       if (o.kind === 'points') { if (o.include) { pointsN++; pointsSum += o.pointAmount; } continue; }
       if (!o.include) continue;
-      if (!o.date) noDate++;
+      if (!o.date && o.items.some((it) => it.target !== 'skip')) noDate++;
       for (const it of o.items) { items++; if (it.workId || (it.target === 'pack' && it.pack?.length) || (it.target === 'addon' && it.addTo)) found++; else missing++; if (it.target === 'ask' || (it.target === 'pack' && !it.pack?.length)) ask++; if (it.target === 'other') others++; }
     }
     return { items, found, missing, ask, others, pointsN, pointsSum, done, noDate };
@@ -2453,8 +2458,9 @@ async function openReceiptImport() {
           if (o.kind === 'points') return `<div class="rc-order rc-points${o.done ? ' is-done' : ''}"><label class="check"><input type="checkbox" data-inc="${oi}"${o.include ? ' checked' : ''}${o.done ? ' disabled' : ''}>${esc(o.date)} · ${L('포인트 충전')} <strong>${money(o.pointAmount, 'JPY')}</strong></label>${o.done ? `<span class="muted">${L('이미 넣음')}</span>` : ''}</div>`;
           return `<div class="rc-order${o.done ? ' is-done' : ''}">
             <div class="rc-head"><label class="check"><input type="checkbox" data-inc="${oi}"${o.include ? ' checked' : ''}${o.done ? ' disabled' : ''}>${o.needDate ? '' : `<strong>${esc(o.date)}</strong> `}${o.store !== 'DLsite' ? `<span class="rc-store">${esc(o.store)}</span> ` : ''}<span class="muted">${esc(o.orderNo)}</span></label>
-              ${o.needDate && !o.done ? `<label class="rc-date-row">${L('구매일')}<input type="date" class="input rc-date" data-date="${oi}" value="${esc(o.date)}">${o.date ? '' : `<small class="rc-need">${L('메일에 날짜가 없어요. 직접 넣어 주세요.')}</small>`}</label>` : ''}
+              ${o.needDate && !o.done && o.items.some((it) => it.target !== 'skip') ? `<label class="rc-date-row">${L('구매일')}<input type="date" class="input rc-date" data-date="${oi}" value="${esc(o.date)}">${o.date ? '' : `<small class="rc-need">${L('메일에 날짜가 없어요. 직접 넣어 주세요.')}</small>`}</label>` : ''}
               <span class="rc-tot">${money(o.subtotal, 'JPY')}${o.coupon ? ` − ${o.pct.text} ${L('쿠폰')} ${money(o.coupon, 'JPY')}` : ''} = <strong>${money(o.paid, 'JPY')}</strong>${o.points ? ` <span class="muted">(${L('포인트')} ${money(o.points, 'JPY')})</span>` : ''}</span></div>
+            ${o.free && !o.done ? `<p class="note">${L('무료 주문이에요. 넣고 싶은 작품만 \'새 음성 작품으로 추가\'로 골라 주세요.')}</p>` : ''}
             ${o.done ? `<p class="note">${L('이미 넣은 주문이에요.')}</p>` : o.items.map((it, ii) => `<div class="rc-item${it.target === 'skip' ? ' is-skip' : ''}">
                 <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : it.guess ? ` · ${L('자동 선택')}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}` : ''}</small>${it.target === 'addon' && it.workTitle ? `<small class="rc-link">↳ ${L('특전')} → ${L('본편')}: ${esc(it.workTitle)}${it.addTo && !it.workId ? ` (${L('이번에 새로 넣는 작품')})` : ''}</small>` : ''}${it.target === 'pack' && it.pack?.length ? `<small class="rc-link">↳ ${L('팩')} → ${it.pack.length}${L('개 작품')}</small>` : ''}${(it.edition || it.picked) && it.workId ? `<small class="rc-link">↳ ${it.edition ? `${esc(it.edition)} → ${L('일본판')}: ` : ''}${esc(it.workTitle)}</small>` : ''}</span>
                 <span class="rc-price">${money(it.price, 'JPY')} → <strong>${money(o.shares[ii], 'JPY')}</strong></span>
