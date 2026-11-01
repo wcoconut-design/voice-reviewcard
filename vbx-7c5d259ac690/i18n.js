@@ -693,4 +693,12 @@ window.VB_I18N = {
   "저장 공간이 부족해서 {n}장까지만 받았어요.": ["Out of storage space — saved {n} covers.", "保存容量が足りず、{n}枚まで保存しました。"],
   "표지 {a}장을 이 기기에 저장했어요.": ["Saved {a} covers on this device.", "表紙{a}枚をこの端末に保存しました。"],
   "{n}장은 받지 못했어요.": ["{n} couldn't be saved.", "{n}枚は保存できませんでした。"],
+  "쓰지 않는 이미지 정리": ["Clean up unused images", "使っていない画像を整理"],
+  "작품에서 뺀 첨부 이미지와 안 쓰는 표지 보관분을 지워요": ["Deletes attached images removed from works and unused saved covers", "作品から外した添付画像と使っていない保存表紙を削除します"],
+  "정리할 이미지가 없어요.": ["Nothing to clean up.", "整理する画像はありません。"],
+  "쓰지 않는 첨부 이미지 {n}개 (약 {mb}MB)": ["{n} unused attached images (about {mb} MB)", "使っていない添付画像 {n}件（約{mb}MB）"],
+  "어느 작품에도 없는 표지 보관분 {n}개": ["{n} saved covers not used by any work", "どの作品にもない保存表紙 {n}件"],
+  "지울까요? 지금 작품·자동 백업·최근 30일 기록 내역에 있는 이미지는 남겨요.": ["Delete them? Images used by works, auto backups or the last 30 days of history are kept.", "削除しますか？今の作品・自動バックアップ・最近30日の履歴にある画像は残します。"],
+  "이미지 {n}개 · 표지 {c}개를 정리했어요. (약 {mb}MB)": ["Cleaned up {n} images and {c} covers. (about {mb} MB)", "画像{n}件・表紙{c}件を整理しました。（約{mb}MB）"],
+  "작품에서 뺀 지 30일 지난 첨부 이미지와 안 쓰는 표지 보관분을 지워요": ["Deletes attached images removed from works over 30 days ago and unused saved covers", "作品から外して30日以上たった添付画像と、使っていない保存表紙を削除します"],
 };

@@ -2745,6 +2745,7 @@ async function openSettings() {
       <div class="set-group">
         <button type="button" class="set-item set-link" id="openReceipts"><div class="si-label">${L("영수증 메일 가져오기")}<small>${L("DLsite·포케도라·애니메이트 구매 메일로 구매 정보를 한 번에 넣어요")}</small></div><span class="si-go">›</span></button>
         <button type="button" class="set-item set-link" id="openDupes"><div class="si-label">${L("중복 작품 합치기")}<small>${L("같은 작품 코드가 두 번 있으면 구매 정보는 옮기고 하나로 합쳐요")}</small></div><span class="si-go">›</span></button>
+        <button type="button" class="set-item set-link" id="openImgClean"><div class="si-label">${L("쓰지 않는 이미지 정리")}<small id="imgCleanState">${L("작품에서 뺀 지 30일 지난 첨부 이미지와 안 쓰는 표지 보관분을 지워요")}</small></div><span class="si-go">›</span></button>
         <button type="button" class="set-item set-link" id="openNames"><div class="si-label">${L("성우·서클 이름 정리")}<small>${L("한글 읽기를 한 번에 붙이거나 고쳐요")}</small></div><span class="si-go">›</span></button>
       </div>
       <div class="set-group-title">${L("백업")}</div>
@@ -2798,6 +2799,20 @@ async function openSettings() {
   $('imgCovers').onclick = () => startImages(true);
   $('imgAll').onclick = () => startImages(false);
   $('openNames').onclick = () => openNames('missing');
+  $('openImgClean').onclick = async () => {
+    const el = $('imgCleanState');
+    const mb = (b) => (b / 1048576 < 0.1 ? '0.1' : (b / 1048576).toFixed(1));
+    try {
+      el.textContent = L('확인 중…');
+      const u = await api('api/images/unused');
+      if (!u.files && !u.covers) { el.textContent = L('정리할 이미지가 없어요.'); return; }
+      const msg = [u.files ? L('쓰지 않는 첨부 이미지 {n}개 (약 {mb}MB)', { n: u.files, mb: mb(u.bytes) }) : '', u.covers ? L('어느 작품에도 없는 표지 보관분 {n}개', { n: u.covers }) : ''].filter(Boolean).join('\n');
+      el.textContent = msg.replace('\n', ' · ');
+      if (!confirm(msg + '\n\n' + L('지울까요? 지금 작품·자동 백업·최근 30일 기록 내역에 있는 이미지는 남겨요.'))) return;
+      const r = await api('api/images/cleanup', { body: {} });
+      el.textContent = L('이미지 {n}개 · 표지 {c}개를 정리했어요. (약 {mb}MB)', { n: r.removed, c: r.covers, mb: mb(r.bytes) });
+    } catch (e) { fail(e); el.textContent = ''; }
+  };
   $('openDupes').onclick = () => { $('settings').close(); openDupes(); };
   $('openReceipts').onclick = () => openReceiptImport();
   $('openRecover').onclick = () => openRecover();

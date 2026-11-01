@@ -339,6 +339,25 @@ async function handle(method, path, url, body) {
   }
   if (path === 'notion/status') return { connected: false, unsupported: true };
   if (path.startsWith('notion/') || path.startsWith('notion-image/')) throw new ApiError(MOBILE_ONLY, 409);
+  // 쓰지 않는 이미지 정리: 작품·자동 백업·최근 30일 기록 내역에 없는 첨부 이미지와, 어느 작품에도 없는 표지 보관분
+  if (path === 'images/unused' || (method === 'POST' && path === 'images/cleanup')) {
+    const used = new Set(), coverUsed = new Set();
+    const add = (list) => { for (const p of list || []) { const v = String(p); if (/^\/?images\//.test(v)) used.add(v.replace(/^\//, '')); const pp = phonePath(v); if (pp) used.add(pp); if (/^https:/.test(v)) coverUsed.add(v); } };
+    for (const w of works) { add(w.images); add(w.reviewCard); }
+    for (const sn of (await kvGet('snaps')) || []) for (const w of (await kvGet('snap:' + sn.at)) || []) { add(w.images); add(w.reviewCard); }
+    const since = Date.now() - 30 * 864e5;
+    for (const h of await allHistory()) if (h?.data && Date.parse(h.at) > since) { add(h.data.images); add(h.data.reviewCard); }
+    const img = await caches.open(IMAGE_CACHE), cov = await caches.open('vb-covers');
+    const rel = (u) => decodeURI(new URL(u).pathname).slice(decodeURI(BASE.pathname).length);
+    const unused = (await img.keys()).filter((r) => !used.has(rel(r.url)));
+    const covers = (await cov.keys()).filter((r) => !coverUsed.has(r.url) && !coverUsed.has(decodeURI(r.url)));
+    let bytes = 0;
+    for (const r of unused) { const m = await img.match(r); if (m) bytes += (await m.blob()).size; }
+    if (method !== 'POST') return { files: unused.length, bytes, covers: covers.length };
+    for (const r of unused) await img.delete(r);
+    for (const r of covers) await cov.delete(r);
+    return { removed: unused.length, bytes, covers: covers.length };
+  }
   if (path === 'images/status') return { running: false, done: 0, total: 0, saved: 0, failed: 0, failures: [], cached: 0, unsupported: true };
   if (path === 'images/download') throw new ApiError('폰 버전은 표지를 판매 사이트에서 바로 불러와요.');
   if (path === 'image-proxy') {
