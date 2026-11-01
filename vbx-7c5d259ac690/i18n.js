@@ -686,4 +686,11 @@ window.VB_I18N = {
   "이 추가 구매 기록을 지울까요? 작품은 그대로 있어요.": ["Delete this extra purchase record? The work stays.", "この追加購入の記録を削除しますか？作品はそのままです。"],
   "같은 작품의 추가 구매로 기록": ["Record as another purchase of this work", "同じ作品の追加購入として記録"],
   "추가 구매 {n}개": ["{n} extra purchases", "追加購入 {n}件"],
+  "표지 이 기기에 저장": ["Save covers on this device", "表紙をこの端末に保存"],
+  "한 번 받아 두면 바로 뜨고 인터넷 없이도 보여요.": ["Once saved, covers load instantly and work offline.", "一度保存すればすぐ表示され、オフラインでも見られます。"],
+  "모두 받아두기": ["Save all", "すべて保存"],
+  "표지 {a} / {b}": ["Covers {a} / {b}", "表紙 {a} / {b}"],
+  "저장 공간이 부족해서 {n}장까지만 받았어요.": ["Out of storage space — saved {n} covers.", "保存容量が足りず、{n}枚まで保存しました。"],
+  "표지 {a}장을 이 기기에 저장했어요.": ["Saved {a} covers on this device.", "表紙{a}枚をこの端末に保存しました。"],
+  "{n}장은 받지 못했어요.": ["{n} couldn't be saved.", "{n}枚は保存できませんでした。"],
 };

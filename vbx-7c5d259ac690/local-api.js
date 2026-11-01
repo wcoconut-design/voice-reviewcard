@@ -3,7 +3,7 @@
 // 기록은 이 기기 안에만 있어요. 다른 기기로 옮길 때는 '복원용 백업(JSON)'을 쓰세요.
 import { normalizeWork, guessWorkType, renameInList, groupHistory } from './model.js';
 import { toCsv, toXlsx, reviewsHtml } from './export-core.js';
-import { syncOnce, decide } from './sync-core.js';
+import { syncOnce, decide, phonePath } from './sync-core.js';
 
 const BASE = new URL('./', import.meta.url);
 const API = new URL('api/', BASE).pathname;
@@ -193,6 +193,15 @@ async function runSync(manual = false, opts = {}) {
       readFile: async (p) => { const r = await cache.match(new URL(p, BASE).href); return r ? { body: await r.blob(), type: r.headers.get('Content-Type') } : null; },
       writeFile: (p, blob) => cache.put(new URL(p, BASE).href, new Response(blob, { headers: { 'Content-Type': blob.type || 'image/png' } })),
     });
+    // 아이맥에서만 열리던 표지(노션·http)를 받아서 이 기기에 보관해요.
+    let covers = 0;
+    for (const w of works) for (const src of (w.images || []).slice(0, 3)) {
+      const p = phonePath(src);
+      if (!p || await cache.match(new URL(p, BASE).href)) continue;
+      try { const fr = await realFetch(cfg.url.replace(/\/+$/, '') + '/files?path=' + encodeURIComponent(p), { headers: { 'X-VB-Key': cfg.key } }); if (fr.ok) { await cache.put(new URL(p, BASE).href, new Response(await fr.blob(), { headers: { 'Content-Type': fr.headers.get('Content-Type') || 'image/jpeg' } })); covers++; } } catch {}
+    }
+    r.covers = covers;
+    if (covers) r.changed = (r.changed || 0) || 1;
     sync.error = ''; sync.last = r;
     if (r.changed) { await new Promise((ok) => setTimeout(ok, 300)); window.dispatchEvent(new CustomEvent('vb:reload')); }
     return { ...r, ...(await syncStatus()) };
@@ -333,6 +342,9 @@ async function handle(method, path, url, body) {
   if (path === 'images/status') return { running: false, done: 0, total: 0, saved: 0, failed: 0, failures: [], cached: 0, unsupported: true };
   if (path === 'images/download') throw new ApiError('폰 버전은 표지를 판매 사이트에서 바로 불러와요.');
   if (path === 'image-proxy') {
+    // 동기화로 받아 둔 표지(노션·http)가 있으면 그걸 써요.
+    const pp = phonePath(url.searchParams.get('src') || '');
+    if (pp) { const hit = await (await caches.open(IMAGE_CACHE)).match(new URL(pp, BASE).href); if (hit) return { __raw: hit }; }
     // 정보 채우기 서버가 연결돼 있으면 그 서버를 거쳐 표지를 받아요 (리뷰카드 표지 자동 넣기).
     const cfg = relayConfig();
     if (!cfg?.url) throw new ApiError(msg('설정 → 고급에서 정보 채우기 서버를 연결하면 표지가 자동으로 들어가요.', 'Connect the info server in Settings → Advanced to add covers automatically.', '設定 → 詳細設定で情報取得サーバーを接続すると表紙が自動で入ります。'), 404);

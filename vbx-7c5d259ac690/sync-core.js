@@ -81,3 +81,13 @@ export function decide(local, item) {
   if (!local) return 'add';
   return (item.work.updatedAt || '') > (local.updatedAt || '') ? 'update' : 'keep';
 }
+
+// 아이맥에서만 열리는 표지(노션 이미지 · http 주소)를 폰으로 옮길 때 쓰는 파일 이름.
+// 앱(app.js)의 phoneImagePath와 똑같이 계산해야 해요.
+export function phonePath(src) {
+  src = String(src || '');
+  if (!/^\/?api\/notion-image\//.test(src) && !/^http:\/\//i.test(src)) return '';
+  let a = 0x811c9dc5, b = 0x01000193 ^ 0x9e3779b9;
+  for (let i = 0; i < src.length; i++) { const c = src.charCodeAt(i); a = Math.imul(a ^ c, 0x01000193) >>> 0; b = Math.imul(b ^ c, 0x85ebca6b) >>> 0; }
+  return `images/x/${a.toString(16).padStart(8, '0')}${b.toString(16).padStart(8, '0')}`;
+}

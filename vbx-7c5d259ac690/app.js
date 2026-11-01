@@ -423,8 +423,42 @@ function placeholderColor(id) {
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 360;
   return `hsl(${h} 45% 84%)`;
 }
+// 폰: 아이맥에서만 열리는 표지(노션·http)는 동기화로 받아 둔 파일로 보여줘요. (sync-core.js의 phonePath와 같은 계산)
+function phoneImagePath(src) {
+  src = String(src || '');
+  if (!/^\/?api\/notion-image\//.test(src) && !/^http:\/\//i.test(src)) return '';
+  let a = 0x811c9dc5, b = 0x01000193 ^ 0x9e3779b9;
+  for (let i = 0; i < src.length; i++) { const c = src.charCodeAt(i); a = Math.imul(a ^ c, 0x01000193) >>> 0; b = Math.imul(b ^ c, 0x85ebca6b) >>> 0; }
+  return `images/x/${a.toString(16).padStart(8, '0')}${b.toString(16).padStart(8, '0')}`;
+}
+const imgUrl = (src) => (window.VB_MOBILE && phoneImagePath(src)) || src;
+// 폰: 모든 작품의 표지를 이 기기에 받아 둬요. (판매 사이트 표지 → 표지 보관함, 노션·http 표지는 동기화로 받아요)
+let prefetching = false;
+async function prefetchCovers(btn, el) {
+  if (prefetching || !('caches' in window)) return;
+  prefetching = true; btn.disabled = true;
+  const say = (t) => { if (el && el.isConnected) el.textContent = t; };
+  try {
+    const cache = await caches.open('vb-covers');
+    const srcs = [...new Set(S.works.map((w) => w.images?.[0]).filter((x) => x && /^https:\/\//.test(x)))];
+    const todo = [];
+    for (const src of srcs) if (!(await cache.match(src))) todo.push(src);
+    let ok = srcs.length - todo.length, fail = 0, stop = false;
+    say(L('표지 {a} / {b}', { a: ok.toLocaleString(), b: srcs.length.toLocaleString() }));
+    const worker = async () => {
+      while (todo.length && !stop) {
+        const src = todo.shift();
+        try { const r = await fetch(src, { mode: 'no-cors', referrerPolicy: 'no-referrer' }); if (r.type === 'opaque' || r.ok) { await cache.put(src, r); ok++; } else fail++; }
+        catch (e) { fail++; if (e?.name === 'QuotaExceededError') stop = true; }
+        if ((ok + fail) % 10 === 0) say(L('표지 {a} / {b}', { a: ok.toLocaleString(), b: srcs.length.toLocaleString() }));
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    say(stop ? L('저장 공간이 부족해서 {n}장까지만 받았어요.', { n: ok.toLocaleString() }) : L('표지 {a}장을 이 기기에 저장했어요.', { a: ok.toLocaleString() }) + (fail ? ' ' + L('{n}장은 받지 못했어요.', { n: fail }) : ''));
+  } finally { prefetching = false; btn.disabled = false; }
+}
 function thumbHtml(w, cls = 'thumb') {
-  const src = w.images?.[0];
+  const src = imgUrl(w.images?.[0]);
   const ph = `<div class="${cls} ph" style="background:${placeholderColor(w.id)}">${esc(w.code || '')}</div>`;
   if (!src) return ph;
   return `<img class="${cls}" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-ph="${esc(w.code || '')}" data-color="${placeholderColor(w.id)}">`;
@@ -1091,7 +1125,7 @@ function renderDetail() {
       </div>
     </div>
     <div class="d-hero">
-      ${w.images?.[0] ? `<img class="d-cover" src="${esc(w.images[0])}" alt="${L("표지")}" referrerpolicy="no-referrer" data-act="zoom" data-i="0" data-ph="${esc(w.code)}" data-color="${placeholderColor(w.id)}">` : `<div class="d-cover ph" style="background:${placeholderColor(w.id)}">${esc(w.code)}</div>`}
+      ${w.images?.[0] ? `<img class="d-cover" src="${esc(imgUrl(w.images[0]))}" alt="${L("표지")}" referrerpolicy="no-referrer" data-act="zoom" data-i="0" data-ph="${esc(w.code)}" data-color="${placeholderColor(w.id)}">` : `<div class="d-cover ph" style="background:${placeholderColor(w.id)}">${esc(w.code)}</div>`}
       <div class="d-titles">
         <div class="d-meta-top">${esc([w.circle, w.date].filter(Boolean).join(' · '))}</div>
         ${(() => { const [main, tail] = splitTitle(displayTitle(w)); return `<h2 class="d-title">${esc(main)}</h2>${tail ? `<div class="d-hash">${esc(tail)}</div>` : ''}`; })()}
@@ -1142,7 +1176,7 @@ function renderDetail() {
       <div class="intro${mode === 'side' ? ' side' : ''}" id="intro">${introBody}</div>
       <button type="button" class="link-btn more-btn" id="introMore" hidden>${L("더 보기")}</button>
     </section>
-    ${w.images.length > 1 ? `<section><div class="sec-head"><h2>${L("이미지")} ${w.images.length}</h2></div><div class="gallery">${w.images.map((src, i) => `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-act="zoom" data-i="${i}">`).join('')}</div></section>` : ''}
+    ${w.images.length > 1 ? `<section><div class="sec-head"><h2>${L("이미지")} ${w.images.length}</h2></div><div class="gallery">${w.images.map((src, i) => `<img src="${esc(imgUrl(src))}" alt="" loading="lazy" referrerpolicy="no-referrer" data-act="zoom" data-i="${i}">`).join('')}</div></section>` : ''}
     ${notionHtml}
     <div class="d-links">
       ${w.url ? `<a href="${esc(w.url)}" target="_blank" rel="noopener">${L("판매 페이지 ↗")}</a>` : ''}
@@ -1638,7 +1672,7 @@ function renderEdTags() {
 }
 function renderEdImages() {
   $('edImages').innerHTML = ED.images.map((src, i) => `<div class="it${i === 0 ? ' is-cover' : ''}" data-i="${i}">
-      <img src="${esc(/^(https?:|\/|images\/|api\/|blob:)/.test(src) ? src : '')}" alt="" referrerpolicy="no-referrer" data-color="var(--chip)" draggable="false">
+      <img src="${esc(/^(https?:|\/|images\/|api\/|blob:)/.test(src) ? imgUrl(src) : '')}" alt="" referrerpolicy="no-referrer" data-color="var(--chip)" draggable="false">
       ${i === 0 ? `<span class="cover-badge">★ ${L("대표")}</span>` : `<button type="button" class="cover-set" data-cover="${i}">☆ ${L("대표로")}</button>`}
       <button type="button" class="rm" data-rmimg="${i}" aria-label="${L("빼기")}">×</button>
     </div>`).join('') + `<div class="drop" id="edDrop" tabindex="0">${L("파일 선택")}<br>${L("또는 끌어다 놓기")}</div>`;
@@ -2689,6 +2723,7 @@ async function openSettings() {
         ${item(esc(tr('langNote')) + (S.menuLang === 'en' ? '' : ' · Language'), seg('data-menu-lang', S.menuLang, [['ko', '한국어'], ['ja', '日本語'], ['en', 'English']]))}
         ${item(esc(tr('nameModeNote')), seg('data-name-mode', S.nameMode, [['both', tr('nameBoth')], ['ko', tr('nameKo')], ['ja', tr('nameJa')]]))}
         <button type="button" class="set-item set-switch" id="blurSwitch" role="switch" aria-checked="${S.coverBlur}"><div class="si-label">${L('표지 가리기')}<small>${L('표지를 흐리게 해요')}</small></div><span class="switch${S.coverBlur ? ' on' : ''}"></span></button>
+        ${window.VB_MOBILE ? `<div class="set-item"><div class="si-label">${L('표지 이 기기에 저장')}<small id="coverState">${L('한 번 받아 두면 바로 뜨고 인터넷 없이도 보여요.')}</small></div><button type="button" class="ghost-btn" id="coverPrefetch">${L('모두 받아두기')}</button></div>` : ''}
       </div>
       ${n.unsupported ? '' : `<div class="set-group-title">${L("노션 연결")}</div><div class="set-group set-pad">
         ${n.connected ? `<div class="banner ok">${L("CD LIST에 연결돼 있어요.")}</div>
@@ -2752,6 +2787,7 @@ async function openSettings() {
     dlg.querySelectorAll('[data-menu-lang]').forEach((x) => x.classList.toggle('on', x === b));
     location.reload();
   }));
+  $('coverPrefetch') && ($('coverPrefetch').onclick = () => prefetchCovers($('coverPrefetch'), $('coverState')));
   $('blurSwitch').onclick = () => { setCoverBlur(!S.coverBlur); $('blurSwitch').setAttribute('aria-checked', String(S.coverBlur)); $('blurSwitch').querySelector('.switch').classList.toggle('on', S.coverBlur); };
   dlg.querySelectorAll('[data-palette]').forEach((b) => (b.onclick = () => {
     S.palette = b.dataset.palette;
@@ -2872,7 +2908,7 @@ function openLightbox(list, i) {
   // 표지 가리기가 켜져 있으면 크게 보기에서도 흐리게 보이고, 한 번 누르면 선명해져요.
   let revealed = !S.coverBlur;
   const show = () => {
-    dlg.innerHTML = `<button type="button" class="lb-close" data-d="0" aria-label="${L("닫기")}">✕</button><img src="${esc(list[i])}" alt="" referrerpolicy="no-referrer" class="${revealed ? '' : 'lb-blur'}">${revealed ? '' : `<div class="lb-tip">${L('눌러서 보기')}</div>`}${list.length > 1 ? `<div class="lb-nav"><button type="button" data-d="-1">${L("‹ 이전")}</button><button type="button" data-d="0">${L("닫기")}</button><button type="button" data-d="1">${L("다음 ›")}</button></div>` : ''}`;
+    dlg.innerHTML = `<button type="button" class="lb-close" data-d="0" aria-label="${L("닫기")}">✕</button><img src="${esc(imgUrl(list[i]))}" alt="" referrerpolicy="no-referrer" class="${revealed ? '' : 'lb-blur'}">${revealed ? '' : `<div class="lb-tip">${L('눌러서 보기')}</div>`}${list.length > 1 ? `<div class="lb-nav"><button type="button" data-d="-1">${L("‹ 이전")}</button><button type="button" data-d="0">${L("닫기")}</button><button type="button" data-d="1">${L("다음 ›")}</button></div>` : ''}`;
   };
   show();
   dlg.onclick = (e) => {
