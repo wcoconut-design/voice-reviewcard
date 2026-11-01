@@ -131,7 +131,9 @@ export function normalizeWork(w = {}) {
     orderNo: str(w.orderNo), // 영수증 주문번호 (같은 주문을 두 번 넣지 않게)
     pointsUsed: money(w.pointsUsed),
     // 작품이 아닌 기록: 'other' = 만화 등 기타 구매, 'points' = 포인트 충전. 목록·통계·노션에는 안 나와요.
-    entryType: ['other', 'points'].includes(str(w.entryType)) ? str(w.entryType) : '',
+    // 'extra' = 같은 작품을 다른 곳에서 또 산 기록 (parentId 작품에 붙어 보이고 지출에만 들어가요)
+    entryType: ['other', 'points', 'extra'].includes(str(w.entryType)) ? str(w.entryType) : '',
+    parentId: str(w.parentId),
     workKind: str(w.workKind), // DLsite 작품 종류 (음성, 만화…)
     packCode: str(w.packCode), // 팩으로 산 작품: 영수증의 팩 코드 (다음에 같은 팩이 나오면 자동 연결)
     packTitle: str(w.packTitle),

@@ -588,10 +588,11 @@ function renderHome() {
   const review = toReview ? `<button type="button" class="hm-card hm-row" data-home="toreview"><span><span class="hm-row-t">${L('감상 안 쓴 작품')} <b>${toReview.toLocaleString()}</b></span><span class="hm-row-s">${L('들은 뒤 감상이 비어 있어요')}</span></span><span class="hm-go">${L('쓰기')} ›</span></button>` : '';
   // 이번 달 요약 (지출은 음성 작품만, 가장 많이 쓴 통화로)
   const monthBuys = S.works.filter((w) => (w.purchaseDate || '').startsWith(ym));
+  const monthExtra = S.others.filter((w) => w.entryType === 'extra' && (w.purchaseDate || '').startsWith(ym));
   const curN = new Map();
   for (const w of monthBuys) if ((w.paidPrice ?? w.listPrice) != null) curN.set(w.currency || 'JPY', (curN.get(w.currency || 'JPY') || 0) + 1);
   const cur = [...curN].sort((a, b) => b[1] - a[1])[0]?.[0] || 'JPY';
-  const spend = monthBuys.filter((w) => (w.currency || 'JPY') === cur).reduce((a, w) => a + (w.paidPrice ?? w.listPrice ?? 0), 0);
+  const spend = [...monthBuys, ...monthExtra].filter((w) => (w.currency || 'JPY') === cur).reduce((a, w) => a + (w.paidPrice ?? w.listPrice ?? 0), 0);
   const kpi = (key, label, value) => `<button type="button" class="hm-kpi" data-home="${key}"><span>${label}</span><b>${value}</b></button>`;
   const month = `<section class="hm-sec"><div class="hm-h"><h2>${L('이번 달')}</h2></div><div class="hm-kpis">
     ${kpi('spend', L('지출'), (CUR_SIGN[cur] || '') + spend.toLocaleString())}${kpi('recent', L('새로 산'), monthBuys.length.toLocaleString())}${kpi('listened', L('들음'), listened.toLocaleString())}</div></section>`;
@@ -1276,7 +1277,19 @@ function purchaseHtml(w) {
     ${strike}${strike ? '<span class="buy-arrow">→</span>' : ''}${paid != null ? `<strong>${esc(money(paid, cur))}</strong>` : ''}
     ${tag}
     ${off ? `<span class="buy-off">${off}${L("% 할인")}</span>` : ''}
-    ${w.couponMemo ? `<span class="buy-memo">${esc(w.couponMemo)}</span>` : ''}</div>`;
+    ${w.couponMemo ? `<span class="buy-memo">${esc(w.couponMemo)}</span>` : ''}</div>${extraBuysHtml(w)}`;
+}
+// 같은 작품을 다른 곳에서 또 산 기록 (영수증 가져오기 → '같은 작품의 추가 구매')
+function extraBuysHtml(w) {
+  return S.others.filter((x) => x.entryType === 'extra' && x.parentId === w.id).sort((a, b) => String(a.purchaseDate).localeCompare(String(b.purchaseDate))).map((x) => {
+    const cur = x.currency, sale = x.salePrice ?? x.listPrice, paid = x.paidPrice ?? sale;
+    return `<div class="buy-line buy-extra"><span class="rec-label">${L('추가 구매')}</span><span class="chip chip-extra">${L('추가 구매')}</span>
+      ${x.purchaseDate ? `<span>${esc(x.purchaseDate)}</span>` : ''}${x.store ? `<span class="chip">${esc(x.store)}</span>` : ''}
+      ${sale != null && paid != null && paid < sale ? `<s class="buy-strike">${esc(money(sale, cur))}</s><span class="buy-arrow">→</span>` : ''}${paid != null ? `<strong>${esc(money(paid, cur))}</strong>` : ''}
+      ${x.couponType && x.couponValue ? `<span class="chip chip-cp">${x.couponType === 'pct' ? `${x.couponValue}% ${L('쿠폰')}` : `${esc(money(x.couponValue, cur))} ${L('쿠폰')}`}</span>` : ''}
+      ${x.couponMemo ? `<span class="buy-memo">${esc(x.couponMemo)}</span>` : ''}
+      <button type="button" class="od-rm" data-act="rmextra" data-extra="${esc(x.id)}" aria-label="${L('이 추가 구매 지우기')}">×</button></div>`;
+  }).join('');
 }
 
 // 상세 화면 버튼들
@@ -1284,6 +1297,11 @@ $('detail').addEventListener('click', async (e) => {
   const t = e.target.closest('button, img, [data-act]');
   if (!t || !S.detail) return;
   const w = S.detail;
+  if (t.dataset.act === 'rmextra') {
+    if (!confirm(L('이 추가 구매 기록을 지울까요? 작품은 그대로 있어요.'))) return;
+    try { await api('api/works/' + encodeURIComponent(t.dataset.extra), { method: 'DELETE' }); await load(); } catch (err) { fail(err); }
+    return;
+  }
   if (t.dataset.star) {
     const n = Number(t.dataset.star);
     return save(w.id, { rating: n === w.rating ? 0 : n });
@@ -2356,8 +2374,10 @@ async function openReceiptImport() {
         it.workId = w?.id || '';
         it.workTitle = w ? displayTitle(w) : '';
         it.hasBuy = !!(w && w.purchaseDate && w.orderNo !== o.orderNo);
+        it.otherStore = !!(w && it.hasBuy && w.store && w.store !== o.store);
         if (it.target) continue;
-        it.target = w ? (it.hasBuy ? 'skip' : 'work') : 'ask';
+        // 이미 다른 곳(DLsite 등)에서 산 기록이 있으면 '추가 구매'로, 같은 곳이면 건너뛰기
+        it.target = w ? (it.hasBuy ? (it.otherStore ? 'extra' : 'skip') : 'work') : 'ask';
       }
     }
     guessTargets();
@@ -2406,7 +2426,7 @@ async function openReceiptImport() {
     const opts = it.bonus && (it.workId || it.addTo)
       ? [['addon', L('본편에 더하기 (특전)')], ...(it.workId ? [['work', L('이 작품에 넣기')]] : []), ['skip', L('건너뛰기')]]
       : it.workId
-      ? [['work', linked ? L('연결한 작품에 넣기') : L('이 작품에 넣기')], ...(linked ? [['unlink', L('연결 끊기')]] : []), ['skip', L('건너뛰기')]]
+      ? [['work', linked ? L('연결한 작품에 넣기') : L('이 작품에 넣기')], ['extra', L('같은 작품의 추가 구매로 기록')], ...(linked ? [['unlink', L('연결 끊기')]] : []), ['skip', L('건너뛰기')]]
       : [['ask', L('— 고르기 —')], ['new', L('새 음성 작품으로 추가')], ['pick', L('앱의 다른 작품에 넣기 (찾기)')], ['pack', L('팩 → 앱의 여러 작품에 나누기')], ['other', L('기타 구매 (만화 등)')], ['skip', L('건너뛰기')]];
     const sel = `<select class="rc-sel" data-o="${oi}" data-i="${ii}">${opts.map(([v, l]) => `<option value="${v}"${it.target === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
     if (it.target === 'pack') {
@@ -2462,7 +2482,7 @@ async function openReceiptImport() {
               <span class="rc-tot">${money(o.subtotal, 'JPY')}${o.coupon ? ` − ${o.pct.text} ${L('쿠폰')} ${money(o.coupon, 'JPY')}` : ''} = <strong>${money(o.paid, 'JPY')}</strong>${o.points ? ` <span class="muted">(${L('포인트')} ${money(o.points, 'JPY')})</span>` : ''}</span></div>
             ${o.free && !o.done ? `<p class="note">${L('무료 주문이에요. 넣고 싶은 작품만 \'새 음성 작품으로 추가\'로 골라 주세요.')}</p>` : ''}
             ${o.done ? `<p class="note">${L('이미 넣은 주문이에요.')}</p>` : o.items.map((it, ii) => `<div class="rc-item${it.target === 'skip' ? ' is-skip' : ''}">
-                <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : it.guess ? ` · ${L('자동 선택')}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}` : ''}</small>${it.target === 'addon' && it.workTitle ? `<small class="rc-link">↳ ${L('특전')} → ${L('본편')}: ${esc(it.workTitle)}${it.addTo && !it.workId ? ` (${L('이번에 새로 넣는 작품')})` : ''}</small>` : ''}${it.target === 'pack' && it.pack?.length ? `<small class="rc-link">↳ ${L('팩')} → ${it.pack.length}${L('개 작품')}</small>` : ''}${(it.edition || it.picked) && it.workId ? `<small class="rc-link">↳ ${it.edition ? `${esc(it.edition)} → ${L('일본판')}: ` : ''}${esc(it.workTitle)}</small>` : ''}</span>
+                <span class="rc-title">${it.workId ? '<span class="rc-ok">✓</span>' : ''}${esc(it.title)} <small class="muted">${esc(it.code)}${it.kind ? ` · ${esc(it.kind)}` : it.guess ? ` · ${L('자동 선택')}` : ''}${it.hasBuy ? ` · ${L('구매 정보 있음')}${it.otherStore ? ` (${esc(S.works.find((x) => x.id === it.workId)?.store || '')})` : ''}` : ''}</small>${it.target === 'addon' && it.workTitle ? `<small class="rc-link">↳ ${L('특전')} → ${L('본편')}: ${esc(it.workTitle)}${it.addTo && !it.workId ? ` (${L('이번에 새로 넣는 작품')})` : ''}</small>` : ''}${it.target === 'pack' && it.pack?.length ? `<small class="rc-link">↳ ${L('팩')} → ${it.pack.length}${L('개 작품')}</small>` : ''}${(it.edition || it.picked) && it.workId ? `<small class="rc-link">↳ ${it.edition ? `${esc(it.edition)} → ${L('일본판')}: ` : ''}${esc(it.workTitle)}</small>` : ''}</span>
                 <span class="rc-price">${money(it.price, 'JPY')} → <strong>${money(o.shares[ii], 'JPY')}</strong></span>
                 ${tSel(oi, ii, it)}</div>`).join('')}
           </div>`;
@@ -2503,6 +2523,7 @@ async function openReceiptImport() {
     st.busy = true; render();
     let n = 0, newN = 0, otherN = 0, pointsN = 0;
     const addons = [], made = new Map(), latest = new Map();
+    let extraN = 0;
     const note = (o, multi, price) => [multi ? `묶음 ${o.items.length}개 ${money(o.paid, 'JPY')}` : `할인가 ${money(price, 'JPY')}`, o.pct.num ? `${o.pct.text.replace(L('약') + ' ', '약 ')} 쿠폰` : '', o.points ? `포인트 ${money(o.points, 'JPY')}` : '', `주문 ${o.orderNo}`].filter(Boolean).join(' · ');
     try {
       for (const o of st.orders) {
@@ -2511,7 +2532,7 @@ async function openReceiptImport() {
           await api('api/works', { body: { entryType: 'points', title: `ポイント購入 ${o.pointAmount.toLocaleString()}`, purchaseDate: o.date, store: 'DLsite', paidPrice: o.pointAmount, orderNo: o.orderNo, paidManual: true } });
           pointsN++; continue;
         }
-        const appCount = o.items.reduce((a, it) => a + (it.target === 'pack' ? (it.pack || []).length : ['work', 'new', 'other'].includes(it.target) ? 1 : 0), 0);
+        const appCount = o.items.reduce((a, it) => a + (it.target === 'pack' ? (it.pack || []).length : ['work', 'new', 'other', 'extra'].includes(it.target) ? 1 : 0), 0);
         const multi = o.items.filter((it) => it.target !== 'addon').length > 1 || o.items.some((it) => it.target === 'pack');
         o.items.forEach((it, i) => { if (it.target === 'addon') addons.push({ o, it, share: o.shares[i] }); });
         const common = { purchaseDate: o.date, store: o.store || 'DLsite', currency: '', couponType: o.pct.num ? 'pct' : '', couponValue: o.pct.num || null, paidManual: true, orderNo: o.orderNo, pointsUsed: o.points || null, couponMemo: o.points ? `포인트 ${money(o.points, 'JPY')}` : '',
@@ -2542,6 +2563,10 @@ async function openReceiptImport() {
             latest.set(it.workId, await api('api/works/' + encodeURIComponent(it.workId), { method: 'PATCH', body })); n++;
           } else if (it.target === 'new') {
             made.set(it, await api('api/works', { body: { ...body, title: look?.title || it.title, code: it.code, url: it.code ? dlUrl(it.code) : '', circle: look?.circle || '', actor: withKnownNames(splitNames(look?.actor || it.actor || ''), 'actor').join(', '), date: look?.date || '', images: look?.images || [], listPrice: look?.listPrice ?? null, workKind: look?.workKind || '' } })); n++; newN++;
+          } else if (it.target === 'extra') {
+            // 같은 작품을 다른 곳에서 또 산 기록: 작품은 그대로 두고 구매만 따로 남겨요.
+            const w = S.works.find((x) => x.id === it.workId);
+            await api('api/works', { body: { ...body, entryType: 'extra', parentId: it.workId, title: w ? (w.title || displayTitle(w)) : it.title, code: w?.code || it.code, workKind: '음성', listPrice: null } }); n++; extraN++;
           } else if (it.target === 'other') {
             await api('api/works', { body: { ...body, entryType: 'other', title: it.title, code: it.code, workKind: it.kind || look?.workKind || '', listPrice: look?.listPrice ?? null } }); otherN++;
           }
@@ -2562,7 +2587,7 @@ async function openReceiptImport() {
       }
       await load();
       dlg.close();
-      toast([n ? L('작품 {n}개에 넣었어요', { n }) : '', addN ? L('특전 {n}개는 본편에 더했어요', { n: addN }) : '', newN ? L('새 작품 {n}개', { n: newN }) : '', otherN ? L('기타 구매 {n}개', { n: otherN }) : '', pointsN ? L('포인트 충전 {n}건', { n: pointsN }) : ''].filter(Boolean).join(' · '));
+      toast([n ? L('작품 {n}개에 넣었어요', { n }) : '', addN ? L('특전 {n}개는 본편에 더했어요', { n: addN }) : '', newN ? L('새 작품 {n}개', { n: newN }) : '', extraN ? L('추가 구매 {n}개', { n: extraN }) : '', otherN ? L('기타 구매 {n}개', { n: otherN }) : '', pointsN ? L('포인트 충전 {n}건', { n: pointsN }) : ''].filter(Boolean).join(' · '));
       if (S.nav === 'stats') renderStats();
     } catch (e) { st.busy = false; fail(e); render(); }
   }
@@ -2628,10 +2653,10 @@ async function openReceiptImport() {
 }
 // 영수증에서 가져온 주문: 같은 주문의 작품·기타 구매와 금액을 보여줘요.
 function openReceiptOrder(w) {
-  const items = [...S.works, ...S.others].filter((x) => x.orderNo === w.orderNo && !x.entryType || x.orderNo === w.orderNo && x.entryType === 'other');
+  const items = [...S.works, ...S.others].filter((x) => x.orderNo === w.orderNo && (!x.entryType || x.entryType === 'other' || x.entryType === 'extra'));
   const total = items.reduce((a, x) => a + (x.paidPrice ?? 0), 0);
   openActions([
-    ...items.map((x) => ({ label: `${x.entryType ? `[${x.workKind || L('기타')}] ` : ''}${displayTitle(x).slice(0, 26)} · ${money(x.salePrice, 'JPY')} → ${money(x.paidPrice, 'JPY')}`, run: () => { if (!x.entryType) select(x.id); } })),
+    ...items.map((x) => ({ label: `${x.entryType === 'extra' ? `[${L('추가 구매')}] ` : x.entryType ? `[${x.workKind || L('기타')}] ` : ''}${displayTitle(x).slice(0, 26)} · ${money(x.salePrice, 'JPY')} → ${money(x.paidPrice, 'JPY')}`, run: () => { if (!x.entryType) select(x.id); else if (x.entryType === 'extra') select(x.parentId); } })),
     { label: `${L('주문')} ${w.orderNo} · ${L('합계')} ${money(w.orderTotal ?? total, 'JPY')}${w.pointsUsed ? ` · ${L('포인트')} ${money(w.pointsUsed, 'JPY')}` : ''}`, run: () => {} },
   ]);
 }
@@ -3126,7 +3151,8 @@ function renderSpend() {
   const hasBuy = (w) => w.purchaseDate && (w.paidPrice ?? w.listPrice) != null;
   // 위쪽 숫자와 막대는 음성 작품만. '기타 구매 포함'을 켜면 만화 등도 더해요. 포인트 충전은 따로 보여줘요.
   const otherBuys = S.others.filter((w) => w.entryType === 'other' && hasBuy(w));
-  const bought = [...S.works.filter(hasBuy), ...(S.spendOthers ? otherBuys : [])];
+  const extraBuys = S.others.filter((w) => w.entryType === 'extra' && hasBuy(w)); // 같은 작품 추가 구매도 음성 지출
+  const bought = [...S.works.filter(hasBuy), ...extraBuys, ...(S.spendOthers ? otherBuys : [])];
   const charges = S.others.filter((w) => w.entryType === 'points' && w.purchaseDate);
   const curCount = new Map();
   for (const w of bought) curCount.set(w.currency || 'JPY', (curCount.get(w.currency || 'JPY') || 0) + 1);
@@ -3203,6 +3229,7 @@ function renderSpend() {
               return `<button type="button" class="spend-row" data-open-order="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title"><span class="chip chip-order">${L('묶음')} ${grp.length}${L('개')}</span> ${esc(displayTitle(w))}${grp.length > 1 ? ` ${L('외')} ${grp.length - 1}` : ''}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(sum, cur)}</span></button>`;
             }
             const cp = w.couponType && w.couponValue ? (w.couponType === 'pct' ? `${w.couponValue}% ${L('쿠폰')}` : `${money(w.couponValue, cur)} ${L('쿠폰')}`) : '';
+            if (w.entryType === 'extra') return `<button type="button" class="spend-row" data-open-work="${esc(w.parentId)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title"><span class="chip chip-kind">${L('추가 구매')}</span> ${esc(w.title)}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(paidOf(w), cur)}</span></button>`;
             if (w.entryType) return `<button type="button" class="spend-row" data-other="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title"><span class="chip chip-kind">${esc(w.workKind || L('기타'))}</span> ${esc(w.title)}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(paidOf(w), cur)}</span></button>`;
             return `<button type="button" class="spend-row" data-open-work="${esc(w.id)}"><span class="sr-date">${esc(w.purchaseDate.slice(5))}</span><span class="sr-title">${esc(displayTitle(w))}${cp ? ` <small class="sr-cp">${cp}</small>` : ''}</span><span class="sr-store">${esc(w.store)}</span><span class="sr-price">${money(paidOf(w), cur)}</span></button>`;
           }).join('');

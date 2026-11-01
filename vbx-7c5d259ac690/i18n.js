@@ -681,4 +681,9 @@ window.VB_I18N = {
   "DLsite 구매 명세, 포케도라·애니메이트 주문 메일 본문을 통째로 복사해서 붙여넣어요. 여러 통을 이어 붙여도 돼요.": ["Copy and paste the whole body of a DLsite purchase statement or a Pocket Drama CD / animate order email. You can paste several emails together.", "DLsiteの購入明細、ポケドラ・アニメイトの注文メールの本文をまるごと貼り付けます。複数通をつなげても大丈夫です。"],
   "DLsite·포케도라·애니메이트 구매 메일로 구매 정보를 한 번에 넣어요": ["Add purchase info from DLsite, Pocket Drama CD or animate emails", "DLsite・ポケドラ・アニメイトの購入メールで購入情報をまとめて入力"],
   "무료 주문이에요. 넣고 싶은 작품만 '새 음성 작품으로 추가'로 골라 주세요.": ["This is a free order. Choose 'Add as new voice work' only for works you want to add.", "無料の注文です。追加したい作品だけ「新しい音声作品として追加」を選んでください。"],
+  "추가 구매": ["Also bought", "追加購入"],
+  "이 추가 구매 지우기": ["Delete this extra purchase", "この追加購入を削除"],
+  "이 추가 구매 기록을 지울까요? 작품은 그대로 있어요.": ["Delete this extra purchase record? The work stays.", "この追加購入の記録を削除しますか？作品はそのままです。"],
+  "같은 작품의 추가 구매로 기록": ["Record as another purchase of this work", "同じ作品の追加購入として記録"],
+  "추가 구매 {n}개": ["{n} extra purchases", "追加購入 {n}件"],
 };

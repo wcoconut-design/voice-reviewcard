@@ -1101,3 +1101,5 @@ body.home-mode .main-head { display: none; }
 .rc-date-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 2px; font-size: 13px; }
 .rc-date-row .rc-date { width: auto; height: 34px; }
 .rc-need { color: var(--danger); font-size: 12px; }
+.buy-extra { margin-top: 4px; } .buy-extra .rec-label { color: var(--accent); } .buy-extra .od-rm { margin-left: auto; }
+.chip-extra { background: var(--accent); color: var(--on-accent); font-weight: 600; } @media (min-width: 761px) { .buy-extra .chip-extra { display: none; } }
