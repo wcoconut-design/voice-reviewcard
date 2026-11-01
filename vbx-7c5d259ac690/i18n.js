@@ -678,4 +678,6 @@ window.VB_I18N = {
   "본편": ["Main work", "本編"],
   "이번에 새로 넣는 작품": ["added in this import", "今回追加する作品"],
   "특전 {n}개는 본편에 더했어요": ["Added {n} bonus items to their main works", "特典{n}件は本編に加えました"],
+  "DLsite 구매 명세, 포케도라·애니메이트 주문 메일 본문을 통째로 복사해서 붙여넣어요. 여러 통을 이어 붙여도 돼요.": ["Copy and paste the whole body of a DLsite purchase statement or a Pocket Drama CD / animate order email. You can paste several emails together.", "DLsiteの購入明細、ポケドラ・アニメイトの注文メールの本文をまるごと貼り付けます。複数通をつなげても大丈夫です。"],
+  "DLsite·포케도라·애니메이트 구매 메일로 구매 정보를 한 번에 넣어요": ["Add purchase info from DLsite, Pocket Drama CD or animate emails", "DLsite・ポケドラ・アニメイトの購入メールで購入情報をまとめて入力"],
 };

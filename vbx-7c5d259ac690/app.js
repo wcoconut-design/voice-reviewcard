@@ -2251,7 +2251,7 @@ function parseReceipts(text) {
   });
   return [...orders, ...parsePokedora(src)];
 }
-// 포케도라(ポケットドラマCD) 주문 메일: ●ご注文番号 / 商品名: … 単価：…円 / 商品合計·クーポン利用
+// 포케도라(ポケットドラマCD)·애니메이트 주문 메일: ●ご注文番号 / 商品名 … 単価(포케도라) 또는 金額(애니메이트)
 // 작품 코드가 없어서 제목으로 찾고, 0円 트랙 목록은 빼요. 메일 본문에 날짜가 없으면 직접 넣어요.
 function parsePokedora(src) {
   const starts = [...src.matchAll(/●\s*ご注文番号\s*\n\s*(\d{4,})/g)];
@@ -2260,9 +2260,10 @@ function parsePokedora(src) {
   starts.forEach((m, i) => {
     const block = src.slice(m.index, i + 1 < starts.length ? starts[i + 1].index : src.length);
     const before = src.slice(Math.max(0, (i ? starts[i - 1].index + 30 : 0), m.index - 800), m.index);
-    const o = { orderNo: 'PD-' + m[1], date: dateIn(block) || dateIn(before), items: [], subtotal: 0, points: 0, coupon: 0, total: 0, pointAmount: 0, kind: 'works', store: '포케도라' };
+    const animate = !/単価\s*[：:]/.test(block) && /金額\s*[：:]/.test(block);
+    const o = { orderNo: (animate ? 'AN-' : 'PD-') + m[1], date: dateIn(block) || dateIn(before), items: [], subtotal: 0, points: 0, coupon: 0, total: 0, pointAmount: 0, kind: 'works', store: animate ? '애니메이트' : '포케도라' };
     o.needDate = !o.date;
-    for (const it of block.matchAll(/商品名\s*[：:]\s*([^\n]+?)\s*\n\s*単価\s*[：:]\s*([\d,]+)\s*円/g)) {
+    for (const it of block.matchAll(/商品名\s*[：:]\s*([^\n]+?)\s*\n\s*(?:単価|金額)\s*[：:]\s*([\d,]+)\s*円/g)) {
       const price = yenNum(it[2]);
       if (!price) continue; // 0円 = 트랙 목록
       const raw = it[1].replace(/\s+/g, ' ').trim();
@@ -2273,8 +2274,11 @@ function parsePokedora(src) {
     }
     const num = (re) => { const x = block.match(re); return x ? yenNum(x[1]) : 0; };
     o.subtotal = num(/商品合計[^:\n：]*[：:]\s*([\d,]+)\s*円/) || o.items.reduce((a, x) => a + x.price, 0);
-    o.coupon = num(/クーポン利用\s*[：:]\s*([\d,]+)\s*円/);
-    o.points = num(/ポイント利用\s*[：:]\s*([\d,]+)\s*ポイント/);
+    o.coupon = num(/クーポン(?:利用|割引)\s*[：:]\s*-?\s*([\d,]+)\s*円/);
+    o.points = num(/ポイント利用\s*[：:]\s*([\d,]+)\s*(?:ポイント|pt|円)/i);
+    // 애니메이트: 할인 줄이 따로 없어도 'お支払い金額'과 차이로 할인을 계산해요. (포인트로 낸 몫은 지출로 쳐요)
+    const pay = num(/お支払い?金額\s*[：:]\s*([\d,]+)\s*円/);
+    if (animate && pay && !o.coupon && pay + o.points < o.subtotal) o.coupon = o.subtotal - pay - o.points;
     if (o.items.length) out.push(o);
   });
   return out;
@@ -2432,7 +2436,7 @@ async function openReceiptImport() {
     const pos = dlg.querySelector('.m-body')?.scrollTop || 0;
     let body;
     if (st.step === 'paste') {
-      body = `<p class="note">${L('DLsite 구매 명세 메일이나 포케도라 주문 메일 본문을 통째로 복사해서 붙여넣어요. 여러 통을 이어 붙여도 돼요.')}</p>
+      body = `<p class="note">${L('DLsite 구매 명세, 포케도라·애니메이트 주문 메일 본문을 통째로 복사해서 붙여넣어요. 여러 통을 이어 붙여도 돼요.')}</p>
         <textarea class="input rc-text" id="rcText" placeholder="2026年10月3日&#10;作品購入&#10;注文番号：PTA0I…&#10;購入日時：2026/10/03 00:57&#10;…"></textarea>
         ${st.msg ? `<p class="note rc-msg">${esc(st.msg)}</p>` : ''}`;
     } else {
@@ -2505,7 +2509,7 @@ async function openReceiptImport() {
         const multi = o.items.filter((it) => it.target !== 'addon').length > 1 || o.items.some((it) => it.target === 'pack');
         o.items.forEach((it, i) => { if (it.target === 'addon') addons.push({ o, it, share: o.shares[i] }); });
         const common = { purchaseDate: o.date, store: o.store || 'DLsite', currency: '', couponType: o.pct.num ? 'pct' : '', couponValue: o.pct.num || null, paidManual: true, orderNo: o.orderNo, pointsUsed: o.points || null, couponMemo: o.points ? `포인트 ${money(o.points, 'JPY')}` : '',
-          orderId: multi ? (o.store === '포케도라' ? 'pd-' : 'dl-') + o.orderNo : '', orderType: multi ? (o.pct.num ? 'pct' : '') : '', orderValue: multi ? o.pct.num || null : null, orderTotal: multi ? o.paid : null, orderCount: multi ? appCount : 0 };
+          orderId: multi ? ({ '포케도라': 'pd-', '애니메이트': 'an-' }[o.store] || 'dl-') + o.orderNo : '', orderType: multi ? (o.pct.num ? 'pct' : '') : '', orderValue: multi ? o.pct.num || null : null, orderTotal: multi ? o.paid : null, orderCount: multi ? appCount : 0 };
         for (let i = 0; i < o.items.length; i++) {
           const it = o.items[i];
           if (it.target === 'addon') continue;
@@ -2673,7 +2677,7 @@ async function openSettings() {
       </div></div>
       <div class="set-group-title">${L("정리")}</div>
       <div class="set-group">
-        <button type="button" class="set-item set-link" id="openReceipts"><div class="si-label">${L("영수증 메일 가져오기")}<small>${L("DLsite·포케도라 구매 메일로 구매 정보를 한 번에 넣어요")}</small></div><span class="si-go">›</span></button>
+        <button type="button" class="set-item set-link" id="openReceipts"><div class="si-label">${L("영수증 메일 가져오기")}<small>${L("DLsite·포케도라·애니메이트 구매 메일로 구매 정보를 한 번에 넣어요")}</small></div><span class="si-go">›</span></button>
         <button type="button" class="set-item set-link" id="openDupes"><div class="si-label">${L("중복 작품 합치기")}<small>${L("같은 작품 코드가 두 번 있으면 구매 정보는 옮기고 하나로 합쳐요")}</small></div><span class="si-go">›</span></button>
         <button type="button" class="set-item set-link" id="openNames"><div class="si-label">${L("성우·서클 이름 정리")}<small>${L("한글 읽기를 한 번에 붙이거나 고쳐요")}</small></div><span class="si-go">›</span></button>
       </div>
