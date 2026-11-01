@@ -16,7 +16,7 @@ const S = {
   introMode: 'translation',
   view: 'list',       // list | grid (표지 보기)
   showHidden: false,  // 숨긴 작품도 목록에 보기
-  nameMode: 'auto',   // 성우 이름: auto(메뉴 언어 따라) | both | ja | ko | jaen | en
+  nameMode: 'both',   // 성우 이름: both(일본어+한국어) | ko | ja
   menuLang: 'ko',     // 메뉴 이름: ko | en | ja
   theme: 'system',    // 화면 모드: system | light | dark
   palette: 'indigo',  // 색 테마: indigo | green | mono
@@ -31,7 +31,7 @@ try {
   const p = JSON.parse(localStorage.getItem('voicebox.view') || '{}');
   if (p.view) S.view = p.view;
   S.showHidden = !!p.showHidden;
-  if (['auto', 'both', 'ja', 'ko', 'jaen', 'en'].includes(p.nameMode)) S.nameMode = p.nameMode;
+  if (['both', 'ja', 'ko'].includes(p.nameMode)) S.nameMode = p.nameMode; // 예전 '자동'·영어 설정은 일본어+한국어로
   if (['en', 'ja'].includes(p.menuLang)) S.menuLang = p.menuLang;
   if (['light', 'dark'].includes(p.theme)) S.theme = p.theme;
   if (['green', 'mono'].includes(p.palette)) S.palette = p.palette;
@@ -2173,7 +2173,7 @@ async function openNames(tab = 'missing') {
       <div class="m-body">
         ${fix.length ? `<div class="nm-fix"><span>${L('노션의 성우·서클 이름 {n}개를 앱과 맞출 수 있어요.', { n: fix.length })}</span><button type="button" class="primary-btn" id="nmFix">${L('맞추기')}</button></div>` : ''}
         ${tab === 'missing' && known.length ? `<div class="nm-fix"><span>${L('일본어만 적힌 이름 {n}개는 다른 작품에 한국어 읽기가 있어요. (작품 {m}개)', { n: known.length, m: known.reduce((a, x) => a + x.n, 0) })}</span><button type="button" class="primary-btn" id="nmKnown">${L('한꺼번에 붙이기')}</button></div>` : ''}
-        <div class="seg nm-tabs">${[['missing', L('한글 없음') + ' ' + missingN], ['actor', L('성우 전체')], ['en', L('영어 표기')], ['circle', L('서클')]].map(([k, l]) => `<button type="button" data-nmtab="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <div class="seg nm-tabs">${[['missing', L('한글 없음') + ' ' + missingN], ['actor', L('성우 전체')], ['circle', L('서클')]].map(([k, l]) => `<button type="button" data-nmtab="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <input class="input" id="nmSearch" placeholder="${L('이름 찾기')}" value="${esc(q)}" autocomplete="off">
         <p class="note">${tab === 'missing' ? L('한글 읽기를 쓰고 Enter → 그 이름이 들어간 작품이 모두 바뀌어요.') : tab === 'en' ? L('영어 표기를 쓰고 Enter → 이름 표시가 \'일본어 + 영어\'나 \'영어만\'일 때 보여요. (이 기기에 저장)') : L('이름을 고치고 Enter → 그 이름이 들어간 작품이 모두 바뀌어요.')}</p>
         <div class="nm-list">${shown.map((x) => `<div class="nm-row" data-name="${esc(x.name)}">
@@ -2686,8 +2686,8 @@ async function openSettings() {
       <div class="set-group">
         ${item(esc(tr('paletteNote')), seg('data-palette', S.palette, [['indigo', tr('palIndigo'), '<i class="pal-dot" style="background:#3443C4"></i>'], ['green', tr('palGreen'), '<i class="pal-dot" style="background:#2E5A4A"></i>'], ['mono', tr('palMono'), '<i class="pal-dot" style="background:#232323"></i>']]))}
         ${item(esc(tr('modeNote')), seg('data-theme-mode', S.theme, [['system', tr('modeSystem')], ['light', tr('modeLight')], ['dark', tr('modeDark')]]))}
-        ${item(esc(tr('langNote')) + (S.menuLang === 'en' ? '' : ' · Language'), seg('data-menu-lang', S.menuLang, [['ko', '한국어'], ['en', 'English'], ['ja', '日本語']]))}
-        ${item(esc(tr('nameModeNote')), seg('data-name-mode', S.nameMode, [['auto', L('자동')], ['both', tr('nameBoth')], ['ja', tr('nameJa')], ['ko', tr('nameKo')], ['jaen', L('일본어 + 영어')], ['en', L('영어만')]]) + `<small class="muted nm-mode-note">${L('자동: 메뉴 언어가 한국어면 일본어 + 한국어, 일본어면 일본어만, 영어면 일본어 + 영어 표기')}</small>`)}
+        ${item(esc(tr('langNote')) + (S.menuLang === 'en' ? '' : ' · Language'), seg('data-menu-lang', S.menuLang, [['ko', '한국어'], ['ja', '日本語'], ['en', 'English']]))}
+        ${item(esc(tr('nameModeNote')), seg('data-name-mode', S.nameMode, [['both', tr('nameBoth')], ['ko', tr('nameKo')], ['ja', tr('nameJa')]]))}
         <button type="button" class="set-item set-switch" id="blurSwitch" role="switch" aria-checked="${S.coverBlur}"><div class="si-label">${L('표지 가리기')}<small>${L('표지를 흐리게 해요')}</small></div><span class="switch${S.coverBlur ? ' on' : ''}"></span></button>
       </div>
       ${n.unsupported ? '' : `<div class="set-group-title">${L("노션 연결")}</div><div class="set-group set-pad">
