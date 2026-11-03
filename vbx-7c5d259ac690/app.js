@@ -2133,7 +2133,42 @@ async function runSyncNow(allowDelete = false) {
     if (el) el.textContent = L('동기화 오류: ') + e.message;
   }
 }
+// ===== 사용법 (app/guide.js) =====
+function guideInline(t) {
+  return esc(t)
+    .replace(/\[(폰|PC)\]/g, (m, x) => `<span class="gd-tag gd-${x === '폰' ? 'phone' : 'pc'}">${L(x)}</span>`)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+function openGuide(sectionId) {
+  const secs = window.VB_GUIDE?.ko || [];
+  const dlg = document.createElement('dialog');
+  dlg.className = 'modal modal-wide guide-dlg';
+  document.body.appendChild(dlg);
+  dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2 tabindex="-1" autofocus>${L('사용법')}</h2><button type="button" class="close" data-close aria-label="${L('닫기')}">×</button></div>
+    <div class="m-body">
+      ${S.menuLang !== 'ko' ? `<p class="note">${L('사용법은 지금 한국어만 있어요.')}</p>` : ''}
+      <nav class="gd-toc">${secs.map((x, i) => `<button type="button" data-gd="${x.id}"><span>${i + 1}</span>${esc(x.title)}</button>`).join('')}</nav>
+      ${secs.map((x, i) => `<section class="gd-sec" id="gd-${x.id}"><h3><span class="gd-num">${i + 1}</span>${esc(x.title)}</h3>${x.lead ? `<p class="gd-lead">${guideInline(x.lead)}</p>` : ''}
+        ${x.parts.map((p) => `<div class="gd-part"><h4>${guideInline(p.h)}</h4>${p.steps.length > 1 ? `<ol>${p.steps.map((s2) => `<li>${guideInline(s2)}</li>`).join('')}</ol>` : `<p>${guideInline(p.steps[0])}</p>`}
+          ${p.tips?.length ? `<div class="gd-tips">${p.tips.map((t) => `<p>💡 ${guideInline(t)}</p>`).join('')}</div>` : ''}</div>`).join('')}
+        <button type="button" class="link-btn gd-top" data-gdtop>↑ ${L('목차로')}</button></section>`).join('')}
+    </div></div>`;
+  const body = dlg.querySelector('.m-body');
+  dlg.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) return dlg.close();
+    const b = e.target.closest('[data-gd]');
+    if (b) { const el = dlg.querySelector('#gd-' + b.dataset.gd); body.scrollTo({ top: el.offsetTop - 8, behavior: 'smooth' }); return; }
+    if (e.target.closest('[data-gdtop]')) body.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+  if (sectionId) requestAnimationFrame(() => { const el = dlg.querySelector('#gd-' + sectionId); if (el) body.scrollTop = el.offsetTop - 8; });
+}
 // ===== 되돌리기: 자동 백업(폰) · 동기화나 삭제로 지워지거나 바뀐 작품 =====
+// 기록 내역의 이유 (예전 기록은 '아이맥에서 …'로 저장돼 있어서 화면에서는 기기 이름 없이 보여줘요)
+const HIST_REASON = { '아이맥에서 삭제': '동기화로 지워짐', '아이맥에서 동기화': '동기화로 바뀜', '폰에서 삭제': '동기화로 지워짐', '폰에서 동기화': '동기화로 바뀜' };
 const RECOVER_LABEL = { '아이맥에서 삭제': '동기화로 지워짐', '폰에서 삭제': '동기화로 지워짐', '작품 삭제': '직접 지움', '아이맥에서 동기화': '동기화로 바뀜', '폰에서 동기화': '동기화로 바뀜', '백업 합치기 전': '백업 합치기로 바뀜', '되돌리기 전': '되돌리기 전 상태' };
 async function openRecover() {
   const dlg = document.createElement('dialog');
@@ -2763,6 +2798,7 @@ async function openSettings() {
     <div class="m-head"><h2 tabindex="-1" autofocus>${L("설정")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
     <div class="m-body settings-body">
       ${n.unsupported ? `<div class="set-status">${offlineStatusHtml()}<div class="note">${L("기록은 이 기기 안에 저장돼요.")}</div></div>` : ''}
+      <button type="button" class="set-item set-link set-guide" id="openGuide"><div class="si-label">📖 ${L("사용법")}<small>${L("설치·작품 넣기·영수증·백업·동기화까지 한눈에")}</small></div><span class="si-go">›</span></button>
       <div class="set-group-title">${esc(tr('viewTitle'))}</div>
       <div class="set-group">
         ${item(esc(tr('paletteNote')), seg('data-palette', S.palette, [['indigo', tr('palIndigo'), '<i class="pal-dot" style="background:#3443C4"></i>'], ['green', tr('palGreen'), '<i class="pal-dot" style="background:#2E5A4A"></i>'], ['mono', tr('palMono'), '<i class="pal-dot" style="background:#232323"></i>']]))}
@@ -2862,6 +2898,7 @@ async function openSettings() {
   };
   $('openDupes').onclick = () => { $('settings').close(); openDupes(); };
   $('openReceipts').onclick = () => openReceiptImport();
+  $('openGuide').onclick = () => openGuide();
   $('openRecover').onclick = () => openRecover();
   $('srvGuide') && ($('srvGuide').onclick = openServerGuide);
   dlg.querySelectorAll('[data-eye]').forEach((b) => (b.onclick = () => { const i = $(b.dataset.eye); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.textContent = show ? L('가리기') : L('보기'); }));
@@ -2952,7 +2989,7 @@ async function openHistory(id) {
   const item = (h) => {
     const keys = Object.keys(h.data || {}).filter((k) => FIELD_KO[k]);
     const preview = keys.slice(0, 6).map((k) => `${FIELD_KO[k]}: ${esc(String(fmt(h.data[k], k)).slice(0, 40))}`).join(' · ');
-    return `<div class="hist"><div class="hist-head"><span>${esc(h.reason)} · ${new Date(h.at).toLocaleString(LOCALE())}</span>${keys.length ? `<button type="button" class="link-btn" data-restore="${esc(h.at)}">${L("이 전 상태로 되돌리기")}</button>` : ''}</div><div class="hist-fields">${preview || L('변경 내용 없음')}</div></div>`;
+    return `<div class="hist"><div class="hist-head"><span>${esc(L(HIST_REASON[h.reason] || h.reason))} · ${new Date(h.at).toLocaleString(LOCALE())}</span>${keys.length ? `<button type="button" class="link-btn" data-restore="${esc(h.at)}">${L("이 전 상태로 되돌리기")}</button>` : ''}</div><div class="hist-fields">${preview || L('변경 내용 없음')}</div></div>`;
   };
   dlg.innerHTML = `<div class="m-body-wrap"><div class="m-head"><h2>${L("수정 이력")}</h2><button type="button" class="close" data-close aria-label="${L("닫기")}">×</button></div>
     <div class="m-body"><div class="note">${L("바뀌기 전 값으로 되돌릴 수 있어요.")}</div>${list.length ? list.map(item).join('') : `<div class="note">${L("아직 기록이 없어요.")}</div>`}</div></div>`;

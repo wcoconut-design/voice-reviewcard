@@ -711,4 +711,10 @@ window.VB_I18N = {
   "기타 구매로 옮겼어요.": ["Moved to other purchases.", "その他の購入に移しました。"],
   "음성 작품으로 되돌리기": ["Move back to voice works", "音声作品に戻す"],
   "음성 작품 목록으로 되돌렸어요.": ["Moved back to voice works.", "音声作品に戻しました。"],
+  "사용법": ["How to use", "使い方"],
+  "설치·작품 넣기·영수증·백업·동기화까지 한눈에": ["Install, adding works, receipts, backup and sync at a glance", "インストール・作品追加・領収書・バックアップ・同期をひと目で"],
+  "사용법은 지금 한국어만 있어요.": ["The guide is only in Korean for now.", "使い方は今のところ韓国語のみです。"],
+  "목차로": ["Contents", "目次へ"],
+  "폰": ["Phone", "スマホ"],
+  "PC": ["PC", "PC"],
 };

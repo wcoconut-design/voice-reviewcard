@@ -144,7 +144,7 @@ async function saveUpload(workId, blob) {
   return rel;
 }
 
-/* ---------- 동기화 상자 (아이맥과 주고받기) ---------- */
+/* ---------- 동기화 상자 (PC·다른 기기와 주고받기) ---------- */
 // 정보 채우기 서버(같은 Cloudflare Worker)에 동기화 보관함을 붙여서 써요. 설정에서 켜고 꺼요.
 // 자동 동기화는 기본으로 꺼져 있어요. ('자동으로 동기화'를 직접 켠 경우만, v2부터)
 const syncOn = () => { try { const v = JSON.parse(localStorage.getItem('voicebox.sync') || '{}'); return !!v.on && v.v === 2; } catch { return false; } };
